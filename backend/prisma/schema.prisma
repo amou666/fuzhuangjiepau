@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String           @id @default(cuid())
+  email      String           @unique
+  password   String
+  role       String           @default("CUSTOMER")
+  apiKey     String           @unique @default(cuid())
+  credits    Int              @default(0)
+  isActive   Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  tasks           GenerationTask[]
+  creditLogs      CreditLog[]
+  adminAuditLogs  AdminAuditLog[]  @relation("AdminAuditLogs")
+  targetAuditLogs AdminAuditLog[]  @relation("TargetAuditLogs")
+}
+
+model GenerationTask {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  status              String   @default("PENDING")
+  creditCost          Int
+  clothingUrl         String
+  clothingDescription String?
+  modelConfig         String
+  sceneConfig         String
+  resultUrl           String?
+  upscaledUrl         String?  // 高清放大后的图片URL
+  upscaleFactor       Int?     // 放大倍数：2 或 4
+  errorMsg            String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  finishedAt          DateTime?
+}
+
+model CreditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  delta        Int
+  balanceAfter Int
+  reason       String
+  createdAt    DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  admin        User     @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  action       String
+  targetUserId String?
+  targetUser   User?    @relation("TargetAuditLogs", fields: [targetUserId], references: [id])
+  detail       String
+  createdAt    DateTime @default(now())
+}
