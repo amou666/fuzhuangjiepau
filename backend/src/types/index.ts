@@ -21,6 +21,11 @@ export interface SceneConfig {
   mode: 'upload' | 'preset';
   imageUrl?: string;
   preset: string;
+  timeOfDay?: string;
+  lighting?: string;
+  composition?: string;
+  depthOfField?: 'shallow' | 'deep';
+  aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
   prompt: string;
 }
 

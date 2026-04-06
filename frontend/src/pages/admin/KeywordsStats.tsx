@@ -41,7 +41,7 @@ export default function KeywordsStatsPage() {
   const handleClearFilters = () => {
     setStartDate('');
     setEndDate('');
-    setTimeout(() => loadData(), 100);
+    loadData();
   };
 
   const getTypeColor = (type: string) => {

@@ -47,7 +47,7 @@ export default function RevenuePage() {
   const handleClearFilters = () => {
     setStartDate('');
     setEndDate('');
-    setTimeout(() => loadData(), 100);
+    loadData();
   };
 
   const maxDailyRevenue = data?.dailyRevenue

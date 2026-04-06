@@ -33,23 +33,8 @@ const upload = multer({
 
 const handleSingleUpload = upload.single('image');
 
-router.post('/image', (req, res) => {
-  handleSingleUpload(req, res, (error) => {
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({ message: `图片大小不能超过 ${config.maxUploadSizeMb}MB` });
-        return;
-      }
-
-      res.status(400).json({ message: invalidImageMessage });
-      return;
-    }
-
-    if (error) {
-      res.status(500).json({ message: '图片上传失败，请稍后重试' });
-      return;
-    }
-
+router.post('/image', handleSingleUpload, (req, res) => {
+  try {
     if (!req.file) {
       res.status(400).json({ message: '请上传图片文件' });
       return;
@@ -59,7 +44,9 @@ router.post('/image', (req, res) => {
       url: toPublicFileUrl(`uploads/${req.file.filename}`, req),
       filename: req.file.filename,
     });
-  });
+  } catch (err) {
+    res.status(500).json({ message: '图片上传失败，请稍后重试' });
+  }
 });
 
 export default router;

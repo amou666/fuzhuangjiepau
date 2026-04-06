@@ -76,10 +76,11 @@ export class AIService {
         return `reference model from ${modelConfig.imageUrl}, ${modelConfig.gender}, ${modelConfig.bodyType}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
       }
 
-      return this.analyzeImage(
+      const facialDescription = await this.analyzeImage(
         modelConfig.imageUrl,
-        'Describe the person in concise English for fashion image generation. Focus on gender presentation, hair, face impression, body type, pose and expression. Ignore the background and clothing details unless they affect body silhouette. Return one sentence only.',
+        'Describe ONLY the facial features (face shape, eyes, nose, mouth), hair style and color, skin tone, and body type. DO NOT describe pose, gesture, expression, or lighting. Return one sentence only.',
       );
+      return `${facialDescription}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
     }
 
     return `a ${modelConfig.gender} model with ${modelConfig.skinTone} skin tone, ${modelConfig.bodyType} body type, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
@@ -97,18 +98,73 @@ export class AIService {
       );
     }
 
-    const prompt = sceneConfig.prompt ? ` with ${sceneConfig.prompt}` : '';
-    return `${sceneConfig.preset}${prompt}`;
+    // 构建场景描述，包含预设、时段、光照、构图等信息
+    const parts: string[] = [sceneConfig.preset];
+    
+    if (sceneConfig.timeOfDay) {
+      parts.push(sceneConfig.timeOfDay);
+    }
+    
+    if (sceneConfig.lighting) {
+      parts.push(sceneConfig.lighting);
+    }
+    
+    if (sceneConfig.composition) {
+      parts.push(sceneConfig.composition);
+    }
+    
+    if (sceneConfig.prompt) {
+      parts.push(sceneConfig.prompt);
+    }
+    
+    return parts.join(', ');
   }
 
-  static buildStreetFashionPrompt(clothingDescription: string, modelDescription: string, sceneDescription: string) {
+  static buildStreetFashionPrompt(
+    clothingDescription: string,
+    modelDescription: string,
+    sceneDescription: string,
+    depthOfField?: 'shallow' | 'deep',
+    aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9',
+  ) {
+    // 根据景深选项生成不同的效果描述
+    let depthEffect: string;
+    let avoidTerms: string;
+
+    if (depthOfField === 'deep') {
+      // 深景深：强调背景清晰、细节丰富
+      depthEffect =
+        'deep depth of field, sharp focus throughout the entire image, background fully in focus with crisp details, high resolution background, no background blur, clear background details, f/16 aperture effect';
+      avoidTerms =
+        'Avoid illustration style, extra limbs, warped hands, distorted clothing structure, duplicated accessories, text overlays, AI artifacts, background blur, bokeh effect, shallow depth of field, out of focus background';
+    } else {
+      // 浅景深：背景虚化突出主体
+      depthEffect = 'shallow depth of field, bokeh background, soft background blur';
+      avoidTerms =
+        'Avoid illustration style, extra limbs, warped hands, distorted clothing structure, duplicated accessories, text overlays and AI artifacts.';
+    }
+
+    // 根据尺寸比例添加构图指导
+    let aspectGuidance = '';
+    if (aspectRatio === '1:1') {
+      aspectGuidance = 'square format composition, centered subject';
+    } else if (aspectRatio === '3:4') {
+      aspectGuidance = 'portrait orientation, vertical composition, 3:4 aspect ratio';
+    } else if (aspectRatio === '4:3') {
+      aspectGuidance = 'landscape orientation, horizontal composition, 4:3 aspect ratio';
+    } else if (aspectRatio === '9:16') {
+      aspectGuidance = 'vertical portrait orientation, tall composition, 9:16 aspect ratio, mobile screen format';
+    } else if (aspectRatio === '16:9') {
+      aspectGuidance = 'wide landscape orientation, cinematic widescreen composition, 16:9 aspect ratio';
+    }
+
     return [
       'Generate one photorealistic fashion campaign image.',
       `Keep the garment faithful to the clothing reference: ${clothingDescription}.`,
       `Model requirement: ${modelDescription}.`,
       `Scene requirement: ${sceneDescription}.`,
-      'Create a candid street-fashion look with realistic textile folds, accurate garment details, balanced anatomy, natural skin texture, cinematic lighting, shallow depth of field and premium editorial quality.',
-      'Avoid illustration style, extra limbs, warped hands, distorted clothing structure, duplicated accessories, text overlays and AI artifacts.',
+      `Create a candid street-fashion look with realistic textile folds, accurate garment details, balanced anatomy, natural skin texture, cinematic lighting, ${depthEffect}${aspectGuidance ? `, ${aspectGuidance}` : ''} and premium editorial quality.`,
+      avoidTerms,
       'Return only the final image as base64 data without markdown.',
     ].join(' ');
   }
@@ -163,7 +219,7 @@ export class AIService {
         {
           role: 'system',
           content:
-            'You are an expert fashion image model. Use the provided references to generate a realistic image and return only the generated image in base64. Do not include markdown or explanation.',
+            'You are an expert fashion image model. When a model reference image is provided, extract ONLY facial features, hair, and skin tone. The pose, expression, lighting, and aspect ratio MUST come from the text prompt, not from the reference images. IMPORTANT: Ignore the dimensions and aspect ratio of all reference images. Generate the output image with the exact aspect ratio specified in the prompt. Return only the generated image in base64 without markdown or explanation.',
         },
         {
           role: 'user',

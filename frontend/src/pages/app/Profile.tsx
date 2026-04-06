@@ -18,7 +18,7 @@ export default function ProfilePage() {
       .then(([me, balance, history]) => {
         setUser(me);
         updateCredits(balance);
-        setLogs(history);
+        setLogs(history.logs);
       })
       .catch((loadError) => setError(getErrorMessage(loadError, '加载个人中心失败')));
   }, [setUser, updateCredits]);

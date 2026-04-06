@@ -31,6 +31,9 @@ const initialModelConfig: ModelConfig = {
 const initialSceneConfig: SceneConfig = {
   mode: 'preset',
   preset: 'city street（城市街道）',
+  timeOfDay: '',
+  lighting: '',
+  composition: '',
   prompt: 'soft evening light, candid atmosphere',
 };
 
@@ -175,8 +178,12 @@ export default function WorkspacePage() {
   };
 
   const getSceneDisplay = () => {
-    // 场景预设已包含中文翻译，直接返回
-    return sceneConfig.preset;
+    // 场景预设已包含中文翻译，组合其他预设信息
+    const parts = [sceneConfig.preset];
+    if (sceneConfig.timeOfDay) parts.push(sceneConfig.timeOfDay);
+    if (sceneConfig.lighting) parts.push(sceneConfig.lighting);
+    if (sceneConfig.composition) parts.push(sceneConfig.composition);
+    return parts.join(' · ');
   };
 
   return (

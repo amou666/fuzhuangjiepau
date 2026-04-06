@@ -32,16 +32,6 @@ export function StepFusion({
     return map[body] || body;
   };
 
-  const getPresetLabel = (preset: string) => {
-    const map: Record<string, string> = {
-      'city street': '城市街道',
-      'modern mall': '现代商场',
-      'cafe corner': '咖啡厅',
-      'natural outdoor': '自然外景',
-    };
-    return map[preset] || preset;
-  };
-
   return (
     <>
       <div className="workspace-panel-header">
@@ -102,9 +92,60 @@ export function StepFusion({
             <span style={{ fontSize: '14px', color: '#374151' }}>
               {sceneConfig.mode === 'upload' && sceneConfig.imageUrl
                 ? '参考图模式'
-                : getPresetLabel(sceneConfig.preset)}
+                : sceneConfig.preset}
             </span>
           </div>
+
+          {sceneConfig.timeOfDay && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: '#f9fafb',
+                borderRadius: '8px',
+              }}
+            >
+              <span style={{ fontSize: '12px', color: '#6b7280', width: '80px' }}>时段</span>
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                {sceneConfig.timeOfDay}
+              </span>
+            </div>
+          )}
+
+          {sceneConfig.lighting && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: '#f9fafb',
+                borderRadius: '8px',
+              }}
+            >
+              <span style={{ fontSize: '12px', color: '#6b7280', width: '80px' }}>光照</span>
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                {sceneConfig.lighting}
+              </span>
+            </div>
+          )}
+
+          {sceneConfig.composition && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: '#f9fafb',
+                borderRadius: '8px',
+              }}
+            >
+              <span style={{ fontSize: '12px', color: '#6b7280', width: '80px' }}>构图</span>
+              <span style={{ fontSize: '14px', color: '#374151' }}>
+                {sceneConfig.composition}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -20,7 +20,7 @@ interface TaskSseEvent {
 export const useTaskSse = () => {
   const accessToken = useAuthStore((state) => state.accessToken);
   const updateCredits = useAuthStore((state) => state.updateCredits);
-  const { setCurrentTask, currentTask } = useTaskStore.getState();
+  const setCurrentTask = useTaskStore((state) => state.setCurrentTask);
   const addNotification = useNotificationStore((state) => state.add);
   const esRef = useRef<EventSource | null>(null);
 
@@ -85,5 +85,5 @@ export const useTaskSse = () => {
       es.close();
       esRef.current = null;
     };
-  }, [accessToken, addNotification, setCurrentTask, updateCredits, currentTask]);
+  }, [accessToken, addNotification, setCurrentTask, updateCredits]);
 };

@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 import { enqueueGenerationTask } from '../queues/generationQueue';
 import { CreditService } from '../services/creditService';
 import { AIService } from '../services/aiService';
-import { sseService } from '../services/sseService';
+import { pushTaskUpdate } from '../services/sseService';
 import type { TaskPayload } from '../types';
 import { serializeTask } from '../utils/taskSerializer';
 
@@ -20,8 +20,11 @@ router.post('/', async (req, res) => {
     return;
   }
 
+  let creditsDeducted = false;
+  
   try {
     await CreditService.preDeductCredits(req.user!.userId, config.creditPerGeneration);
+    creditsDeducted = true;
 
     const task = await prisma.generationTask.create({
       data: {
@@ -37,6 +40,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ task: serializeTask(task, req) });
   } catch (error) {
+    // 只有在积分已扣除的情况下才退款
+    if (creditsDeducted) {
+      await CreditService.refundCredits(req.user!.userId, config.creditPerGeneration, 'task_creation_refund').catch(console.error);
+    }
     res.status(400).json({ message: error instanceof Error ? error.message : '创建任务失败' });
   }
 });
@@ -44,9 +51,11 @@ router.post('/', async (req, res) => {
 router.post('/:id/upscale', async (req, res) => {
   const { factor = 2 } = req.body as { factor?: number };
   const upscaleFactor = factor === 4 ? 4 : 2;
+  let task: Awaited<ReturnType<typeof prisma.generationTask.findUnique>> = null;
+  let creditsDeducted = false;
 
   try {
-    const task = await prisma.generationTask.findUnique({
+    task = await prisma.generationTask.findUnique({
       where: { id: req.params.id },
     });
 
@@ -74,6 +83,7 @@ router.post('/:id/upscale', async (req, res) => {
     }
 
     await CreditService.preDeductCredits(req.user!.userId, config.creditPerUpscale);
+    creditsDeducted = true;
 
     await prisma.generationTask.update({
       where: { id: req.params.id },
@@ -82,7 +92,7 @@ router.post('/:id/upscale', async (req, res) => {
       },
     });
 
-    sseService.pushTaskUpdate(req.params.id, {
+    pushTaskUpdate(task.userId, {
       status: 'PROCESSING',
       progress: 0,
       message: '正在放大图片...',
@@ -106,7 +116,7 @@ router.post('/:id/upscale', async (req, res) => {
       `图片放大 ${upscaleFactor}x`,
     );
 
-    sseService.pushTaskUpdate(req.params.id, {
+    pushTaskUpdate(task.userId, {
       status: 'DONE',
       progress: 100,
       message: '图片放大完成',
@@ -117,6 +127,11 @@ router.post('/:id/upscale', async (req, res) => {
   } catch (error) {
     const taskId = req.params.id;
     
+    // 只有在积分已扣除的情况下才退款
+    if (creditsDeducted && task?.userId) {
+      await CreditService.refundCredits(task.userId, config.creditPerUpscale, 'upscale_refund').catch(console.error);
+    }
+    
     await prisma.generationTask.update({
       where: { id: taskId },
       data: {
@@ -125,10 +140,12 @@ router.post('/:id/upscale', async (req, res) => {
       },
     }).catch(() => {});
 
-    sseService.pushTaskUpdate(taskId, {
-      status: 'FAILED',
-      message: error instanceof Error ? error.message : '放大失败',
-    });
+    if (task?.userId) {
+      pushTaskUpdate(task.userId, {
+        status: 'FAILED',
+        message: error instanceof Error ? error.message : '放大失败',
+      });
+    }
 
     res.status(500).json({ message: error instanceof Error ? error.message : '放大失败' });
   }

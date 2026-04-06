@@ -16,6 +16,7 @@ import sseRouter from './routes/sse';
 import tasksRouter from './routes/tasks';
 import uploadsRouter from './routes/uploads';
 import { ensureBaseUsers } from './services/bootstrapService';
+import multer from 'multer';
 import { ensureUploadDirectories } from './utils/files';
 
 const localOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -62,6 +63,17 @@ export const createApp = () => {
   app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (error.message === '当前来源未被允许访问 API') {
       res.status(403).json({ message: error.message });
+      return;
+    }
+
+    // Multer 文件上传错误（返回 400 而非 500）
+    if (error instanceof multer.MulterError) {
+      const maxMb = config.maxUploadSizeMb;
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ message: `图片大小不能超过 ${maxMb}MB` });
+        return;
+      }
+      res.status(400).json({ message: '仅支持 PNG、JPG、JPEG、WEBP、GIF、SVG 图片' });
       return;
     }
 

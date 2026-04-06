@@ -45,9 +45,15 @@ export default function StatsPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
   useEffect(() => {
     loadData();
-  }, [pagination.page, activeTab]);
+  }, [pagination.page, activeTab, startDate, endDate]);
 
   const loadData = async () => {
     setLoading(true);
@@ -87,13 +93,6 @@ export default function StatsPage() {
   const handleSearch = () => {
     setPagination({ ...pagination, page: 1 });
     loadData();
-  };
-
-  const handleClearFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setPagination({ ...pagination, page: 1 });
-    setTimeout(() => loadData(), 100);
   };
 
   const getReasonText = (reason: string) => {

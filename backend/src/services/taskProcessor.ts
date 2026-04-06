@@ -3,6 +3,7 @@ import type { ModelConfig, SceneConfig, TaskStatus } from '../types';
 import { AIService } from './aiService';
 import { CreditService } from './creditService';
 import { pushTaskUpdate } from './sseService';
+import { config } from '../config';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -12,6 +13,22 @@ const RETRYABLE_MESSAGES = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', '502', '5
 const isRetryable = (error: unknown): boolean => {
   if (!(error instanceof Error)) return false;
   return RETRYABLE_MESSAGES.some((msg) => error.message.includes(msg));
+};
+
+/**
+ * 将相对路径转换为完整URL
+ */
+const toFullUrl = (relativePath: string | null | undefined): string | null | undefined => {
+  if (!relativePath) return relativePath;
+  
+  // 已经是完整URL
+  if (/^https?:\/\//i.test(relativePath)) {
+    return relativePath;
+  }
+  
+  // 拼接公共API基础URL
+  const baseUrl = config.publicApiBaseUrl;
+  return baseUrl ? `${baseUrl}${relativePath}` : relativePath;
 };
 
 const MAX_ATTEMPTS = 3;
@@ -38,7 +55,13 @@ export const processTask = async (taskId: string, attempt = 1): Promise<void> =>
     const clothingDescription = await AIService.analyzeClothing(task.clothingUrl);
     const modelDescription = await AIService.describeModel(modelConfig);
     const sceneDescription = await AIService.describeScene(sceneConfig);
-    const prompt = AIService.buildStreetFashionPrompt(clothingDescription, modelDescription, sceneDescription);
+    const prompt = AIService.buildStreetFashionPrompt(
+      clothingDescription,
+      modelDescription,
+      sceneDescription,
+      sceneConfig.depthOfField,
+      sceneConfig.aspectRatio,
+    );
     const resultUrl = await AIService.generateResultImage(taskId, prompt, {
       clothingUrl: task.clothingUrl,
       modelConfig,
@@ -55,8 +78,9 @@ export const processTask = async (taskId: string, attempt = 1): Promise<void> =>
       },
     });
 
-    // 推送"完成"状态及结果图 URL
-    pushTaskUpdate(task.userId, { taskId, status: 'DONE', resultUrl });
+    // 推送"完成"状态及结果图 URL（确保是完整URL）
+    const fullResultUrl = toFullUrl(resultUrl);
+    pushTaskUpdate(task.userId, { taskId, status: 'DONE', resultUrl: fullResultUrl });
   } catch (error) {
     // 可重试的网络错误且未超过最大重试次数
     if (isRetryable(error) && attempt < MAX_ATTEMPTS) {
