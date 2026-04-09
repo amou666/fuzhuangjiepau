@@ -10,6 +10,7 @@ export interface JwtUser {
 export interface ModelConfig {
   mode: 'upload' | 'generate';
   imageUrl?: string;
+  category: string;
   gender: string;
   skinTone: string;
   bodyType: string;
@@ -18,13 +19,13 @@ export interface ModelConfig {
 }
 
 export interface SceneConfig {
-  mode: 'upload' | 'preset';
+  mode: 'upload' | 'preset' | 'replace';
   imageUrl?: string;
   preset: string;
   timeOfDay?: string;
   lighting?: string;
   composition?: string;
-  depthOfField?: 'shallow' | 'deep';
+  depthOfField?: 'slight' | 'shallow' | 'deep';
   aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
   prompt: string;
 }

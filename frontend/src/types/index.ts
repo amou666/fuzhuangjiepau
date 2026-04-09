@@ -14,6 +14,9 @@ export interface User {
 export interface ModelConfig {
   mode: 'upload' | 'generate';
   imageUrl?: string;
+  category: string;
+  age: string;
+  ethnicity: string;
   gender: string;
   skinTone: string;
   bodyType: string;
@@ -22,7 +25,7 @@ export interface ModelConfig {
 }
 
 export interface SceneConfig {
-  mode: 'upload' | 'preset';
+  mode: 'upload' | 'preset' | 'replace';
   imageUrl?: string;
   preset: string;
   timeOfDay?: string;

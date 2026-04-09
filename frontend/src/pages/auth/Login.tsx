@@ -10,7 +10,7 @@ export default function LoginPage() {
   const user = useAuthStore((state) => state.user);
   const setSession = useAuthStore((state) => state.setSession);
   const [email, setEmail] = useState('admin@fashionai.local');
-  const [password, setPassword] = useState('Admin123!');
+  const [password, setPassword] = useState('123456');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
         </section>
         <section className="form-panel">
           <h2 className="section-title">登录系统</h2>
-          <p className="section-subtitle">默认管理员：admin@fashionai.local / Admin123!</p>
+          <p className="section-subtitle">默认管理员：admin@fashionai.local / 123456</p>
           <form className="form-grid" onSubmit={handleSubmit}>
             <div className="field">
               <label htmlFor="email">邮箱</label>

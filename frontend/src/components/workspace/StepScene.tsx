@@ -105,6 +105,14 @@ export function StepScene({ value, onChange }: StepSceneProps) {
           >
             上传场景图
           </button>
+          <button
+            type="button"
+            className={`btn-secondary ${value.mode === 'replace' ? 'btn' : ''}`}
+            onClick={() => onChange({ ...value, mode: 'replace' })}
+            style={{ flex: 1 }}
+          >
+            替换模式
+          </button>
         </div>
       </div>
 
@@ -115,6 +123,20 @@ export function StepScene({ value, onChange }: StepSceneProps) {
             value={value.imageUrl}
             onChange={(imageUrl) => onChange({ ...value, imageUrl })}
           />
+          <span className="helper-text">上传一张场景图，AI 将参考其背景风格</span>
+        </div>
+      )}
+
+      {value.mode === 'replace' && (
+        <div style={{ marginBottom: '20px' }}>
+          <ImageUploader
+            label="参考图片"
+            value={value.imageUrl}
+            onChange={(imageUrl) => onChange({ ...value, imageUrl })}
+          />
+          <span className="helper-text" style={{ color: '#f59e0b', marginTop: '8px', display: 'block' }}>
+            上传一张参考图片，AI 将保留其背景和姿势，仅替换模特和服装
+          </span>
         </div>
       )}
 

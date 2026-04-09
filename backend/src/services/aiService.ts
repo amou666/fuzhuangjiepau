@@ -71,22 +71,50 @@ export class AIService {
   }
 
   static async describeModel(modelConfig: ModelConfig) {
+    // 类别描述：普通女孩 vs 时尚超模
+    const categoryStyle = modelConfig.category === 'supermodel'
+      ? 'professional fashion supermodel with striking features, editorial look, high-fashion appeal'
+      : 'natural everyday girl next door, relatable and approachable, authentic beauty';
+
+    // 人种描述
+    const ethnicityStyle: Record<string, string> = {
+      Chinese: 'Chinese',
+      American: 'American',
+      British: 'British',
+      French: 'French',
+      Korean: 'Korean',
+      Japanese: 'Japanese',
+      Indian: 'Indian',
+    };
+    const ethnicity = ethnicityStyle[modelConfig.ethnicity] || 'Chinese';
+
     if (modelConfig.mode === 'upload' && modelConfig.imageUrl) {
       if (config.mockAi) {
-        return `reference model from ${modelConfig.imageUrl}, ${modelConfig.gender}, ${modelConfig.bodyType}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
+        return `reference model from ${modelConfig.imageUrl}, ${categoryStyle}, ${modelConfig.age} years old, ${ethnicity}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
       }
 
       const facialDescription = await this.analyzeImage(
         modelConfig.imageUrl,
         'Describe ONLY the facial features (face shape, eyes, nose, mouth), hair style and color, skin tone, and body type. DO NOT describe pose, gesture, expression, or lighting. Return one sentence only.',
       );
-      return `${facialDescription}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
+      return `${categoryStyle}, ${modelConfig.age} years old, ${ethnicity}, ${facialDescription}, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
     }
 
-    return `a ${modelConfig.gender} model with ${modelConfig.skinTone} skin tone, ${modelConfig.bodyType} body type, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
+    return `a ${categoryStyle}, ${modelConfig.age} years old, ${ethnicity} ${modelConfig.gender} with ${modelConfig.skinTone} skin tone, ${modelConfig.bodyType} body type, pose ${modelConfig.pose}, expression ${modelConfig.expression}`;
   }
 
   static async describeScene(sceneConfig: SceneConfig) {
+    if (sceneConfig.mode === 'replace' && sceneConfig.imageUrl) {
+      if (config.mockAi) {
+        return `replace mode: using background and pose from ${sceneConfig.imageUrl}`;
+      }
+
+      return this.analyzeImage(
+        sceneConfig.imageUrl,
+        'Describe ONLY the background scene and environment in concise English. Focus on location type, architecture, setting, and atmosphere. Ignore any people. Return one sentence only.',
+      );
+    }
+
     if (sceneConfig.mode === 'upload' && sceneConfig.imageUrl) {
       if (config.mockAi) {
         return `real location inspired by uploaded scene ${sceneConfig.imageUrl}`;
@@ -94,7 +122,7 @@ export class AIService {
 
       return this.analyzeImage(
         sceneConfig.imageUrl,
-        'Describe the background scene in concise English for photorealistic fashion photography. Focus on location type, architecture, composition, lighting, depth and atmosphere. Ignore any foreground people. Return one sentence only.',
+        'Describe the background scene AND lighting conditions in concise English for photorealistic fashion photography. You MUST include: (1) location type and architecture, (2) PRIMARY LIGHT SOURCE direction (e.g., light from upper left, backlit, overhead), (3) light color temperature (warm/cool/neutral), (4) shadow characteristics (soft/hard, direction), (5) ambient light reflections from surrounding surfaces. This lighting info is CRITICAL for placing a person into this scene realistically. Ignore any foreground people. Return 2-3 sentences.',
       );
     }
 
@@ -120,13 +148,42 @@ export class AIService {
     return parts.join(', ');
   }
 
+  static async describePoseFromReference(imageUrl: string) {
+    if (config.mockAi) {
+      return 'standing pose from reference image';
+    }
+
+    return this.analyzeImage(
+      imageUrl,
+      'Describe ONLY the body pose, gesture, and stance of the person in this image. Focus on arm position, leg position, body angle, and overall posture. Ignore clothing, face, and background. Return one sentence only.',
+    );
+  }
+
   static buildStreetFashionPrompt(
     clothingDescription: string,
     modelDescription: string,
     sceneDescription: string,
-    depthOfField?: 'shallow' | 'deep',
+    depthOfField?: 'slight' | 'shallow' | 'deep',
     aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9',
+    poseDescription?: string,
+    isReplaceMode?: boolean,
+    isUploadScene?: boolean,
   ) {
+    // 替换模式：保留参考图的背景和姿势，只替换模特和服装
+    if (isReplaceMode && poseDescription) {
+      return [
+        'Generate one photorealistic fashion image by REPLACING the person in the reference.',
+        `Keep the garment faithful to the clothing reference: ${clothingDescription}.`,
+        `Model requirement: ${modelDescription}.`,
+        `Pose requirement: ${poseDescription}. The model MUST adopt this exact pose from the reference image.`,
+        `Scene requirement: ${sceneDescription}. The background MUST match the reference image exactly.`,
+        'Preserve the exact background, setting, lighting, and composition from the reference image.',
+        'Only replace the person with the new model wearing the new clothing.',
+        'Maintain natural skin texture, realistic textile folds, accurate garment details, and premium editorial quality.',
+        'Return only the final image as base64 data without markdown.',
+      ].join(' ');
+    }
+
     // 根据景深选项生成不同的效果描述
     let depthEffect: string;
     let avoidTerms: string;
@@ -137,6 +194,11 @@ export class AIService {
         'deep depth of field, sharp focus throughout the entire image, background fully in focus with crisp details, high resolution background, no background blur, clear background details, f/16 aperture effect';
       avoidTerms =
         'Avoid illustration style, extra limbs, warped hands, distorted clothing structure, duplicated accessories, text overlays, AI artifacts, background blur, bokeh effect, shallow depth of field, out of focus background';
+    } else if (depthOfField === 'slight') {
+      // 轻微景深：自然虚化
+      depthEffect = 'slight depth of field, gentle natural background blur, soft bokeh, f/4 aperture effect';
+      avoidTerms =
+        'Avoid illustration style, extra limbs, warped hands, distorted clothing structure, duplicated accessories, text overlays and AI artifacts, heavy bokeh.';
     } else {
       // 浅景深：背景虚化突出主体
       depthEffect = 'shallow depth of field, bokeh background, soft background blur';
@@ -158,12 +220,17 @@ export class AIService {
       aspectGuidance = 'wide landscape orientation, cinematic widescreen composition, 16:9 aspect ratio';
     }
 
+    // 上传场景图时的统一全局光照系统指令
+    const lightingIntegration = isUploadScene
+      ? 'UNIFIED GLOBAL ILLUMINATION: The person and scene MUST share the EXACT SAME lighting system. Light direction, color temperature, shadow angle and ambient reflections on the person MUST perfectly match the scene environment. Apply scene light source to person: matching highlight positions, consistent diffuse reflection on skin and clothing, correct subsurface scattering on skin (warm translucency in backlit/rim light, cool shadow tones in overcast), and proper ambient occlusion where body contacts ground or nearby surfaces. Person must cast shadows consistent with scene light direction. NO separate lighting on the person — they exist within the scene light, not in front of it. Photographic realism requires light coherence between subject and environment.'
+      : 'cinematic lighting';
+
     return [
       'Generate one photorealistic fashion campaign image.',
       `Keep the garment faithful to the clothing reference: ${clothingDescription}.`,
       `Model requirement: ${modelDescription}.`,
       `Scene requirement: ${sceneDescription}.`,
-      `Create a candid street-fashion look with realistic textile folds, accurate garment details, balanced anatomy, natural skin texture, cinematic lighting, ${depthEffect}${aspectGuidance ? `, ${aspectGuidance}` : ''} and premium editorial quality.`,
+      `Create a candid street-fashion look with realistic textile folds, accurate garment details, balanced anatomy, natural skin texture with visible pores and subtle imperfections, ${lightingIntegration}, ${depthEffect}${aspectGuidance ? `, ${aspectGuidance}` : ''} and premium editorial quality.`,
       avoidTerms,
       'Return only the final image as base64 data without markdown.',
     ].join(' ');
@@ -184,6 +251,18 @@ export class AIService {
 
     const content: ChatMessageContentPart[] = [{ type: 'text', text: prompt }];
 
+    // 替换模式：参考图作为主要参考，保留背景和姿势
+    if (references.sceneConfig.mode === 'replace' && references.sceneConfig.imageUrl) {
+      // 参考图放在最前面，作为主要参考
+      content.push({
+        type: 'image_url',
+        image_url: {
+          url: await this.toDataUrl(references.sceneConfig.imageUrl),
+          detail: config.aiImageDetail,
+        },
+      });
+    }
+
     content.push({
       type: 'image_url',
       image_url: {
@@ -202,6 +281,7 @@ export class AIService {
       });
     }
 
+    // 非替换模式下，场景图作为参考
     if (references.sceneConfig.mode === 'upload' && references.sceneConfig.imageUrl) {
       content.push({
         type: 'image_url',
@@ -212,14 +292,24 @@ export class AIService {
       });
     }
 
+    const isUploadScene = references.sceneConfig.mode !== 'replace' && references.sceneConfig.sceneSource === 'upload'
+
+    let systemPrompt: string
+    if (references.sceneConfig.mode === 'replace') {
+      systemPrompt = 'You are an expert fashion image model. The FIRST reference image shows the target pose and background. Your task is to REPLACE the person in that reference with the new model wearing the new clothing. You MUST preserve the exact background, setting, lighting, composition, and body pose from the reference image. Only change the person and their clothing. CRITICAL: The new person MUST share the exact same lighting as the scene — matching light direction, shadow angles, color temperature, ambient reflections, and subsurface scattering on skin. No separate lighting on the person. Return only the generated image in base64 without markdown or explanation.'
+    } else if (isUploadScene) {
+      systemPrompt = 'You are an expert fashion image generation model. You may receive images: CLOTHING reference, optional MODEL FACE reference, and a SCENE reference image. CRITICAL LIGHTING RULES: (1) Analyze the lighting in the scene reference — light direction, color temperature, shadow direction, ambient bounce light. (2) The generated person MUST be lit by the EXACT SAME lighting as the scene. Light direction on skin highlights, shadow angles on the body, ambient occlusion near ground contact, subsurface scattering on skin — all must match the scene environment. (3) The person must cast shadows consistent with the scene light source. (4) Diffuse reflection and specular highlights on clothing must match the scene illumination. (5) If scene reference contains people, ignore them — use ONLY the background and lighting. If a model face reference is provided, the generated person\'s face MUST match it. Return only the generated image in base64 without markdown or explanation.'
+    } else {
+      systemPrompt = 'You are an expert fashion image model. When a model reference image is provided, extract ONLY facial features, hair, and skin tone. The pose, expression, lighting, and aspect ratio MUST come from the text prompt, not from the reference images. IMPORTANT: Ignore the dimensions and aspect ratio of all reference images. Generate the output image with the exact aspect ratio specified in the prompt. Return only the generated image in base64 without markdown or explanation.'
+    }
+
     const response = await this.requestChatCompletion({
       model: config.aiGenerationModel,
       stream: false,
       messages: [
         {
           role: 'system',
-          content:
-            'You are an expert fashion image model. When a model reference image is provided, extract ONLY facial features, hair, and skin tone. The pose, expression, lighting, and aspect ratio MUST come from the text prompt, not from the reference images. IMPORTANT: Ignore the dimensions and aspect ratio of all reference images. Generate the output image with the exact aspect ratio specified in the prompt. Return only the generated image in base64 without markdown or explanation.',
+          content: systemPrompt,
         },
         {
           role: 'user',

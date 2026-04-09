@@ -98,7 +98,11 @@ router.post('/:id/upscale', async (req, res) => {
       message: '正在放大图片...',
     });
 
-    const upscaledUrl = await AIService.upscaleImage(task.id, task.resultUrl, upscaleFactor);
+    // 获取用户的 API Key，优先使用用户个人 Key
+    const taskUser = await prisma.user.findUnique({ where: { id: task.userId }, select: { apiKey: true } });
+    const userApiKey = taskUser?.apiKey || undefined;
+
+    const upscaledUrl = await AIService.upscaleImage(task.id, task.resultUrl, upscaleFactor, userApiKey);
 
     const updatedTask = await prisma.generationTask.update({
       where: { id: req.params.id },

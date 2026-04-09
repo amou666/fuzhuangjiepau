@@ -6,6 +6,29 @@ interface StepModelProps {
   onChange: (next: ModelConfig) => void;
 }
 
+const categoryOptions = [
+  { value: 'normal', label: '普通女孩' },
+  { value: 'supermodel', label: '时尚超模' },
+];
+
+const ageOptions = [
+  { value: '18', label: '18岁' },
+  { value: '20', label: '20岁' },
+  { value: '25', label: '25岁' },
+  { value: '30', label: '30岁' },
+  { value: '35', label: '35岁' },
+];
+
+const ethnicityOptions = [
+  { value: 'Chinese', label: '中国人' },
+  { value: 'American', label: '美国人' },
+  { value: 'British', label: '英国人' },
+  { value: 'French', label: '法国人' },
+  { value: 'Korean', label: '韩国人' },
+  { value: 'Japanese', label: '日本人' },
+  { value: 'Indian', label: '印度人' },
+];
+
 const genderOptions = [
   { value: 'female', label: '女性' },
   { value: 'male', label: '男性' },
@@ -123,6 +146,55 @@ export function StepModel({ value, onChange }: StepModelProps) {
       )}
 
       <div className="workspace-form-grid">
+        <div className="field">
+          <label htmlFor="model-category">类别</label>
+          <select
+            id="model-category"
+            className="select"
+            value={value.category}
+            onChange={(e) => onChange({ ...value, category: e.target.value })}
+          >
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <span className="helper-text">普通女孩更自然亲和，时尚超模更具专业感</span>
+        </div>
+
+        <div className="field">
+          <label htmlFor="model-age">年龄</label>
+          <select
+            id="model-age"
+            className="select"
+            value={value.age}
+            onChange={(e) => onChange({ ...value, age: e.target.value })}
+          >
+            {ageOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="model-ethnicity">人种</label>
+          <select
+            id="model-ethnicity"
+            className="select"
+            value={value.ethnicity}
+            onChange={(e) => onChange({ ...value, ethnicity: e.target.value })}
+          >
+            {ethnicityOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="field">
           <label htmlFor="model-gender">性别</label>
           <select

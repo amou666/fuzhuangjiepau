@@ -55,12 +55,25 @@ export const processTask = async (taskId: string, attempt = 1): Promise<void> =>
     const clothingDescription = await AIService.analyzeClothing(task.clothingUrl);
     const modelDescription = await AIService.describeModel(modelConfig);
     const sceneDescription = await AIService.describeScene(sceneConfig);
+    
+    // 替换模式下提取姿势描述
+    let poseDescription: string | undefined;
+    const isReplaceMode = sceneConfig.mode === 'replace' && sceneConfig.imageUrl;
+    if (isReplaceMode && sceneConfig.imageUrl) {
+      poseDescription = await AIService.describePoseFromReference(sceneConfig.imageUrl);
+    }
+    
+    const isUploadScene = sceneConfig.sceneSource === 'upload'
+    
     const prompt = AIService.buildStreetFashionPrompt(
       clothingDescription,
       modelDescription,
       sceneDescription,
       sceneConfig.depthOfField,
       sceneConfig.aspectRatio,
+      poseDescription,
+      isReplaceMode,
+      isUploadScene,
     );
     const resultUrl = await AIService.generateResultImage(taskId, prompt, {
       clothingUrl: task.clothingUrl,

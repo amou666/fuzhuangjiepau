@@ -32,6 +32,19 @@ export function StepFusion({
     return map[body] || body;
   };
 
+  const getCategoryLabel = (category: string) => {
+    const map: Record<string, string> = { normal: '普通女孩', supermodel: '时尚超模' };
+    return map[category] || category || '时尚超模';
+  };
+
+  const getEthnicityLabel = (ethnicity: string) => {
+    const map: Record<string, string> = {
+      Chinese: '中国人', American: '美国人', British: '英国人', French: '法国人',
+      Korean: '韩国人', Japanese: '日本人', Indian: '印度人'
+    };
+    return map[ethnicity] || ethnicity || '中国人';
+  };
+
   return (
     <>
       <div className="workspace-panel-header">
@@ -74,8 +87,8 @@ export function StepFusion({
             <span style={{ fontSize: '12px', color: '#6b7280', width: '80px' }}>模特</span>
             <span style={{ fontSize: '14px', color: '#374151' }}>
               {modelConfig.mode === 'upload' && modelConfig.imageUrl
-                ? '参考图模式'
-                : `${getGenderLabel(modelConfig.gender)} · ${getBodyLabel(modelConfig.bodyType)}`}
+                ? `参考图模式 · ${getCategoryLabel(modelConfig.category)} · ${modelConfig.age}岁 · ${getEthnicityLabel(modelConfig.ethnicity)}`
+                : `${getCategoryLabel(modelConfig.category)} · ${modelConfig.age}岁 · ${getEthnicityLabel(modelConfig.ethnicity)} · ${getGenderLabel(modelConfig.gender)}`}
             </span>
           </div>
 
@@ -90,9 +103,11 @@ export function StepFusion({
           >
             <span style={{ fontSize: '12px', color: '#6b7280', width: '80px' }}>场景</span>
             <span style={{ fontSize: '14px', color: '#374151' }}>
-              {sceneConfig.mode === 'upload' && sceneConfig.imageUrl
-                ? '参考图模式'
-                : sceneConfig.preset}
+              {sceneConfig.mode === 'replace' && sceneConfig.imageUrl
+                ? '替换模式（保留背景和姿势）'
+                : sceneConfig.mode === 'upload' && sceneConfig.imageUrl
+                  ? '参考图模式'
+                  : sceneConfig.preset}
             </span>
           </div>
 
@@ -156,7 +171,7 @@ export function StepFusion({
         disabled={disabled}
       >
         <div>{isSubmitting || isPolling ? '生成中...' : '立即生成'}</div>
-        <div className="generate-btn-cost">消耗 10 积分</div>
+        <div className="generate-btn-cost">消耗 1 积分</div>
       </button>
 
       {(currentTask || isPolling) && (

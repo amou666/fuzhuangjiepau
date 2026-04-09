@@ -27,62 +27,86 @@ export const useTaskSse = () => {
   useEffect(() => {
     if (!accessToken) return;
 
-    // 关闭旧连接
-    esRef.current?.close();
+    let cancelled = false;
 
-    // EventSource 不支持自定义 Header，用 token 作为 query param
-    const url = `${API_BASE_URL}/sse/tasks?token=${encodeURIComponent(accessToken)}`;
-    const es = new EventSource(url);
-    esRef.current = es;
-
-    es.onmessage = (event: MessageEvent<string>) => {
+    // 先获取短期 SSE token，再用它建立 EventSource 连接
+    const connectSse = async () => {
       try {
-        const data = JSON.parse(event.data) as TaskSseEvent | { type: string };
+        const tokenRes = await fetch(`${API_BASE_URL}/sse/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
 
-        // 初始连接确认，忽略
-        if ('type' in data) return;
+        if (!tokenRes.ok || cancelled) return;
 
-        const { taskId, status, resultUrl, errorMsg } = data as TaskSseEvent;
+        const { sseToken } = await tokenRes.json() as { sseToken: string };
+        if (cancelled) return;
 
-        // 如果当前 taskStore 中的任务就是这个，直接更新
-        const storeTask = useTaskStore.getState().currentTask;
-        if (storeTask && storeTask.id === taskId) {
-          setCurrentTask({
-            ...storeTask,
-            status,
-            resultUrl: resultUrl ?? storeTask.resultUrl,
-            errorMsg: errorMsg ?? storeTask.errorMsg,
-          });
-          // 若任务完成则刷新积分余额
-          if (status === 'DONE' || status === 'FAILED') {
-            useTaskStore.getState().markPollingDone();
+        // 关闭旧连接
+        esRef.current?.close();
+
+        const url = `${API_BASE_URL}/sse/tasks?token=${encodeURIComponent(sseToken)}`;
+        const es = new EventSource(url);
+        esRef.current = es;
+
+        es.onmessage = (event: MessageEvent<string>) => {
+          try {
+            const data = JSON.parse(event.data) as TaskSseEvent | { type: string };
+
+            // 初始连接确认，忽略
+            if ('type' in data) return;
+
+            const { taskId, status, resultUrl, errorMsg } = data as TaskSseEvent;
+
+            // 如果当前 taskStore 中的任务就是这个，直接更新
+            const storeTask = useTaskStore.getState().currentTask;
+            if (storeTask && storeTask.id === taskId) {
+              setCurrentTask({
+                ...storeTask,
+                status,
+                resultUrl: resultUrl ?? storeTask.resultUrl,
+                errorMsg: errorMsg ?? storeTask.errorMsg,
+              });
+              // 若任务完成则刷新积分余额
+              if (status === 'DONE' || status === 'FAILED') {
+                useTaskStore.getState().markPollingDone();
+              }
+            }
+
+            // 发送全局 Toast 通知
+            if (status === 'DONE') {
+              addNotification({ type: 'success', message: '生图任务已完成，快去查看结果！', taskId });
+              // 刷新积分
+              import('../api/workspace').then(({ workspaceApi }) => {
+                void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
+              });
+            } else if (status === 'FAILED') {
+              addNotification({ type: 'error', message: `生图任务失败：${errorMsg ?? '未知错误'}`, taskId });
+              import('../api/workspace').then(({ workspaceApi }) => {
+                void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
+              });
+            }
+          } catch {
+            // JSON 解析失败（心跳注释行），忽略
           }
-        }
+        };
 
-        // 发送全局 Toast 通知
-        if (status === 'DONE') {
-          addNotification({ type: 'success', message: '生图任务已完成，快去查看结果！', taskId });
-          // 刷新积分
-          import('../api/workspace').then(({ workspaceApi }) => {
-            void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
-          });
-        } else if (status === 'FAILED') {
-          addNotification({ type: 'error', message: `生图任务失败：${errorMsg ?? '未知错误'}`, taskId });
-          import('../api/workspace').then(({ workspaceApi }) => {
-            void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
-          });
-        }
+        es.onerror = () => {
+          // 浏览器会自动重连，无需手动处理
+        };
       } catch {
-        // JSON 解析失败（心跳注释行），忽略
+        // 获取 SSE token 失败，静默忽略
       }
     };
 
-    es.onerror = () => {
-      // 浏览器会自动重连，无需手动处理
-    };
+    connectSse();
 
     return () => {
-      es.close();
+      cancelled = true;
+      esRef.current?.close();
       esRef.current = null;
     };
   }, [accessToken, addNotification, setCurrentTask, updateCredits]);

@@ -133,7 +133,7 @@ export default function AdminRecordsPage() {
                         <img
                           src={record.sceneConfig.imageUrl}
                           alt="场景"
-                          onClick={() => setPreviewImage(record.sceneConfig.imageUrl)}
+                          onClick={() => setPreviewImage(record.sceneConfig.imageUrl ?? null)}
                           style={{
                             width: 48,
                             height: 48,

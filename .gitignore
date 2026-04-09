@@ -37,3 +37,16 @@ temp/
 
 # .codebuddy
 .codebuddy/
+
+# Deploy packages
+deploy-package/
+deploy-package.zip
+
+# Playwright CLI
+.playwright-cli/
+
+# Backend FastAPI (experimental, not main)
+backend-fastapi/
+
+# Production env
+frontend/.env.production

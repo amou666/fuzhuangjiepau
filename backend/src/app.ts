@@ -52,7 +52,7 @@ export const createApp = () => {
   app.use('/api/tasks', auth, tasksRouter);
   app.use('/api/records', auth, recordsRouter);
   app.use('/api/stats', auth, statsRouter);
-  app.use('/api/sse', auth, sseRouter);
+  app.use('/api/sse', sseRouter);
   app.use('/api/admin/dashboard', auth, adminOnly, dashboardRouter);
   app.use('/api/admin/customers', auth, adminOnly, customersRouter);
   app.use('/api/admin/credits', auth, adminOnly, adminCreditsRouter);
@@ -97,10 +97,15 @@ export const initializeApp = async () => {
 };
 
 export const startServer = async () => {
-  await initializeApp();
+  try {
+    await initializeApp();
+  } catch (error) {
+    console.error('❌ Failed to initialize app:', error);
+    console.log('⚠️  Starting server without database initialization...');
+  }
 
   return app.listen(config.port, () => {
-    console.log(`Backend running at http://localhost:${config.port}`);
+    console.log(`✅ Backend running at http://localhost:${config.port}`);
   });
 };
 

@@ -21,6 +21,9 @@ const steps = [
 
 const initialModelConfig: ModelConfig = {
   mode: 'generate',
+  category: 'supermodel',
+  age: '25',
+  ethnicity: 'Chinese',
   gender: 'female',
   skinTone: 'natural',
   bodyType: 'slim',
@@ -172,12 +175,23 @@ export default function WorkspacePage() {
   }, [clothingUrl, currentTask, handleGenerate, isPolling, modelConfig, sceneConfig, step, submitting]);
 
   const getModelDisplay = () => {
+    const categoryMap: Record<string, string> = { normal: '普通女孩', supermodel: '时尚超模' };
+    const ethnicityMap: Record<string, string> = {
+      Chinese: '中国人', American: '美国人', British: '英国人', French: '法国人',
+      Korean: '韩国人', Japanese: '日本人', Indian: '印度人'
+    };
     const genderMap: Record<string, string> = { female: '女性', male: '男性', androgynous: '中性' };
     const bodyMap: Record<string, string> = { slim: '修长', athletic: '匀称', curvy: '曲线' };
-    return `${genderMap[modelConfig.gender] || modelConfig.gender} · ${bodyMap[modelConfig.bodyType] || modelConfig.bodyType}`;
+    const category = categoryMap[modelConfig.category] || '时尚超模';
+    const ethnicity = ethnicityMap[modelConfig.ethnicity] || '中国人';
+    return `${category} · ${modelConfig.age}岁 · ${ethnicity}`;
   };
 
   const getSceneDisplay = () => {
+    // 替换模式特殊显示
+    if (sceneConfig.mode === 'replace') {
+      return '替换模式 · 保留参考图背景和姿势';
+    }
     // 场景预设已包含中文翻译，组合其他预设信息
     const parts = [sceneConfig.preset];
     if (sceneConfig.timeOfDay) parts.push(sceneConfig.timeOfDay);

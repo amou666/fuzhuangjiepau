@@ -66,9 +66,10 @@ export default function HistoryPage() {
     }
   };
 
-  const updateTask = (taskId: string, updates: Partial<GenerationTask>) => {
+  const _updateTask = (taskId: string, updates: Partial<GenerationTask>) => {
     setRecords(records.map((r) => (r.id === taskId ? { ...r, ...updates } : r)));
   };
+  void _updateTask;
 
   return (
     <>
@@ -137,10 +138,10 @@ export default function HistoryPage() {
                           <LazyImage
                             src={record.modelConfig.imageUrl}
                             alt="模特参考图"
-                            onClick={() => setPreviewImage(record.modelConfig.imageUrl)}
+                            onClick={() => setPreviewImage(record.modelConfig.imageUrl ?? null)}
                           />
                           <div className="image-overlay">
-                            <button className="icon-btn" onClick={() => setPreviewImage(record.modelConfig.imageUrl)} title="放大">
+                            <button className="icon-btn" onClick={() => setPreviewImage(record.modelConfig.imageUrl ?? null)} title="放大">
                               🔍
                             </button>
                             <button className="icon-btn" onClick={() => handleDownload(record.modelConfig.imageUrl!, record.id)} title="下载">
