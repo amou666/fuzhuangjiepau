@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken } from '@/lib/auth'
+import { requireAdmin, isAuthed } from '@/lib/api-auth'
 import { encryptApiKey, maskApiKey } from '@/lib/utils/security'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -9,16 +9,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMIN') {
-      return NextResponse.json({ message: '仅管理员可操作' }, { status: 403 })
-    }
+    const auth = requireAdmin(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { id } = await params
     const { apiKey } = await request.json()

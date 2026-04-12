@@ -16,20 +16,18 @@ interface NotificationState {
 }
 
 const MAX_NOTIFICATIONS = 1;
+const autoRemoveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   notifiedTaskIds: new Set<string>(),
 
   add: (notification) => {
-    // 如果带 taskId，检查是否已经通知过该任务
     if (notification.taskId) {
       const { notifiedTaskIds } = get();
       if (notifiedTaskIds.has(notification.taskId)) return;
-      // 标记为已通知
       const next = new Set(notifiedTaskIds);
       next.add(notification.taskId);
-      // 限制集合大小，防止内存泄漏
       if (next.size > 200) {
         const arr = Array.from(next);
         const trimmed = new Set(arr.slice(arr.length - 100));
@@ -41,17 +39,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     const id = `${Date.now()}-${Math.random()}`;
     set((state) => {
-      // 只保留最新的一条通知
       const updated = [...state.notifications, { ...notification, id }];
       return { notifications: updated.slice(-MAX_NOTIFICATIONS) };
     });
 
-    // 5 秒后自动清除
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      autoRemoveTimers.delete(id);
       set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) }));
     }, 5000);
+    autoRemoveTimers.set(id, timer);
   },
 
-  remove: (id) =>
-    set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) })),
+  remove: (id) => {
+    const timer = autoRemoveTimers.get(id);
+    if (timer) { clearTimeout(timer); autoRemoveTimers.delete(id); }
+    set((state) => ({ notifications: state.notifications.filter((n) => n.id !== id) }));
+  },
 }));

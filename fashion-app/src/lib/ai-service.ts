@@ -561,45 +561,48 @@ Return only the generated image in base64 without markdown or explanation.`
     return toStoredFilePath(`uploads/results/${fileName}`)
   }
 
-  // 6. 模特融合 - 将多张模特面部特征融合生成新模特
-  async fuseModelFaces(taskId: string, modelUrls: string[], userApiKey?: string): Promise<string> {
-    // Step 1: 分析每张模特图的面部特征和服装
-    const faceDescriptions: string[] = []
-    const clothingDescriptions: string[] = []
-    for (const url of modelUrls) {
-      const desc = await this.analyzeImage(
-        url,
-        'Describe the facial features AND clothing of this person in precise English. Include: (1) Face: face shape, eye shape and color, eyebrow shape, nose shape, lip shape and fullness, jawline, cheekbone structure, skin tone, hair style and color. (2) Clothing: garment type, color, fabric, pattern, neckline, sleeves, and any visible accessories. Return one detailed sentence for face and one for clothing.',
-        userApiKey
-      )
-      faceDescriptions.push(desc)
-      clothingDescriptions.push(desc)
-    }
+  // 6a. 参数生成模特 — 纯从文字参数生成全新模特半身像
+  async generateModelPortrait(
+    taskId: string,
+    modelConfig: ModelConfig,
+    userApiKey?: string,
+    opts?: { count?: number; referenceUrl?: string }
+  ): Promise<string[]> {
+    const categoryStyle = getModelCategoryStyleParagraph(modelConfig.category)
+    const corePhysical = buildModelCorePhysical(modelConfig)
+    const poseExpr = appendPoseAndExpression(modelConfig)
+    const generateCount = Math.min(Math.max(opts?.count ?? 1, 1), 4)
 
-    // Step 2: 构建融合 prompt
-    const fusionInstruction = modelUrls.length === 1
-      ? `Create a portrait based on this person: ${faceDescriptions[0]}. The person must wear the SAME clothing shown in the reference photo — do NOT change it to a generic white t-shirt or any default outfit.`
-      : `Create a NEW face by blending these ${modelUrls.length} faces: ${faceDescriptions.map((d, i) => `Face ${i + 1}: ${d}`).join('; ')}. The result should combine the best facial features from each. The person must wear the SAME clothing shown in the FIRST reference photo — do NOT change it to a generic white t-shirt or any default outfit.`
+    const modelDescription = `Casting direction: ${categoryStyle} Subject details: ${corePhysical}${poseExpr}`.trim()
 
     const prompt = [
-      'Generate a photorealistic half-body portrait (waist up) of a new model, 3:4 portrait aspect ratio, vertical composition.',
-      fusionInstruction,
-      'IMPORTANT: The person MUST wear the EXACT same clothing as shown in the reference photo(s). Do NOT change, simplify, or replace the clothing with a generic white t-shirt or plain shirt. Preserve every detail of the original outfit — fabric, color, pattern, neckline, sleeves, accessories.',
-      'FRONT-FACING pose only — face fully visible from the front, no side profile or 3/4 angle. Confident natural expression.',
-      'Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible while preserving highlight detail, no blown highlights, no harsh shadows.',
-      'Neutral studio backdrop. Shot on Hasselblad X2D 90mm, natural skin texture, shallow depth of field.',
-      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, generic/default clothing, white t-shirt substitution.',
-      'Return only the final image as base64.',
-    ].join(' ')
+      `Generate ${generateCount} photorealistic half-body portrait(s) (waist up) of a NEW model, 3:4 portrait aspect ratio, vertical composition.`,
+      `Model specification:\n${modelDescription}`,
+      opts?.referenceUrl
+        ? 'A reference photo is attached. The generated model should closely match the FACE in the reference — same facial bone structure, eye shape, nose, lips, jawline, hair style/color. Adapt the body and styling as specified above.'
+        : 'Create a completely unique, natural-looking person. The face should be highly detailed and photorealistic — NOT a generic stock photo face.',
+      'IMPORTANT GUIDELINES:',
+      '- Front-facing pose (face fully visible), confident natural expression unless otherwise specified',
+      '- Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible',
+      '- Neutral light grey studio backdrop, clean and simple',
+      '- Shot on Hasselblad X2D 90mm, natural skin texture with visible pores, shallow depth of field',
+      '- The model should wear simple, minimal clothing (plain white t-shirt or simple neutral top) — clothing is NOT the focus, the MODEL is',
+      '- Each portrait should show the SAME person but from a slightly different angle or with a slightly different expression (if generating multiple)',
+      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, excessive retouching.',
+      'Return only the final image(s) as base64.',
+    ].join('\n\n')
 
-    // Step 3: 发送所有模特图 + prompt 给 AI
     const content: ChatMessageContentPart[] = [{ type: 'text', text: prompt }]
 
-    for (const url of modelUrls) {
+    if (opts?.referenceUrl) {
+      content.push({
+        type: 'text',
+        text: '[Face Reference Photo — match this face closely]',
+      })
       content.push({
         type: 'image_url',
         image_url: {
-          url: await this.toDataUrl(url),
+          url: await this.toDataUrl(opts.referenceUrl),
           detail: config.aiImageDetail,
         },
       })
@@ -611,7 +614,163 @@ Return only the generated image in base64 without markdown or explanation.`
       messages: [
         {
           role: 'system',
-          content: 'You are an expert portrait generation model. Create a NEW person by blending facial features from the provided reference photos. CRITICAL: The generated person MUST wear the exact same clothing shown in the reference photo — do NOT replace it with a white t-shirt, plain shirt, or any default/generic outfit. Preserve the original clothing faithfully. The result must be: front-facing (no side profile), bright studio lighting, photorealistic half-body portrait, 3:4 portrait aspect ratio. Return only the generated image in base64 without markdown or explanation.',
+          content: [
+            'You are an expert portrait generation model for fashion e-commerce.',
+            'Your job: generate a photorealistic model portrait based on the detailed specification provided.',
+            'The result must be: front-facing, bright studio lighting, photorealistic half-body portrait, 3:4 portrait aspect ratio.',
+            'The model should wear SIMPLE MINIMAL clothing (plain t-shirt) — the focus is on the model\'s face and body, not clothing.',
+            'Generate highly detailed, natural-looking faces with realistic skin texture, unique facial features, and natural asymmetry.',
+            'Return only the generated image in base64 without markdown or explanation.',
+          ].join('\n'),
+        },
+        { role: 'user', content },
+      ],
+    }, userApiKey)
+
+    const image = this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}_portrait${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+
+    return [toStoredFilePath(`uploads/results/${fileName}`)]
+  }
+
+  // 6b. 模特融合 - 将多张模特面部特征融合生成新模特
+  async fuseModelFaces(
+    taskId: string,
+    modelUrls: string[],
+    userApiKey?: string,
+    opts?: { weights?: number[]; strategy?: 'balanced' | 'feature-pick' | 'dominant' }
+  ): Promise<string> {
+    const strategy = opts?.strategy ?? 'balanced'
+
+    // Step 1: 逐张分析面部特征（结构化，按属性拆解）
+    const structuredFeatures: { label: string; features: string; clothing: string }[] = []
+    const labels = ['A', 'B', 'C']
+    for (let i = 0; i < modelUrls.length; i++) {
+      const desc = await this.analyzeImage(
+        modelUrls[i],
+        `Analyze this person's face and clothing SEPARATELY. Return EXACTLY 2 lines:
+FACE|face shape, eye shape+color, eyebrow shape, nose shape, lip shape+fullness, jawline, cheekbone, skin tone (Fitzpatrick level), hair style+color+length
+CLOTHING|garment type, color, fabric, pattern, neckline, sleeves, accessories
+
+Example:
+FACE|oval face, double-lid almond eyes dark brown, straight medium eyebrows, straight narrow nose, full natural lips, soft jawline, moderate cheekbones, Fitzpatrick III warm beige, straight black hair shoulder-length
+CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no accessories`,
+        userApiKey
+      )
+      const faceLine = desc.split('\n').find(l => l.startsWith('FACE|'))
+      const clothLine = desc.split('\n').find(l => l.startsWith('CLOTHING|'))
+      structuredFeatures.push({
+        label: labels[i],
+        features: faceLine?.replace('FACE|', '').trim() || desc,
+        clothing: clothLine?.replace('CLOTHING|', '').trim() || '',
+      })
+    }
+
+    // Step 2: 构建权重描述
+    const rawWeights = opts?.weights ?? modelUrls.map(() => 1)
+    const totalWeight = rawWeights.reduce((a, b) => a + b, 0)
+    const normalizedWeights = rawWeights.map(w => Math.round((w / totalWeight) * 100))
+    const weightDesc = structuredFeatures.map((f, i) =>
+      `Person ${f.label} (weight ${normalizedWeights[i]}%): ${f.features}`
+    ).join('\n')
+
+    // Step 3: 根据策略构建融合指令
+    let fusionInstruction: string
+    if (modelUrls.length === 1) {
+      fusionInstruction = `Recreate this person faithfully: ${structuredFeatures[0].features}. Preserve their exact appearance.`
+    } else if (strategy === 'feature-pick') {
+      fusionInstruction = [
+        `Create a NEW face by picking the most attractive individual feature from each person:`,
+        weightDesc,
+        `For EACH facial feature (eyes, nose, lips, jawline, skin tone, hair), select the best version from whichever person has it, weighted by the percentages above.`,
+        `The final face should be a coherent, natural-looking combination — not a copy of any single person.`,
+      ].join('\n')
+    } else if (strategy === 'dominant') {
+      const dominantIdx = normalizedWeights.indexOf(Math.max(...normalizedWeights))
+      fusionInstruction = [
+        `Create a face PRIMARILY based on Person ${structuredFeatures[dominantIdx].label} (${normalizedWeights[dominantIdx]}% weight):`,
+        `${structuredFeatures[dominantIdx].features}`,
+        `Then subtly incorporate features from the other person(s):`,
+        ...structuredFeatures.filter((_, i) => i !== dominantIdx).map((f, i) =>
+          `Person ${f.label} (${normalizedWeights[structuredFeatures.indexOf(f)]}%): ${f.features}`
+        ),
+      ].join('\n')
+    } else {
+      fusionInstruction = [
+        `Create a NEW face by blending ALL ${modelUrls.length} faces with EQUAL influence. No single person should dominate.`,
+        `Each person's contribution:`,
+        weightDesc,
+        `CRITICAL BLENDING RULES:`,
+        `- Skin tone: average the tones (e.g., if one is fair and one is medium, result should be light-medium)`,
+        `- Eye shape: blend the shapes proportionally by weight`,
+        `- Nose, lips, jawline: create an intermediate form weighted by the percentages above`,
+        `- Hair: if significantly different, lean toward the higher-weighted person but incorporate elements from others`,
+        `- The result must look like a GENUINELY NEW person, not recognizably any single input`,
+      ].join('\n')
+    }
+
+    // Step 4: 服装指令 — 从权重最高的人继承
+    const clothingSourceIdx = normalizedWeights.indexOf(Math.max(...normalizedWeights))
+    const clothingDesc = structuredFeatures[clothingSourceIdx].clothing
+    const clothingInstruction = clothingDesc
+      ? `The person MUST wear: ${clothingDesc}. Preserve every detail — fabric, color, pattern, neckline, sleeves, accessories. Do NOT substitute with a generic white t-shirt or plain shirt.`
+      : `The person MUST wear the EXACT same clothing shown in reference photo ${structuredFeatures[clothingSourceIdx].label}. Do NOT substitute with a generic white t-shirt.`
+
+    const prompt = [
+      'Generate a photorealistic half-body portrait (waist up) of a new model, 3:4 portrait aspect ratio, vertical composition.',
+      fusionInstruction,
+      clothingInstruction,
+      'FRONT-FACING pose only — face fully visible from the front, no side profile or 3/4 angle. Confident natural expression.',
+      'Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible while preserving highlight detail.',
+      'Neutral studio backdrop. Shot on Hasselblad X2D 90mm, natural skin texture, shallow depth of field.',
+      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts.',
+      'Return only the final image as base64.',
+    ].join('\n\n')
+
+    // Step 5: 随机打乱图片顺序以消除位置偏差
+    const indices = modelUrls.map((_, i) => i)
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]]
+    }
+
+    const content: ChatMessageContentPart[] = [{ type: 'text', text: prompt }]
+    for (const idx of indices) {
+      content.push({
+        type: 'text',
+        text: `[Reference Photo ${structuredFeatures[idx].label} — weight ${normalizedWeights[idx]}%]`,
+      })
+      content.push({
+        type: 'image_url',
+        image_url: {
+          url: await this.toDataUrl(modelUrls[idx]),
+          detail: config.aiImageDetail,
+        },
+      })
+    }
+
+    const response = await this.requestChatCompletion({
+      model: config.aiModel,
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are an expert portrait generation model specializing in face blending.',
+            'Your job: create a GENUINELY NEW person by merging facial features from multiple reference photos.',
+            'CRITICAL RULES:',
+            '1. EQUAL BLENDING — Each reference photo contributes proportionally to its stated weight percentage. Do NOT let any single photo dominate unless weights explicitly differ.',
+            '2. FEATURE-LEVEL MIXING — Blend at the individual feature level (eyes from multiple sources, nose shape averaged, etc.), not just pick one face and slightly adjust.',
+            '3. CLOTHING PRESERVATION — The generated person MUST wear the exact clothing described. Do NOT replace with a white t-shirt or generic outfit.',
+            '4. POSITION INDEPENDENCE — The order of reference photos does NOT indicate priority. Only the stated weight percentages matter.',
+            '5. Output: front-facing, bright studio lighting, photorealistic half-body portrait, 3:4 portrait aspect ratio.',
+            'Return only the generated image in base64 without markdown or explanation.',
+          ].join('\n'),
         },
         {
           role: 'user',
@@ -759,35 +918,39 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
   }
 
   // 奢侈品色系变色
-  async luxuryColorTransform(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = []): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+  async luxuryColorTransform(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = [], opts: { constraints?: string; count?: number; refineFrom?: string } = {}): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+    const genCount = opts.count || 3
+    const constraintHint = opts.constraints ? ` ADDITIONAL USER CONSTRAINTS: ${opts.constraints}.` : ''
+    const refineHint = opts.refineFrom ? ` The user liked the direction "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME color family (slightly different shades/tones), not completely different colors.` : ''
+
     // Step 1: 色彩脑暴
     const excludeHint = excludedItems.length > 0 ? ` IMPORTANT: Do NOT propose any of these already-generated colors: ${excludedItems.join(', ')}. You must propose completely different colors.` : ''
     const brainstorm = await this.analyzeImage(
       imageUrl,
-      `You are a luxury fashion color consultant. Analyze this garment's material, reflectivity, and current color. AVOID the original hue entirely. Propose exactly 3 premium luxury color alternatives that would look stunning on this material. Consider: (1) Material's interaction with light (matte absorbs, silk reflects, etc.); (2) Color trends in European luxury fashion; (3) Visual contrast between the 3 colors (they must be distinctly different). Format: Return EXACTLY 3 colors, one per line, in this format: Color Name|hex code. Example: Royal Burgundy|#4A0E2E\nFrosted Mint|#98FF98\nMidnight Navy|#1B1F3B${excludeHint}`,
+      `You are a luxury fashion color consultant. Analyze this garment's material, reflectivity, and current color. AVOID the original hue entirely. Propose exactly ${genCount} premium luxury color alternatives that would look stunning on this material. Consider: (1) Material's interaction with light (matte absorbs, silk reflects, etc.); (2) Color trends in European luxury fashion; (3) Visual contrast between the ${genCount} colors (they must be distinctly different).${constraintHint}${refineHint} Format: Return EXACTLY ${genCount} colors, one per line, in this format: Color Name|hex code. Example: Royal Burgundy|#4A0E2E\nFrosted Mint|#98FF98\nMidnight Navy|#1B1F3B${excludeHint}`,
       userApiKey
     )
 
     const colorLines = brainstorm.split('\n').map(l => l.trim()).filter(l => l.includes('|'))
     if (colorLines.length === 0) {
-      // fallback
       colorLines.push('Royal Burgundy|#4A0E2E', 'Frosted Mint|#98FF98', 'Midnight Navy|#1B1F3B')
     }
-    const colors = colorLines.slice(0, 3).map(line => {
+    const colors = colorLines.slice(0, genCount).map(line => {
       const [name, hex] = line.split('|').map(s => s.trim())
       return { name, hex: hex || '#000000' }
     })
 
-    // Step 2: 并行生成 3 张变色图
+    // Step 2: 生成变色图
     const results: string[] = []
     for (let i = 0; i < colors.length; i++) {
       const color = colors[i]
       const prompt = [
         `Generate a photorealistic fashion image of the SAME garment shown in the reference image, but change ONLY the color/hue to "${color.name}" (${color.hex}).`,
         `CRITICAL CONSTRAINTS: (1) 100% PRESERVE all fiber textures, weave patterns, stitch details, and surface characteristics of the original material; (2) 100% PRESERVE all highlights, shadows, and depth — only shift the hue and saturation; (3) 100% PRESERVE the garment silhouette, fit, drape, and all structural details; (4) The new color "${color.name}" must look natural on this specific fabric type with realistic color absorption/reflection properties; (5) Background and model (if any) remain identical.`,
+        constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
         'Maintain premium editorial quality with natural textile rendering.',
         'Return only the final image as base64 data without markdown.',
-      ].join(' ')
+      ].filter(Boolean).join(' ')
 
       const content: ChatMessageContentPart[] = [
         { type: 'text', text: prompt },
@@ -819,33 +982,38 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
   }
 
   // 材质感知加元素
-  async materialAwareElementAdd(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = []): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+  async materialAwareElementAdd(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = [], opts: { constraints?: string; count?: number; refineFrom?: string } = {}): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+    const genCount = opts.count || 3
+    const constraintHint = opts.constraints ? ` ADDITIONAL USER CONSTRAINTS: ${opts.constraints}.` : ''
+    const refineHint = opts.refineFrom ? ` The user liked the element "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME element type (different placements, sizes, or sub-styles), not completely different elements.` : ''
+
     // Step 1: 材质识别
     const materialDesc = await this.recognizeMaterial(imageUrl, userApiKey)
 
-    // Step 2: 基于材质推导 3 种兼容工艺
+    // Step 2: 基于材质推导兼容工艺
     const excludeHint = excludedItems.length > 0 ? ` IMPORTANT: Do NOT propose any of these already-generated elements: ${excludedItems.join(', ')}. You must propose completely different elements.` : ''
     const elementBrainstorm = await this.analyzeImage(
       imageUrl,
-      `Based on the garment material (${materialDesc}), propose exactly 3 compatible craft/detail elements that could be added WITHOUT changing the basic silhouette. Each element must be: (1) Compatible with the identified fabric type; (2) Commonly used in luxury fashion; (3) Visually distinct from each other. Format: Return EXACTLY 3 elements, one per line, concise name only. Examples: YKK metal zipper, Contrast topstitching, Embroidered monogram${excludeHint}`,
+      `Based on the garment material (${materialDesc}), propose exactly ${genCount} compatible craft/detail elements that could be added WITHOUT changing the basic silhouette. Each element must be: (1) Compatible with the identified fabric type; (2) Commonly used in luxury fashion; (3) Visually distinct from each other.${constraintHint}${refineHint} Format: Return EXACTLY ${genCount} elements, one per line, concise name only. Examples: YKK metal zipper, Contrast topstitching, Embroidered monogram${excludeHint}`,
       userApiKey
     )
 
-    const elements = elementBrainstorm.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3)
+    const elements = elementBrainstorm.split('\n').map(l => l.trim()).filter(Boolean).slice(0, genCount)
     if (elements.length === 0) {
       elements.push('Metal zipper detail', 'Contrast topstitching', 'Embroidered patch')
     }
 
-    // Step 3: 生成 3 张加元素图
+    // Step 3: 生成加元素图
     const results: string[] = []
     for (let i = 0; i < elements.length; i++) {
       const element = elements[i]
       const prompt = [
         `Generate a photorealistic fashion image of the SAME garment shown in the reference image, but ADD this craft/detail element: "${element}".`,
         `CRITICAL CONSTRAINTS: (1) The garment silhouette (outline, shape, fit) must remain 100% IDENTICAL to the original; (2) The original fabric, color, and base design must remain intact; (3) ONLY add the specified element "${element}" as an additional detail; (4) The added element must look naturally integrated — matching the garment's style, fabric, and quality level; (5) Maintain all original stitching, seams, and construction details.`,
+        constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
         'Premium editorial quality with realistic textile and hardware rendering.',
         'Return only the final image as base64 data without markdown.',
-      ].join(' ')
+      ].filter(Boolean).join(' ')
 
       const content: ChatMessageContentPart[] = [
         { type: 'text', text: prompt },
@@ -877,7 +1045,11 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
   }
 
   // 材质锁定改款式（品类感知版：AI识别材质+款式，同品类内改款，符合欧美趋势）
-  async materialLockedSilhouetteChange(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = []): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+  async materialLockedSilhouetteChange(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = [], opts: { constraints?: string; count?: number; refineFrom?: string } = {}): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+    const genCount = opts.count || 3
+    const constraintHint = opts.constraints ? ` ADDITIONAL USER CONSTRAINTS: ${opts.constraints}.` : ''
+    const refineHint = opts.refineFrom ? ` The user liked the direction "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME design direction (minor tweaks to proportions, details, or finishing), not completely different directions.` : ''
+
     // Step 1: 结构化识别 — 材质 DNA + 品类 + 款式
     const { materialDna, category, silhouette } = await this.recognizeGarmentStructure(imageUrl, userApiKey)
 
@@ -885,7 +1057,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
     const categoryRules = this.getCategoryRules(category)
     const categoryLabel = this.getCategoryLabel(category)
 
-    // Step 3: AI 基于原款式 + 材质 + 欧美趋势推导 3 种同品类改款方向
+    // Step 3: AI 基于原款式 + 材质 + 欧美趋势推导改款方向
     const excludeHint = excludedItems.length > 0
       ? ` IMPORTANT: Do NOT propose any of these already-generated directions: ${excludedItems.join('; ')}. You must propose completely different redesign directions.`
       : ''
@@ -893,22 +1065,22 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
       imageUrl,
       `You are a fashion design director for European and American markets. The original garment is a ${categoryLabel} with these details: "${silhouette}". Material DNA: "${materialDna}".
 
-Propose EXACTLY 3 redesign directions that:
+Propose EXACTLY ${genCount} redesign directions that:
 (1) Stay within the SAME garment category (${categoryLabel}) — do NOT change to a different category;
 (2) Align with current European/American fashion trends (e.g., quiet luxury, minimalist refinement, deconstructed details, oversized proportions, Y2K revival, utility influence);
 (3) Preserve the original material DNA — fabric, color, texture must remain the same;
-(4) Are distinctly different from each other and from the original design.
+(4) Are distinctly different from each other and from the original design.${constraintHint}${refineHint}
 
 Each direction should modify within the category's design vocabulary (neckline, sleeve, silhouette proportions, construction details, etc.).
 
-Format: Return EXACTLY 3 directions, one per line, with a brief name and description.
+Format: Return EXACTLY ${genCount} directions, one per line, with a brief name and description.
 Example: Minimalist Midi — Clean bateau neckline, sleeveless, fluid A-line silhouette, knee-length
 Relaxed Wrap — Soft wrap front, 3/4 bishop sleeves, midi length with side slit
 Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi skirt${excludeHint}`,
       userApiKey
     )
 
-    const directions = directionBrainstorm.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3)
+    const directions = directionBrainstorm.split('\n').map(l => l.trim()).filter(Boolean).slice(0, genCount)
     if (directions.length === 0) {
       directions.push(
         `Minimalist ${categoryLabel} — Clean lines, refined silhouette`,
@@ -917,7 +1089,7 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
       )
     }
 
-    // Step 4: 生成 3 张改款图
+    // Step 4: 生成改款图
     const results: string[] = []
     for (let i = 0; i < directions.length; i++) {
       const direction = directions[i]
@@ -926,8 +1098,9 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
         `Original Material DNA: ${materialDna}`,
         `CATEGORY RULES: ${categoryRules}`,
         `CRITICAL CONSTRAINTS: (1) The fabric, color, texture, weave pattern, and material properties MUST be 100% identical to the reference garment — this is MATERIAL-LOCKED redesign; (2) The new garment MUST remain in the "${categoryLabel}" category — same garment type, same category structure, only design details change; (3) The redesign must follow current European/American fashion aesthetics and trends; (4) The new design must be realistic, wearable, and look like a premium fashion product; (5) All surface details (sheen, texture, weight, drape) must match the reference material; (6) Maintain premium editorial quality with natural textile rendering.`,
+        constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
         'Return only the final image as base64 data without markdown.',
-      ].join(' ')
+      ].filter(Boolean).join(' ')
 
       const content: ChatMessageContentPart[] = [
         { type: 'text', text: prompt },
@@ -959,31 +1132,35 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
   }
 
   // 商业脑暴模式
-  async commercialBrainstorm(taskId: string, imageUrl: string, customPrompt?: string, userApiKey?: string, excludedItems: string[] = []): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+  async commercialBrainstorm(taskId: string, imageUrl: string, customPrompt?: string, userApiKey?: string, excludedItems: string[] = [], opts: { constraints?: string; count?: number; refineFrom?: string } = {}): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
+    const genCount = opts.count || 3
     const userModifier = customPrompt ? ` User creative direction: "${customPrompt}". This should be a CORE WEIGHT in the generation — the AI must prioritize this direction.` : ''
+    const constraintHint = opts.constraints ? ` ADDITIONAL USER CONSTRAINTS: ${opts.constraints}.` : ''
+    const refineHint = opts.refineFrom ? ` The user liked the direction "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME trend direction (slightly different takes), not completely different trends.` : ''
 
     // Step 1: 趋势推导
     const excludeHint = excludedItems.length > 0 ? ` IMPORTANT: Do NOT suggest any of these already-generated directions: ${excludedItems.join('; ')}. You must propose completely different trend directions.` : ''
     const trendPrompt = await this.analyzeImage(
       imageUrl,
-      `You are a trend forecasting AI for European and American fashion markets. Based on this garment, suggest 3 distinctly different trend directions that would appeal to Western mass-market consumers. Consider current trends like: minimalism, workwear/utility, deconstruction, Y2K revival, quiet luxury, gorpcore. Each direction should represent a DIFFERENT aesthetic movement. Format: Return EXACTLY 3 directions, one per line, with a brief description. Example: Minimalist Elevation — Clean lines, muted palette, architectural silhouette${excludeHint}`,
+      `You are a trend forecasting AI for European and American fashion markets. Based on this garment, suggest ${genCount} distinctly different trend directions that would appeal to Western mass-market consumers. Consider current trends like: minimalism, workwear/utility, deconstruction, Y2K revival, quiet luxury, gorpcore. Each direction should represent a DIFFERENT aesthetic movement.${constraintHint}${refineHint} Format: Return EXACTLY ${genCount} directions, one per line, with a brief description. Example: Minimalist Elevation — Clean lines, muted palette, architectural silhouette${excludeHint}`,
       userApiKey
     )
 
-    const directions = trendPrompt.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3)
+    const directions = trendPrompt.split('\n').map(l => l.trim()).filter(Boolean).slice(0, genCount)
     if (directions.length === 0) {
       directions.push('Minimalist Elevation', 'Utility Workwear', 'Deconstructed Avant-garde')
     }
 
-    // Step 2: 每个方向生成 1 张 = 3 张
+    // Step 2: 每个方向生成 1 张
     const results: string[] = []
     for (let i = 0; i < directions.length; i++) {
       const direction = directions[i]
       const prompt = [
         `Generate a photorealistic fashion image of a completely NEW garment inspired by the reference image, following this trend direction: "${direction}".`,
         `CRITICAL RULES: (1) The new garment must be ORIGINAL — AI can change the structure, silhouette, and garment type freely; (2) It must align with Western/European mass-market fashion aesthetics; (3) Maintain premium editorial quality with realistic textile rendering; (4) The result should look like a real product photo, not a sketch or illustration.${userModifier}`,
+        constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
         'Return only the final image as base64 data without markdown.',
-      ].join(' ')
+      ].filter(Boolean).join(' ')
 
       const content: ChatMessageContentPart[] = [
         { type: 'text', text: prompt },

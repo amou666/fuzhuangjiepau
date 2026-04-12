@@ -5,7 +5,7 @@ import { adminApi } from '@/lib/api/admin';
 import type { AuditLog } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils/format';
 import { getErrorMessage } from '@/lib/utils/api';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Loader2 } from 'lucide-react';
 
 const actionLabels: Record<string, string> = {
   recharge_credits: '充值积分',
@@ -25,13 +25,15 @@ const actionColors: Record<string, string> = {
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     adminApi
       .getAuditLogs()
       .then(setLogs)
-      .catch((err) => setError(getErrorMessage(err, '加载审计日志失败')));
+      .catch((err) => setError(getErrorMessage(err, '加载审计日志失败')))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -46,7 +48,11 @@ export default function AuditLogsPage() {
 
       {error ? <div className="text-red-500 text-sm font-medium">{error}</div> : null}
 
-      {logs.length === 0 && !error ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-gray-400 bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载中...
+        </div>
+      ) : logs.length === 0 && !error ? (
         <div className="text-center py-10 text-gray-400 bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
           暂无审计日志。
         </div>

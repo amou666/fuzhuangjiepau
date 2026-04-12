@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -9,9 +9,11 @@ import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import {
   Palette, Layers, Shirt, Lightbulb, Download, Plus, X, Sparkles,
-  Loader2, ImageIcon, Send,
+  Loader2, ImageIcon, Send, GripVertical, Zap, RefreshCw,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { TutorialButton } from '@/lib/components/common/TutorialModal'
+import { TUTORIALS } from '@/lib/tutorials'
 
 type RedesignModeLocal = RedesignMode;
 
@@ -27,52 +29,102 @@ const MODES: {
   label: string
   icon: React.ComponentType<{ className?: string }>
   description: string
-  credits: number
   outputCount: string
   gradientFrom: string
   gradientTo: string
+  constraintPlaceholder: string
 }[] = [
   {
     id: 'luxury-color',
     label: '奢侈品色系变色',
     icon: Palette,
     description: '探索高客单价奢侈品色系，100%保留面料细节，仅改变色相与饱和度',
-    credits: 3,
     outputCount: '3',
     gradientFrom: '#c67b5c',
     gradientTo: '#d4a882',
+    constraintPlaceholder: '例：只要暖色调、排除红色系、参考 Hermès 橙...',
   },
   {
     id: 'material-element',
     label: '材质感知加元素',
     icon: Layers,
     description: '识别面料属性，添加兼容工艺细节，轮廓100%保持一致',
-    credits: 3,
     outputCount: '3',
     gradientFrom: '#b0654a',
     gradientTo: '#c67b5c',
+    constraintPlaceholder: '例：只加金属配件、不要刺绣、保持极简风格...',
   },
   {
     id: 'material-silhouette',
     label: '材质锁定改款式',
     icon: Shirt,
     description: 'AI识别材质与品类，同品类内改款设计，严格遵循品类规范，符合欧美审美趋势',
-    credits: 3,
     outputCount: '3',
     gradientFrom: '#8b7355',
     gradientTo: '#b0654a',
+    constraintPlaceholder: '例：领型不动、袖子改短袖、版型保持 H 型、2025 秋冬风格...',
   },
   {
     id: 'commercial-brainstorm',
     label: '商业脑暴模式',
     icon: Lightbulb,
     description: '完全释放AI创造力，生成符合欧美审美的流行款式，支持自定义Prompt',
-    credits: 3,
     outputCount: '3',
     gradientFrom: '#d4967c',
     gradientTo: '#8b7355',
+    constraintPlaceholder: '例：度假系列、价格带 200-300 元的简化版...',
   },
 ]
+
+const COUNT_OPTIONS = [1, 3, 6]
+
+function CompareSlider({ imgA, imgB }: { imgA: string; imgB: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState(50)
+  const dragging = useRef(false)
+
+  const updatePos = useCallback((clientX: number) => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width))
+    setPos((x / rect.width) * 100)
+  }, [])
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    dragging.current = true
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    updatePos(e.clientX)
+  }, [updatePos])
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return
+    updatePos(e.clientX)
+  }, [updatePos])
+
+  const onPointerUp = useCallback(() => { dragging.current = false }, [])
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full aspect-[3/4] rounded-xl overflow-hidden cursor-col-resize select-none touch-none"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+    >
+      <img src={imgB} alt="改款" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+      <div className="absolute inset-0 overflow-hidden" style={{ width: `${pos}%` }}>
+        <img src={imgA} alt="原图" className="absolute inset-0 w-full h-full object-cover" style={{ minWidth: containerRef.current ? `${containerRef.current.offsetWidth}px` : '100%' }} draggable={false} />
+      </div>
+      <div className="absolute top-0 bottom-0 w-[3px] bg-white shadow-lg z-10" style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 bg-white rounded-full shadow-xl flex items-center justify-center">
+          <GripVertical className="w-3.5 h-3.5 text-[#8b7355]" />
+        </div>
+      </div>
+      <div className="absolute top-2 left-2 bg-black/50 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">原图</div>
+      <div className="absolute top-2 right-2 bg-[#c67b5c]/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">改款</div>
+    </div>
+  )
+}
 
 export default function RedesignPage() {
   const router = useRouter()
@@ -86,6 +138,8 @@ export default function RedesignPage() {
   const [imageUrl, setImageUrl] = useState(redesignDraft?.imageUrl ?? '')
   const [mode, setMode] = useState<RedesignModeLocal>(redesignDraft?.mode ?? 'luxury-color')
   const [customPrompt, setCustomPrompt] = useState(redesignDraft?.customPrompt ?? '')
+  const [constraints, setConstraints] = useState(redesignDraft?.constraints ?? '')
+  const [count, setCount] = useState(redesignDraft?.count ?? 3)
   const [resultUrls, setResultUrls] = useState<string[]>(redesignResult?.resultUrls ?? [])
   const [pendingCount, setPendingCount] = useState(0)
   const [generatedItems, setGeneratedItems] = useState<string[]>(redesignResult?.generatedItems ?? [])
@@ -96,50 +150,52 @@ export default function RedesignPage() {
   const [error, setError] = useState('')
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [previewSize, setPreviewSize] = useState<{ width: number; height: number } | null>(null)
+  const [compareIdx, setCompareIdx] = useState<number | null>(null)
   const updateCredits = useAuthStore((state) => state.updateCredits)
   const addNotification = useNotificationStore((state) => state.add)
 
-  // 自动保存草稿到内存 store
   useEffect(() => {
-    setRedesignDraft({ imageUrl, mode, customPrompt })
-  }, [imageUrl, mode, customPrompt, setRedesignDraft])
+    setRedesignDraft({ imageUrl, mode, customPrompt, constraints, count })
+  }, [imageUrl, mode, customPrompt, constraints, count, setRedesignDraft])
 
-  // 上传图后自动识别材质
   useEffect(() => {
-    if (!imageUrl) {
-      setMaterialInfo('')
-      return
-    }
+    if (!imageUrl) { setMaterialInfo(''); return }
     setMaterialLoading(true)
     workspaceApi.recognizeMaterial(imageUrl).then(info => {
       setMaterialInfo(info)
-    }).catch(() => {
-      setMaterialInfo('')
-    }).finally(() => {
-      setMaterialLoading(false)
-    })
+    }).catch(() => { setMaterialInfo('') }).finally(() => { setMaterialLoading(false) })
   }, [imageUrl])
 
-  const selectedMode = MODES.find(m => m.id === mode)!
+  const selectedMode = MODES.find(m => m.id === mode) ?? MODES[0]
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (refineFrom?: string) => {
     if (!imageUrl) return
     setSubmitting(true)
     setError('')
-    setResultUrls([])
-    setGeneratedItems([])
-    clearRedesignResult()
-    setPendingCount(3)
-    setProgress('正在生成中...')
+    if (!refineFrom) {
+      setResultUrls([])
+      setGeneratedItems([])
+      clearRedesignResult()
+    }
+    setPendingCount(refineFrom ? count : count)
+    setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」...` : '正在生成中...')
 
     try {
-      const data = await workspaceApi.redesign(imageUrl, mode, mode === 'commercial-brainstorm' ? customPrompt : undefined, [])
-      setResultUrls(data.resultUrls)
-      setGeneratedItems(data.generatedItems || [])
-      setRedesignResult({ resultUrls: data.resultUrls, generatedItems: data.generatedItems || [], imageUrl, mode })
+      const data = await workspaceApi.redesign(imageUrl, mode, {
+        customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
+        excludedItems: refineFrom ? [] : generatedItems,
+        constraints: constraints || undefined,
+        count,
+        refineFrom: refineFrom || undefined,
+      })
+      const newUrls = refineFrom ? [...resultUrls, ...data.resultUrls] : data.resultUrls
+      const newItems = refineFrom ? [...generatedItems, ...(data.generatedItems || [])] : (data.generatedItems || [])
+      setResultUrls(newUrls)
+      setGeneratedItems(newItems)
+      setRedesignResult({ resultUrls: newUrls, generatedItems: newItems, imageUrl, mode })
       setPendingCount(0)
       updateCredits(await workspaceApi.getBalance())
-      addNotification({ type: 'success', message: `改款完成！已生成 ${data.resultUrls.length} 张方案` })
+      addNotification({ type: 'success', message: refineFrom ? `深化完成！追加了 ${data.resultUrls.length} 张方案` : `改款完成！已生成 ${data.resultUrls.length} 张方案` })
     } catch (err) {
       setPendingCount(0)
       setError(getErrorMessage(err, '改款生成失败'))
@@ -153,11 +209,16 @@ export default function RedesignPage() {
     if (!imageUrl) return
     setSubmitting(true)
     setError('')
-    setPendingCount(3)
+    setPendingCount(count)
     setProgress('追加方案中...')
 
     try {
-      const data = await workspaceApi.redesign(imageUrl, mode, mode === 'commercial-brainstorm' ? customPrompt : undefined, generatedItems)
+      const data = await workspaceApi.redesign(imageUrl, mode, {
+        customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
+        excludedItems: generatedItems,
+        constraints: constraints || undefined,
+        count,
+      })
       const newUrls = [...resultUrls, ...data.resultUrls]
       const newItems = [...generatedItems, ...(data.generatedItems || [])]
       setResultUrls(newUrls)
@@ -209,7 +270,10 @@ export default function RedesignPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* 页头 — Editorial Style */}
+      <div className="flex justify-end md:hidden -mb-4">
+        <TutorialButton id="redesign" steps={TUTORIALS.redesign} />
+      </div>
+      {/* 页头 */}
       <div className="hidden md:flex items-end justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -223,19 +287,19 @@ export default function RedesignPage() {
           </div>
           <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">上传服装原图，选择改款模式，AI 批量生成全新设计方案</p>
         </div>
-        <div className="hidden md:flex items-center gap-2 text-[11px] text-[#b0a59a] tracking-widest uppercase">
+        <div className="hidden md:flex items-center gap-3 text-[11px] text-[#b0a59a] tracking-widest uppercase">
+          <TutorialButton id="redesign" steps={TUTORIALS.redesign} />
           <span>消耗</span>
-          <span className="text-[#c67b5c] font-bold text-sm">{selectedMode.credits}</span>
-          <span>积分 / 次</span>
+          <span className="text-[#c67b5c] font-bold text-sm">{count}</span>
+          <span>积分 / 次 · {count} 图</span>
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="bg-[#fef2f0] text-[#c47070] px-5 py-3.5 rounded-2xl text-sm font-medium border border-[#f0d5d0]">{error}</div>
       )}
 
-      {/* 材质识别结果 */}
+      {/* 材质识别 */}
       {materialLoading && (
         <div className="fashion-glass rounded-2xl p-4 flex items-center gap-3">
           <Loader2 className="w-4 h-4 text-[#c67b5c] animate-spin" />
@@ -253,7 +317,7 @@ export default function RedesignPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* 左侧：上传 + 模式选择 */}
+        {/* 左侧 */}
         <div className="lg:col-span-4 flex flex-col gap-5">
           {/* 图片上传 */}
           <div className="fashion-glass rounded-2xl p-5">
@@ -288,13 +352,9 @@ export default function RedesignPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span
-                            className="text-[13px] font-semibold"
-                            style={{ color: isActive ? '#b0654a' : '#2d2422' }}
-                          >
+                          <span className="text-[13px] font-semibold" style={{ color: isActive ? '#b0654a' : '#2d2422' }}>
                             {m.label}
                           </span>
-                          <span className="text-[11px] text-[#b0a59a]">{m.credits} 积分 · {m.outputCount} 图</span>
                         </div>
                         <p className="text-[11px] text-[#b0a59a] mt-0.5 leading-relaxed line-clamp-2">{m.description}</p>
                       </div>
@@ -303,6 +363,44 @@ export default function RedesignPage() {
                 )
               })}
             </div>
+          </div>
+
+          {/* 生成数量 */}
+          <div className="fashion-glass rounded-2xl p-5">
+            <h3 className="text-[15px] font-bold text-[#2d2422] tracking-tight mb-2">生成数量</h3>
+            <p className="text-[11px] text-[#b0a59a] mb-3">每张消耗 1 积分</p>
+            <div className="flex gap-2">
+              {COUNT_OPTIONS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCount(c)}
+                  className="flex-1 py-2.5 rounded-xl border text-center transition-all font-semibold"
+                  style={{
+                    background: count === c ? 'linear-gradient(135deg, #c67b5c, #d4a882)' : 'rgba(255,253,250,0.5)',
+                    color: count === c ? '#fff' : '#8b7355',
+                    borderColor: count === c ? 'transparent' : 'rgba(139,115,85,0.1)',
+                    boxShadow: count === c ? '0 2px 8px rgba(198,123,92,0.2)' : 'none',
+                  }}
+                >
+                  <div className="text-[16px]">{c}</div>
+                  <div className="text-[10px]" style={{ opacity: 0.8 }}>{c} 积分</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 设计约束（所有模式通用） */}
+          <div className="fashion-glass rounded-2xl p-5">
+            <h3 className="text-[15px] font-bold text-[#2d2422] tracking-tight mb-2">设计约束</h3>
+            <p className="text-[11px] text-[#b0a59a] mb-3">告诉 AI 要保留什么、不要什么、方向偏好（选填）</p>
+            <textarea
+              value={constraints}
+              onChange={(e) => setConstraints(e.target.value)}
+              placeholder={selectedMode.constraintPlaceholder}
+              rows={2}
+              className="w-full px-3.5 py-2.5 rounded-xl border bg-[rgba(255,253,250,0.7)] text-[13px] text-[#2d2422] placeholder:text-[#c9bfb5] focus:outline-none focus:ring-2 resize-none"
+              style={{ borderColor: 'rgba(139,115,85,0.12)', '--tw-ring-color': 'rgba(198,123,92,0.15)' } as React.CSSProperties}
+            />
           </div>
 
           {/* 自定义 Prompt（商业脑暴模式） */}
@@ -340,7 +438,7 @@ export default function RedesignPage() {
             ) : (
               <>
                 <div>开始改款</div>
-                <div className="text-[12px] font-normal opacity-85 mt-1">消耗 {selectedMode.credits} 积分 · 生成 {selectedMode.outputCount} 张方案</div>
+                <div className="text-[12px] font-normal opacity-85 mt-1">消耗 {count} 积分 · 生成 {count} 张方案</div>
               </>
             )}
           </button>
@@ -350,10 +448,7 @@ export default function RedesignPage() {
         <div className="lg:col-span-8">
           {resultUrls.length === 0 && pendingCount === 0 && (
             <div className="fashion-glass rounded-2xl p-12 text-center">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'rgba(198,123,92,0.08)' }}
-              >
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(198,123,92,0.08)' }}>
                 <Sparkles className="w-7 h-7 text-[#c67b5c]" style={{ opacity: 0.5 }} />
               </div>
               <h3 className="text-[15px] font-semibold text-[#b0a59a] mb-1">等待生成</h3>
@@ -363,7 +458,7 @@ export default function RedesignPage() {
 
           {(resultUrls.length > 0 || pendingCount > 0) && (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-[15px] font-bold text-[#2d2422] tracking-tight flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[#c67b5c]" />
                   生成结果
@@ -371,11 +466,7 @@ export default function RedesignPage() {
                 </h3>
                 <button
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    color: '#b0654a',
-                    background: 'rgba(198,123,92,0.06)',
-                    border: '1px solid rgba(198,123,92,0.12)',
-                  }}
+                  style={{ color: '#b0654a', background: 'rgba(198,123,92,0.06)', border: '1px solid rgba(198,123,92,0.12)' }}
                   type="button"
                   onClick={() => { void handleAppendMore() }}
                   disabled={submitting}
@@ -397,28 +488,62 @@ export default function RedesignPage() {
                     key={`result-${idx}`}
                     className="group fashion-glass rounded-2xl p-3 hover:shadow-[0_4px_16px_rgba(198,123,92,0.12)] transition-all"
                   >
-                    <div className="relative rounded-xl overflow-hidden cursor-pointer" onClick={() => setPreviewSrc(url)}>
-                      <img
-                        src={url}
-                        alt={`方案 ${idx + 1}`}
-                        className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between mt-2.5 px-1">
-                      <span className="text-[11px] font-medium text-[#9b8e82]">方案 {idx + 1}</span>
-                      <div className="flex items-center gap-1">
+                    {/* 对比模式 vs 普通预览 */}
+                    {compareIdx === idx && imageUrl ? (
+                      <CompareSlider imgA={imageUrl} imgB={url} />
+                    ) : (
+                      <div className="relative rounded-xl overflow-hidden cursor-pointer" onClick={() => setPreviewSrc(url)}>
+                        <img
+                          src={url}
+                          alt={`方案 ${idx + 1}`}
+                          className="w-full aspect-[3/4] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                        {/* 原图缩略图角标 */}
+                        {imageUrl && (
+                          <div className="absolute bottom-1.5 left-1.5 w-10 h-10 rounded-lg overflow-hidden border-2 border-white/80 shadow-md opacity-70 group-hover:opacity-100 transition-opacity z-10">
+                            <img src={imageUrl} alt="原图" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1.5 mt-2.5 px-1">
+                      {/* 方案名称 */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-medium text-[#9b8e82] truncate flex-1 mr-2" title={generatedItems[idx]}>
+                          {generatedItems[idx] ? `方案 ${idx + 1}: ${generatedItems[idx]}` : `方案 ${idx + 1}`}
+                        </span>
+                      </div>
+                      {/* 操作按钮 */}
+                      <div className="flex items-center gap-0.5 flex-wrap">
                         <button
-                          className="inline-flex items-center gap-1 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[11px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          onClick={() => setCompareIdx(compareIdx === idx ? null : idx)}
+                          title="与原图对比"
+                        >
+                          <GripVertical className="w-3 h-3" />
+                          <span className="hidden sm:inline">{compareIdx === idx ? '关闭' : '对比'}</span>
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          onClick={() => { void handleGenerate(generatedItems[idx] || `方案 ${idx + 1}`) }}
+                          disabled={submitting}
+                          title="基于这个方向深化"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span className="hidden sm:inline">深化</span>
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[10px]"
                           onClick={() => handleSendToWorkspace(url)}
                         >
-                          <Send className="w-3.5 h-3.5" />
+                          <Send className="w-3 h-3" />
                           <span className="hidden sm:inline">工作台</span>
                         </button>
                         <button
-                          className="inline-flex items-center gap-1 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[11px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[10px]"
                           onClick={() => handleDownload(url)}
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <Download className="w-3 h-3" />
                           <span className="hidden sm:inline">下载</span>
                         </button>
                       </div>
@@ -461,16 +586,12 @@ export default function RedesignPage() {
           onClick={() => { setPreviewSrc(null); setPreviewSize(null) }}
           className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999] cursor-pointer"
         >
-          {/* 拍立得卡片 */}
           <div
             className="relative bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.2)] cursor-default"
             style={{
               padding: '10px 10px 48px 10px',
               transform: 'rotate(-1.5deg)',
-              ...(previewSize ? {
-                width: `${previewSize.width}px`,
-                height: `${previewSize.height}px`,
-              } : {}),
+              ...(previewSize ? { width: `${previewSize.width}px`, height: `${previewSize.height}px` } : {}),
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -484,27 +605,21 @@ export default function RedesignPage() {
                 const naturalW = img.naturalWidth
                 const naturalH = img.naturalHeight
                 if (!naturalW || !naturalH) return
-                const maxW = window.innerWidth * 0.92 - 20  // 减去左右 padding
-                const maxH = window.innerHeight * 0.85 - 58 // 减去上下 padding + 底部文字区
+                const maxW = window.innerWidth * 0.92 - 20
+                const maxH = window.innerHeight * 0.85 - 58
                 const scale = Math.min(maxW / naturalW, maxH / naturalH, 1)
-                setPreviewSize({
-                  width: Math.round(naturalW * scale),
-                  height: Math.round(naturalH * scale),
-                })
+                setPreviewSize({ width: Math.round(naturalW * scale), height: Math.round(naturalH * scale) })
               }}
             />
-            {/* 拍立得底部文字区 */}
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
               <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>这个款真好看！！！</span>
             </div>
-            {/* 关闭按钮 */}
             <button
               className="absolute -top-2 -right-2 w-8 h-8 bg-white shadow-lg text-[#666] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#333] active:scale-90 transition-all z-10"
               onClick={() => { setPreviewSrc(null); setPreviewSize(null) }}
             >
               <X className="w-4 h-4" />
             </button>
-            {/* 下载按钮 */}
             <button
               className="absolute -bottom-2 -right-2 w-9 h-9 bg-white shadow-lg text-[#c67b5c] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#b0654a] active:scale-90 transition-all z-10"
               onClick={() => handleDownload(previewSrc)}

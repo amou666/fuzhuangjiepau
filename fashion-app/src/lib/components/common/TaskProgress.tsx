@@ -91,9 +91,9 @@ export function TaskProgress({ task, isPolling = false }: TaskProgressProps) {
         </div>
       </div>
 
-      {task.resultUrl && (
+      {(task.resultUrls?.[0] || task.resultUrl) && (
         <div className="mt-4 rounded-xl overflow-hidden border border-[rgba(139,115,85,0.08)]">
-          <img src={task.resultUrl} alt="生成结果" className="w-full block" />
+          <img src={task.resultUrls?.[0] || task.resultUrl!} alt="生成结果" className="w-full block" />
         </div>
       )}
 

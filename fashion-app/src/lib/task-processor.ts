@@ -4,6 +4,23 @@ import { CreditService } from './credit-service'
 import type { ModelConfig, SceneConfig } from './types'
 import { safeJsonParse } from './utils/json'
 import { decryptApiKey } from './utils/security'
+import { buildWatermarkSvg } from './watermark'
+import { v4 as uuidv4 } from 'uuid'
+
+function pushTaskNotification(userId: string, type: 'success' | 'failed', taskId: string, taskType: string) {
+  try {
+    const typeLabel = taskType === 'model-fusion' ? '模特合成' : taskType === 'redesign' ? 'AI 改款' : '生图'
+    const title = type === 'success' ? `${typeLabel}任务完成` : `${typeLabel}任务失败`
+    const content = type === 'success'
+      ? `你的${typeLabel}任务已完成，前往历史记录查看结果。`
+      : `你的${typeLabel}任务处理失败，积分已自动退还。`
+    db.prepare(
+      'INSERT INTO Notification (id, userId, type, title, content) VALUES (?, ?, ?, ?, ?)'
+    ).run(uuidv4(), userId, type === 'success' ? 'system' : 'system', title, content)
+  } catch (err) {
+    console.error('Failed to push task notification:', err)
+  }
+}
 
 export async function processGenerationTask(taskId: string) {
   try {
@@ -51,6 +68,7 @@ export async function processGenerationTask(taskId: string) {
       "UPDATE GenerationTask SET status = ?, resultUrl = ?, finishedAt = datetime('now'), updatedAt = datetime('now') WHERE id = ?"
     ).run('COMPLETED', resultUrl, taskId)
 
+    pushTaskNotification(task.userId, 'success', taskId, task.type || 'workspace')
     console.log(`✅ Task ${taskId} completed`)
   } catch (error: any) {
     console.error(`❌ Task ${taskId} failed:`, error.message)
@@ -60,15 +78,18 @@ export async function processGenerationTask(taskId: string) {
 
     // 失败退款（幂等，避免重复退款）
     try {
-      const task = db.prepare('SELECT userId, creditCost FROM GenerationTask WHERE id = ?').get(taskId) as any
-      if (task && task.creditCost > 0) {
+      const failedTask = db.prepare('SELECT userId, creditCost, type FROM GenerationTask WHERE id = ?').get(taskId) as any
+      if (failedTask && failedTask.creditCost > 0) {
         const refundReason = `任务失败退款 (${taskId.slice(0, 8)})`
-        const result = CreditService.refundCreditsOnce(task.userId, task.creditCost, `${taskId}:generation`, refundReason)
+        const result = CreditService.refundCreditsOnce(failedTask.userId, failedTask.creditCost, `${taskId}:generation`, refundReason)
         if (result.refunded) {
-          console.log(`💰 Refunded ${task.creditCost} credits to user ${task.userId}`)
+          console.log(`💰 Refunded ${failedTask.creditCost} credits to user ${failedTask.userId}`)
         } else {
           console.log(`ℹ️ Skip duplicate refund for task ${taskId}`)
         }
+      }
+      if (failedTask) {
+        pushTaskNotification(failedTask.userId, 'failed', taskId, failedTask.type || 'workspace')
       }
     } catch (refundError) {
       console.error(`❌ Refund failed for task ${taskId}:`, refundError)

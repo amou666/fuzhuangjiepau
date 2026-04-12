@@ -1,18 +1,44 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { workspaceApi } from '@/lib/api/workspace';
 import { LazyImage } from '@/lib/components/LazyImage';
 import { useAuthStore } from '@/lib/stores/authStore';
 import type { GenerationTask } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles } from 'lucide-react';
+import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ComparePanel } from '@/lib/components/history/ComparePanel';
+import { TutorialButton } from '@/lib/components/common/TutorialModal';
+import { TUTORIALS } from '@/lib/tutorials';
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   'workspace': { label: '工作台', icon: Sparkles, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
   'model-fusion': { label: '模特合成', icon: Drama, color: 'text-[#8b7355]', bg: 'bg-[rgba(139,115,85,0.08)]' },
   'redesign': { label: 'AI改款', icon: Wand2, color: 'text-[#b0654a]', bg: 'bg-[rgba(176,101,74,0.08)]' },
+}
+
+interface WatermarkCfg { enabled: boolean; text: string; position: string; opacity: number; fontSize: number }
+
+function applyWatermarkToCanvas(canvas: HTMLCanvasElement, wm: WatermarkCfg) {
+  if (!wm.enabled || !wm.text.trim()) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.font = `bold ${wm.fontSize}px Arial, sans-serif`
+  ctx.fillStyle = `rgba(255,255,255,${wm.opacity})`
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'
+  ctx.shadowBlur = 3
+  let x = canvas.width - 20
+  let y = canvas.height - 20
+  ctx.textAlign = 'end'
+  switch (wm.position) {
+    case 'top-left': x = 20; y = wm.fontSize + 20; ctx.textAlign = 'start'; break
+    case 'top-right': x = canvas.width - 20; y = wm.fontSize + 20; break
+    case 'bottom-left': x = 20; y = canvas.height - 20; ctx.textAlign = 'start'; break
+    case 'center': x = canvas.width / 2; y = canvas.height / 2; ctx.textAlign = 'center'; break
+  }
+  ctx.fillText(wm.text.trim(), x, y)
+  ctx.shadowBlur = 0
 }
 
 export default function HistoryPage() {
@@ -25,6 +51,51 @@ export default function HistoryPage() {
   const [upscaleModal, setUpscaleModal] = useState<{ taskId: string; imageUrl: string } | null>(null);
   const [upscaleLoading, setUpscaleLoading] = useState(false);
   const [upscalingTaskIds, setUpscalingTaskIds] = useState<Set<string>>(new Set());
+  const upscaleTimersRef = useRef<{ interval?: ReturnType<typeof setInterval>; timeout?: ReturnType<typeof setTimeout> }>({});
+  const watermarkRef = useRef<WatermarkCfg | null>(null);
+
+  useEffect(() => {
+    const timers = upscaleTimersRef;
+    return () => {
+      const { interval, timeout } = timers.current;
+      if (interval) clearInterval(interval);
+      if (timeout) clearTimeout(timeout);
+    };
+  }, []);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchDownloading, setBatchDownloading] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<Record<string, number>>({});
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const completedIds = records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').map((r) => r.id);
+    if (completedIds.every((id) => selectedIds.has(id))) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(completedIds));
+    }
+  };
+
+  const handleBatchDownload = async () => {
+    if (selectedIds.size === 0) return;
+    setBatchDownloading(true);
+    try {
+      await workspaceApi.downloadBatchZip(Array.from(selectedIds));
+    } catch (err) {
+      console.error('打包下载失败', err);
+      alert('打包下载失败，请重试');
+    } finally {
+      setBatchDownloading(false);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -33,20 +104,53 @@ export default function HistoryPage() {
       .then(setRecords)
       .catch((loadError) => setError(getErrorMessage(loadError, '加载历史记录失败')))
       .finally(() => setLoading(false));
+    void workspaceApi.getWatermarkConfig().then((wm) => { watermarkRef.current = wm; }).catch(() => {});
   }, []);
 
   const handleDownload = async (url: string, taskId: string) => {
     try {
       const response = await fetch(url);
       const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `fashion-ai-${taskId}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
+      const wm = watermarkRef.current;
+
+      if (wm?.enabled && wm.text.trim()) {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        const objectUrl = URL.createObjectURL(blob);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('image load failed'));
+          img.src = objectUrl;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
+        applyWatermarkToCanvas(canvas, wm);
+        URL.revokeObjectURL(objectUrl);
+
+        canvas.toBlob((wmBlob) => {
+          if (!wmBlob) return;
+          const downloadUrl = URL.createObjectURL(wmBlob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `fashion-ai-${taskId}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(downloadUrl);
+        }, 'image/png');
+      } else {
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `fashion-ai-${taskId}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+      }
     } catch (err) {
       console.error('下载失败', err);
       alert('下载失败，请重试');
@@ -59,10 +163,19 @@ export default function HistoryPage() {
     }
     try {
       await workspaceApi.deleteTask(taskId);
-      setRecords(records.filter((r) => r.id !== taskId));
+      setRecords((prev) => prev.filter((r) => r.id !== taskId));
     } catch (err) {
       console.error('删除失败', err);
       alert('删除失败，请重试');
+    }
+  };
+
+  const handleFeedback = async (taskId: string, rating: number) => {
+    try {
+      await workspaceApi.submitFeedback(taskId, rating);
+      setFeedbacks((prev) => ({ ...prev, [taskId]: rating }));
+    } catch {
+      // silently fail
     }
   };
 
@@ -83,6 +196,8 @@ export default function HistoryPage() {
     try {
       await workspaceApi.upscaleTask(taskId, factor, imageUrl);
       let polled = false;
+      if (upscaleTimersRef.current.interval) clearInterval(upscaleTimersRef.current.interval);
+      if (upscaleTimersRef.current.timeout) clearTimeout(upscaleTimersRef.current.timeout);
       const pollInterval = setInterval(async () => {
         try {
           const task = await workspaceApi.getTask(taskId);
@@ -116,8 +231,9 @@ export default function HistoryPage() {
           // polling error continue
         }
       }, 2000);
+      upscaleTimersRef.current.interval = pollInterval;
 
-      setTimeout(() => {
+      const pollTimeout = setTimeout(() => {
         clearInterval(pollInterval);
         if (!polled) {
           setUpscalingTaskIds(prev => {
@@ -130,6 +246,7 @@ export default function HistoryPage() {
           alert('放大超时，请稍后在历史记录中查看结果');
         }
       }, 120000);
+      upscaleTimersRef.current.timeout = pollTimeout;
     } catch (err) {
       console.error('放大失败', err);
       setUpscalingTaskIds(prev => {
@@ -181,6 +298,9 @@ export default function HistoryPage() {
   return (
     <>
       <div className="flex flex-col gap-5">
+        <div className="flex justify-end md:hidden -mb-1">
+          <TutorialButton id="history" steps={TUTORIALS.history} />
+        </div>
         <div className="hidden md:block mb-1">
           <div className="flex items-center gap-3 mb-1">
             <div
@@ -190,9 +310,61 @@ export default function HistoryPage() {
               <Clock className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">历史记录</h1>
+            <div className="ml-auto"><TutorialButton id="history" steps={TUTORIALS.history} /></div>
           </div>
           <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">查看你的所有生图任务、状态与结果图片</p>
         </div>
+
+        {/* Batch Download Toolbar */}
+        {records.length > 0 && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#8b7355] bg-[rgba(139,115,85,0.04)] border border-[rgba(139,115,85,0.1)] hover:bg-[rgba(139,115,85,0.08)] transition-all"
+              onClick={toggleSelectAll}
+            >
+              {records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0
+                ? <><CheckSquare className="w-3.5 h-3.5" /> 取消全选</>
+                : <><Square className="w-3.5 h-3.5" /> 全选已完成</>
+              }
+            </button>
+            {selectedIds.size > 0 && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+                  boxShadow: '0 2px 10px rgba(198,123,92,0.2)',
+                }}
+                onClick={handleBatchDownload}
+                disabled={batchDownloading}
+              >
+                {batchDownloading
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 打包中...</>
+                  : <><PackageCheck className="w-3.5 h-3.5" /> 打包下载 ({selectedIds.size})</>
+                }
+              </button>
+            )}
+            {selectedIds.size >= 2 && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, #8b7355, #b0a59a)',
+                  boxShadow: '0 2px 10px rgba(139,115,85,0.2)',
+                }}
+                onClick={() => setShowCompare(true)}
+              >
+                <GitCompareArrows className="w-3.5 h-3.5" /> 对比 ({selectedIds.size})
+              </button>
+            )}
+            {selectedIds.size > 0 && (
+              <span className="text-[11px] text-[#b0a59a]">
+                已选 {selectedIds.size} 项
+              </span>
+            )}
+          </div>
+        )}
 
         {error ? (
           <div className="bg-[#fef2f0] text-[#c47070] px-5 py-3.5 rounded-2xl text-sm font-medium border border-[#f0d5d0]">{error}</div>
@@ -219,10 +391,34 @@ export default function HistoryPage() {
               const resultImages = getResultImages(record)
               const refImages = getRefImages(record)
 
+              const isCompleted = record.status === 'COMPLETED' || record.status === 'DONE';
+              const isSelected = selectedIds.has(record.id);
+
               return (
-                <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm">
+                <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm relative" style={isSelected ? { outline: '2px solid rgba(198,123,92,0.4)', outlineOffset: '-1px' } : undefined}>
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* Checkbox */}
+                      {isCompleted && (
+                        <button
+                          type="button"
+                          className="w-5 h-5 rounded flex items-center justify-center border transition-all cursor-pointer flex-shrink-0"
+                          style={isSelected ? {
+                            background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+                            borderColor: 'transparent',
+                          } : {
+                            background: 'rgba(139,115,85,0.03)',
+                            borderColor: 'rgba(139,115,85,0.15)',
+                          }}
+                          onClick={() => toggleSelect(record.id)}
+                        >
+                          {isSelected && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${typeConf.bg} ${typeConf.color}`}>
                         <TypeIcon className="w-3 h-3" />
                         {typeConf.label}
@@ -271,7 +467,7 @@ export default function HistoryPage() {
                       {refImages.length > 0 && (
                         <div>
                           <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <Image className="w-3 h-3" /> 参考图片
+                            <ImageIcon className="w-3 h-3" /> 参考图片
                           </div>
                           <div className="flex gap-2 flex-wrap">
                             {refImages.map((img, idx) => (
@@ -321,6 +517,33 @@ export default function HistoryPage() {
                             )}
                           </div>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Rating */}
+                  {isCompleted && resultImages.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider">评价：</span>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const currentRating = feedbacks[record.id] || 0;
+                        return (
+                          <button
+                            key={star}
+                            type="button"
+                            className="p-0.5 transition-all hover:scale-110"
+                            onClick={() => handleFeedback(record.id, star)}
+                          >
+                            <Star
+                              className={`w-4 h-4 ${star <= currentRating ? 'text-[#d4a06a] fill-[#d4a06a]' : 'text-[#d9d2cb]'}`}
+                            />
+                          </button>
+                        );
+                      })}
+                      {feedbacks[record.id] && (
+                        <span className="text-[10px] text-[#b0a59a] ml-1">
+                          {feedbacks[record.id] >= 4 ? '满意' : feedbacks[record.id] <= 2 ? '不满意' : '一般'}
+                        </span>
                       )}
                     </div>
                   )}
@@ -394,6 +617,13 @@ export default function HistoryPage() {
             点击空白区域关闭
           </div>
         </div>
+      )}
+
+      {showCompare && selectedIds.size >= 2 && (
+        <ComparePanel
+          tasks={records.filter((r) => selectedIds.has(r.id))}
+          onClose={() => setShowCompare(false)}
+        />
       )}
 
       {upscaleModal && (

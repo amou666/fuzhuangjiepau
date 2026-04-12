@@ -1,7 +1,11 @@
 import { apiClient } from './client';
-import type { ClothingLength, CreditLog, GenerationTask, ModelConfig, SceneConfig } from '@/lib/types';
+import type { ClothingLength, CreditLog, Favorite, FavoriteType, GenerationTask, ModelConfig, SceneConfig, TaskPayload } from '@/lib/types';
 
 export const workspaceApi = {
+  createBatchTasks: async (tasks: TaskPayload[]) => {
+    const response = await apiClient.post<{ batchId: string; tasks: GenerationTask[] }>('/tasks/batch', { tasks });
+    return response.data;
+  },
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -90,16 +94,79 @@ export const workspaceApi = {
     }>('/stats/generation');
     return response.data;
   },
-  fuseModels: async (imageUrls: string[]) => {
-    const response = await apiClient.post<{ resultUrl: string }>('/model-fusion', { modelUrls: imageUrls });
+  fuseModels: async (imageUrls: string[], opts?: { weights?: number[]; strategy?: string }) => {
+    const response = await apiClient.post<{ resultUrl: string }>('/model-fusion', {
+      modelUrls: imageUrls,
+      weights: opts?.weights,
+      strategy: opts?.strategy,
+    });
     return response.data;
   },
-  redesign: async (imageUrl: string, mode: string, customPrompt?: string, excludedItems?: string[]) => {
-    const response = await apiClient.post<{ resultUrls: string[]; credits: number; generatedItems: string[] }>('/redesign', { imageUrl, mode, customPrompt, excludedItems });
+  generateModelPortrait: async (modelConfig: Record<string, unknown>, referenceUrl?: string) => {
+    const response = await apiClient.post<{ resultUrls: string[]; taskId: string; credits: number }>('/model-fusion/generate', {
+      modelConfig,
+      referenceUrl,
+    });
+    return response.data;
+  },
+  redesign: async (imageUrl: string, mode: string, opts?: { customPrompt?: string; excludedItems?: string[]; constraints?: string; count?: number; refineFrom?: string }) => {
+    const response = await apiClient.post<{ resultUrls: string[]; credits: number; generatedItems: string[] }>('/redesign', { imageUrl, mode, customPrompt: opts?.customPrompt, excludedItems: opts?.excludedItems, constraints: opts?.constraints, count: opts?.count, refineFrom: opts?.refineFrom });
     return response.data;
   },
   recognizeMaterial: async (imageUrl: string) => {
     const response = await apiClient.post<{ materialInfo: string }>('/redesign/recognize', { imageUrl });
     return response.data.materialInfo;
+  },
+  getFavorites: async (type?: FavoriteType) => {
+    const params = type ? `?type=${type}` : '';
+    const response = await apiClient.get<{ favorites: Favorite[] }>(`/favorites${params}`);
+    return response.data.favorites;
+  },
+  createFavorite: async (payload: { type: FavoriteType; name: string; data: Record<string, unknown>; previewUrl?: string }) => {
+    const response = await apiClient.post<{ favorite: Favorite }>('/favorites', payload);
+    return response.data.favorite;
+  },
+  deleteFavorite: async (id: string) => {
+    await apiClient.delete(`/favorites/${id}`);
+  },
+  downloadBatchZip: async (taskIds: string[]) => {
+    const response = await apiClient.post('/downloads/batch', { taskIds }, { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = response.headers['content-disposition'] || '';
+    const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/);
+    a.download = filenameMatch?.[1] || 'fashion-ai-batch.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+  submitFeedback: async (taskId: string, rating: number, comment?: string) => {
+    const response = await apiClient.post(`/tasks/${taskId}/feedback`, { rating, comment });
+    return response.data;
+  },
+  getFeedback: async (taskId: string) => {
+    const response = await apiClient.get<{ feedback: { rating: number; comment: string } | null }>(`/tasks/${taskId}/feedback`);
+    return response.data.feedback;
+  },
+
+  getWatermarkConfig: async () => {
+    const response = await apiClient.get<{ enabled: boolean; text: string; position: string; opacity: number; fontSize: number }>('/watermark/apply');
+    return response.data;
+  },
+
+  getTemplates: async () => {
+    const response = await apiClient.get<{ templates: any[] }>('/templates');
+    return response.data.templates;
+  },
+
+  getNotifications: async () => {
+    const response = await apiClient.get<{ notifications: any[]; unreadCount: number }>('/notifications');
+    return response.data;
+  },
+  markNotificationsRead: async (action: 'read_all' | 'read', notificationId?: string) => {
+    await apiClient.patch('/notifications', { action, notificationId });
   },
 };

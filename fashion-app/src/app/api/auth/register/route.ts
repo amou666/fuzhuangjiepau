@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createAccessToken, createRefreshToken, hashPassword } from '@/lib/auth'
 import { v4 as uuidv4 } from 'uuid'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { config } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    if (!config.allowRegister) {
+      return NextResponse.json({ message: '注册功能已关闭，请联系管理员开通账号' }, { status: 403 })
+    }
 
-    if (!email || !password || password.length < 6) {
+    const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+    const rl = checkRateLimit(`register:${ip}`, 10, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ message: '请求过于频繁，请稍后重试' }, { status: 429 })
+    }
+
+    const body = await request.json()
+    const { email, password } = body ?? {}
+
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || password.length < 6) {
       return NextResponse.json({ message: '请输入有效的邮箱和至少 6 位密码' }, { status: 400 })
     }
 

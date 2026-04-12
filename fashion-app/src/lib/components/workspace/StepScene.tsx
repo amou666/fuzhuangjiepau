@@ -1,64 +1,71 @@
+import { useMemo, useState } from 'react';
 import type { SceneConfig } from '@/lib/types';
+import { SCENE_OPTIONS } from '@/lib/scene-options';
 import { ImageUploader } from '@/lib/components/common/ImageUploader';
-import { Upload, Replace, AlertTriangle } from 'lucide-react';
+import { FavoriteBar } from './FavoriteBar';
+import { Upload, Replace, AlertTriangle, ChevronDown, Settings2, MapPin, Building2, Coffee, Warehouse, TreePine, Waves, Palette, Store } from 'lucide-react';
 
 interface StepSceneProps {
   value: SceneConfig;
   onChange: (next: SceneConfig) => void;
 }
 
-/** tag：与 buildStreetFashionPrompt 里「自然街拍光 / 反霓虹 / 反棚拍」主提示的潜在冲突，仅作说明 */
-const presetOptions: { value: string; label: string; tag?: string }[] = [
-  { value: 'city street（城市街道）', label: '城市街道' },
-  { value: 'natural outdoor（自然外景）', label: '自然外景' },
-  { value: 'beach seaside（海滨沙滩）', label: '海滨沙滩' },
-  { value: 'urban park（城市公园）', label: '城市公园' },
-  { value: 'vintage street（复古街道）', label: '复古街道' },
-  { value: 'art district（艺术街区）', label: '艺术街区' },
-  { value: 'graffiti wall（涂鸦墙）', label: '涂鸦墙' },
-  { value: 'japanese alley（日式小巷）', label: '日式小巷' },
-  { value: 'european architecture（欧式建筑）', label: '欧式建筑' },
-  { value: 'city bridge（城市桥梁）', label: '城市桥梁' },
-  { value: 'rooftop terrace（屋顶天台）', label: '屋顶天台' },
-  { value: 'industrial warehouse（工业风仓库）', label: '工业风仓库', tag: '光较杂' },
-  { value: 'modern mall（现代商场）', label: '现代商场', tag: '室内' },
-  { value: 'cafe corner（咖啡厅角落）', label: '咖啡厅角落', tag: '室内' },
-  { value: 'office building lobby（写字楼大堂）', label: '写字楼大堂', tag: '室内' },
-  { value: 'shopping center escalator（购物中心扶梯）', label: '购物中心扶梯', tag: '室内' },
-  { value: 'flower shop entrance（花店门口）', label: '花店门口', tag: '室内' },
-  { value: 'bookstore corner（书店角落）', label: '书店角落', tag: '室内' },
-  { value: 'subway station（地铁站）', label: '地铁站', tag: '室内' },
-  { value: 'photo studio（摄影棚）', label: '摄影棚', tag: '室内/棚拍' },
-  { value: 'neon night scene（霓虹夜景）', label: '霓虹夜景', tag: '强冲突' },
-];
+const SCENE_ICONS: Record<string, React.ReactNode> = {
+  'city street（城市街道）': <Building2 className="w-4 h-4" />,
+  'natural outdoor（自然外景）': <TreePine className="w-4 h-4" />,
+  'beach seaside（海滨沙滩）': <Waves className="w-4 h-4" />,
+  'urban park（城市公园）': <TreePine className="w-4 h-4" />,
+  'vintage street（复古街道）': <MapPin className="w-4 h-4" />,
+  'art district（艺术街区）': <Palette className="w-4 h-4" />,
+  'graffiti wall（涂鸦墙）': <Palette className="w-4 h-4" />,
+  'japanese alley（日式小巷）': <MapPin className="w-4 h-4" />,
+  'european architecture（欧式建筑）': <Building2 className="w-4 h-4" />,
+  'city bridge（城市桥梁）': <Building2 className="w-4 h-4" />,
+  'rooftop terrace（屋顶天台）': <Building2 className="w-4 h-4" />,
+  'industrial warehouse（工业风仓库）': <Warehouse className="w-4 h-4" />,
+  'modern mall（现代商场）': <Store className="w-4 h-4" />,
+  'cafe corner（咖啡厅角落）': <Coffee className="w-4 h-4" />,
+  'office building lobby（写字楼大堂）': <Building2 className="w-4 h-4" />,
+  'shopping center escalator（购物中心扶梯）': <Store className="w-4 h-4" />,
+  'flower shop entrance（花店门口）': <Store className="w-4 h-4" />,
+  'bookstore corner（书店角落）': <Store className="w-4 h-4" />,
+  'subway station（地铁站）': <MapPin className="w-4 h-4" />,
+  'photo studio（摄影棚）': <Warehouse className="w-4 h-4" />,
+  'neon night scene（霓虹夜景）': <MapPin className="w-4 h-4" />,
+};
 
-const timeOfDayOptions: { value: string; label: string; tag?: string }[] = [
+const presetOptions = SCENE_OPTIONS.map(o => ({
+  ...o,
+  icon: SCENE_ICONS[o.value] || <MapPin className="w-4 h-4" />,
+}));
+
+const timeOfDayOptions = [
   { value: 'morning（早上）', label: '早上' },
   { value: 'noon（中午）', label: '中午' },
   { value: 'evening（傍晚）', label: '傍晚' },
-  { value: 'night（晚上）', label: '晚上', tag: '叠夜景易假亮' },
+  { value: 'night（晚上）', label: '晚上' },
 ];
 
-const lightingOptions: { value: string; label: string; tag?: string }[] = [
-  { value: '明亮柔和日光', label: '明亮柔和日光', tag: '户外推荐' },
-  { value: '均匀日光', label: '均匀日光', tag: '户外阴天' },
+const lightingOptions = [
+  { value: '明亮柔和日光', label: '明亮柔和日光' },
+  { value: '均匀日光', label: '均匀日光' },
   { value: '窗边自然光', label: '窗边自然光' },
-  { value: '室内自然光', label: '室内自然光', tag: '室内' },
+  { value: '室内自然光', label: '室内自然光' },
   { value: '通透日光', label: '通透日光' },
   { value: '黄昏柔光', label: '黄昏柔光' },
   { value: 'golden hour（黄金小时光）', label: '黄金小时光' },
   { value: '暖调柔光', label: '暖调柔光' },
   { value: '低角度柔和光', label: '低角度柔和光' },
   { value: '日落柔光', label: '日落柔光' },
-  { value: '室内客厅自然光', label: '室内客厅自然光', tag: '室内' },
-  { value: '室内卧室柔和光', label: '室内卧室柔和光', tag: '室内' },
-  { value: '全局光', label: '全局光', tag: '易棚拍' },
-  { value: '软光照明', label: '软光照明', tag: '易棚拍' },
-  { value: '无硬阴影', label: '无硬阴影', tag: '易电商平光' },
-  { value: '室内柔和顶灯', label: '室内柔和顶灯', tag: '易棚拍' },
-  { value: '室内均匀光', label: '室内均匀光', tag: '易棚拍' },
-  { value: '室内柔和照明', label: '室内柔和照明', tag: '易棚拍' },
-  { value: '室内暖白光', label: '室内暖白光', tag: '易棚拍' },
+  { value: '室内客厅自然光', label: '室内客厅自然光' },
+  { value: '室内卧室柔和光', label: '室内卧室柔和光' },
+  { value: '全局光', label: '全局光' },
+  { value: '软光照明', label: '软光照明' },
+  { value: '无硬阴影', label: '无硬阴影' },
+  { value: '室内柔和顶灯', label: '室内柔和顶灯' },
+  { value: '室内均匀光', label: '室内均匀光' },
+  { value: '室内柔和照明', label: '室内柔和照明' },
+  { value: '室内暖白光', label: '室内暖白光' },
 ];
 
 const compositionOptions = [
@@ -67,17 +74,17 @@ const compositionOptions = [
 ];
 
 const depthOfFieldOptions = [
-  { value: 'slight', label: '轻微景深（自然虚化）' },
+  { value: 'slight', label: '轻微景深' },
   { value: 'shallow', label: '浅景深（背景虚化）' },
   { value: 'deep', label: '深景深（背景清晰）' },
 ];
 
 const aspectRatioOptions = [
-  { value: '1:1', label: '1:1（方形）' },
-  { value: '3:4', label: '3:4（竖向）' },
-  { value: '4:3', label: '4:3（横向）' },
-  { value: '9:16', label: '9:16（竖向）' },
-  { value: '16:9', label: '16:9（横向）' },
+  { value: '1:1', label: '1:1 方形' },
+  { value: '3:4', label: '3:4 竖向' },
+  { value: '4:3', label: '4:3 横向' },
+  { value: '9:16', label: '9:16 竖向' },
+  { value: '16:9', label: '16:9 横向' },
 ];
 
 const grainOptions = [
@@ -87,7 +94,7 @@ const grainOptions = [
 ];
 
 const exposureModeOptions = [
-  { value: 'natural', label: '自然（默认）' },
+  { value: 'natural', label: '自然' },
   { value: 'bright', label: '偏亮' },
   { value: 'dark', label: '偏暗' },
 ];
@@ -107,19 +114,46 @@ const selectStyle: React.CSSProperties = {
 const STUDIO_PRESET_VALUE = 'photo studio（摄影棚）';
 const STUDIO_LIGHTING_FALLBACK = '软光照明';
 
-function withTag(label: string, tag?: string) {
-  return tag ? `${label}〔${tag}〕` : label;
-}
-
 export function StepScene({ value, onChange }: StepSceneProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sceneCategory, setSceneCategory] = useState<'all' | 'outdoor' | 'indoor'>('all');
+
+  const filteredPresets = useMemo(() => {
+    if (sceneCategory === 'all') return presetOptions;
+    return presetOptions.filter(p => p.category === sceneCategory);
+  }, [sceneCategory]);
+
+  const selectedPreset = presetOptions.find(p => p.value === value.preset);
+
+  const hasAdvancedValues = !!(value.timeOfDay || value.lighting || value.depthOfField || value.aspectRatio || (value.grain && value.grain !== 'none') || value.exposureMode !== 'natural');
+
+  const conflictMsg = useMemo(() => {
+    const msgs: string[] = [];
+    if (selectedPreset?.conflict) msgs.push(selectedPreset.conflict);
+    if (selectedPreset?.category === 'indoor' && value.lighting && ['明亮柔和日光', '均匀日光', 'golden hour（黄金小时光）', '日落柔光'].includes(value.lighting)) {
+      msgs.push('当前选的是室内场景，但光照选了户外日光类型，建议换成室内光照或留空');
+    }
+    if (value.timeOfDay === 'night（晚上）' && selectedPreset?.category === 'outdoor' && selectedPreset.value !== 'neon night scene（霓虹夜景）') {
+      msgs.push('夜间时段搭配户外场景效果较难把控，建议用傍晚代替或在补充提示词中描述光源');
+    }
+    return msgs;
+  }, [value.lighting, value.timeOfDay, selectedPreset]);
+
   return (
     <>
       <div className="mb-6">
         <h3 className="text-[17px] font-bold text-[#2d2422] tracking-tight">场景配置</h3>
         <p className="hidden md:block text-[12px] text-[#9b8e82] mt-1 tracking-wide">
-          选择场景模式，配置拍摄参数
+          选一个场景，剩下的交给 AI
         </p>
       </div>
+
+      <FavoriteBar
+        type="scene"
+        currentData={value as unknown as Record<string, unknown>}
+        onLoad={(data) => onChange(data as unknown as SceneConfig)}
+        previewUrl={value.imageUrl}
+      />
 
       {/* Scene Mode */}
       <div className="mb-6">
@@ -180,6 +214,7 @@ export function StepScene({ value, onChange }: StepSceneProps) {
 
       {value.mode === 'preset' && (
         <>
+          {/* Scene Source */}
           <div className="mb-6">
             <div className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase mb-3">来源</div>
             <div className="flex gap-2 flex-wrap">
@@ -196,18 +231,6 @@ export function StepScene({ value, onChange }: StepSceneProps) {
                   borderColor: 'rgba(139,115,85,0.08)',
                 }}
                 onClick={() => onChange({ ...value, sceneSource: 'preset' })}
-                onMouseEnter={(e) => {
-                  if (value.sceneSource !== 'preset') {
-                    e.currentTarget.style.borderColor = 'rgba(125,155,118,0.2)';
-                    e.currentTarget.style.color = '#5a7a53';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (value.sceneSource !== 'preset') {
-                    e.currentTarget.style.borderColor = 'rgba(139,115,85,0.08)';
-                    e.currentTarget.style.color = '#8b7355';
-                  }
-                }}
               >
                 预设
               </button>
@@ -224,18 +247,6 @@ export function StepScene({ value, onChange }: StepSceneProps) {
                   borderColor: 'rgba(139,115,85,0.08)',
                 }}
                 onClick={() => onChange({ ...value, sceneSource: 'upload' })}
-                onMouseEnter={(e) => {
-                  if (value.sceneSource !== 'upload') {
-                    e.currentTarget.style.borderColor = 'rgba(125,155,118,0.2)';
-                    e.currentTarget.style.color = '#5a7a53';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (value.sceneSource !== 'upload') {
-                    e.currentTarget.style.borderColor = 'rgba(139,115,85,0.08)';
-                    e.currentTarget.style.color = '#8b7355';
-                  }
-                }}
               >
                 <span className="inline-flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" /> 参考场景</span>
               </button>
@@ -243,47 +254,92 @@ export function StepScene({ value, onChange }: StepSceneProps) {
           </div>
 
           {value.sceneSource === 'preset' && (
-            <div className="flex flex-col gap-1.5 mb-4">
-              <label htmlFor="scene-preset" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">预设场景</label>
-              <select
-                id="scene-preset"
-                style={selectStyle}
-                value={value.preset}
-                onChange={(e) => {
-                  const nextPreset = e.target.value;
-                  const isStudioPreset = nextPreset === STUDIO_PRESET_VALUE;
-                  const shouldSwitchLighting =
-                    isStudioPreset &&
-                    (!value.lighting || value.lighting === '明亮柔和日光' || value.lighting === '均匀日光' || value.lighting === 'golden hour（黄金小时光）');
-
-                  onChange({
-                    ...value,
-                    preset: nextPreset,
-                    lighting: shouldSwitchLighting ? STUDIO_LIGHTING_FALLBACK : value.lighting,
-                  });
-                }}
-              >
-                {presetOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTag(opt.label, opt.tag)}</option>
+            <div className="mb-6">
+              {/* Category Filter */}
+              <div className="flex gap-2 mb-3">
+                {([
+                  { key: 'all' as const, label: '全部' },
+                  { key: 'outdoor' as const, label: '户外' },
+                  { key: 'indoor' as const, label: '室内' },
+                ]).map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border"
+                    style={sceneCategory === tab.key ? {
+                      background: 'rgba(198,123,92,0.08)',
+                      color: '#c67b5c',
+                      borderColor: 'rgba(198,123,92,0.2)',
+                    } : {
+                      background: 'transparent',
+                      color: '#b0a59a',
+                      borderColor: 'rgba(139,115,85,0.06)',
+                    }}
+                    onClick={() => setSceneCategory(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
                 ))}
-              </select>
-              <details className="rounded-xl border border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)] px-3 py-2.5 mt-1">
-                <summary className="text-[11px] font-medium text-[#8b7355] cursor-pointer select-none">
-                  哪些选项容易和「系统自动提示」打架？
-                </summary>
-                <div className="text-[11px] text-[#9b8e82] space-y-2 mt-2 leading-relaxed pl-0.5">
-                  <p className="m-0">
-                    系统在生图提示里默认强调：<strong className="text-[#7a6a5e] font-medium">户外混合自然光、反棚拍、反霓虹/HDR 假亮、反塑料皮</strong>。
-                    下列自选若与场景语义叠在一起，模型容易左右互搏或出「假」。
-                  </p>
-                  <p className="m-0"><span className="text-[#c67b5c] font-medium">强冲突</span>：预设「霓虹夜景」——系统明确写了避免 neon rim / 过曝霓虹氛围，与场景名本身相反，除非你接受模型在中间妥协。</p>
-                  <p className="m-0"><span className="text-[#b8956a] font-medium">室内</span>：商场、咖啡厅、大堂、扶梯、花店门口、书店、地铁站、摄影棚——主提示偏「户外街拍光」，室内人造光要靠场景词自洽；建议光照选「不指定」或在补充提示里写清窗光/顶光，或改用上传场景图。</p>
-                  <p className="m-0"><span className="text-[#b8956a] font-medium">光杂</span>：工业仓库——高光比大，易偏戏剧或电商修图感，可配合「轻微噪点」或补充词压一下。</p>
-                  <p className="m-0"><span className="text-[#b8956a] font-medium">时段·晚上</span>：若再叠夜景/霓虹类语义，和「自然日光主叙述」张力大；尽量用补充词或场景图定死光源。</p>
-                  <p className="m-0"><span className="text-[#b8956a] font-medium">光照·易棚拍/电商</span>：全局光、软光照明、无硬阴影、各类室内顶灯/均匀光——与「非 fake studio、非大平光」冲突；街拍真实感优先请选「不指定」或户外日光类。</p>
-                  <p className="m-0"><span className="text-[#7d9b76] font-medium">不指定时后端默认</span>：景深轻微虚化、画幅 3:4、无额外胶片颗粒（提示里仍可带轻微 sensor noise）。</p>
+              </div>
+
+              {/* Scene Cards Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {filteredPresets.map((preset) => {
+                  const isSelected = value.preset === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 border cursor-pointer group"
+                      style={isSelected ? {
+                        background: 'rgba(198,123,92,0.08)',
+                        borderColor: 'rgba(198,123,92,0.3)',
+                        boxShadow: '0 2px 8px rgba(198,123,92,0.12)',
+                      } : {
+                        background: 'rgba(139,115,85,0.02)',
+                        borderColor: 'rgba(139,115,85,0.06)',
+                      }}
+                      onClick={() => {
+                        const isStudio = preset.value === STUDIO_PRESET_VALUE;
+                        const shouldSwitchLighting =
+                          isStudio &&
+                          (!value.lighting || ['明亮柔和日光', '均匀日光', 'golden hour（黄金小时光）'].includes(value.lighting));
+                        onChange({
+                          ...value,
+                          preset: preset.value,
+                          lighting: shouldSwitchLighting ? STUDIO_LIGHTING_FALLBACK : value.lighting,
+                        });
+                      }}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                        style={{
+                          background: isSelected ? 'linear-gradient(135deg, #c67b5c, #d4a882)' : 'rgba(139,115,85,0.06)',
+                          color: isSelected ? '#fff' : '#b0a59a',
+                        }}
+                      >
+                        {preset.icon}
+                      </div>
+                      <span className={`text-[11px] font-medium text-center leading-tight ${isSelected ? 'text-[#c67b5c]' : 'text-[#8b7355] group-hover:text-[#2d2422]'}`}>
+                        {preset.label}
+                      </span>
+                      <span className="text-[9px] text-[#c9bfb5]">
+                        {preset.category === 'outdoor' ? '户外' : '室内'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Conflict Warning */}
+              {conflictMsg.length > 0 && (
+                <div className="mt-3 flex items-start gap-2 p-3 rounded-xl bg-[rgba(212,160,106,0.06)] border border-[rgba(212,160,106,0.15)]">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#d4a06a]" />
+                  <div className="text-[11px] text-[#b8956a] leading-relaxed space-y-1">
+                    {conflictMsg.map((msg, i) => <p key={i} className="m-0">{msg}</p>)}
+                  </div>
                 </div>
-              </details>
+              )}
             </div>
           )}
 
@@ -298,57 +354,16 @@ export function StepScene({ value, onChange }: StepSceneProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-5 mb-6">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="time-of-day" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">时段</label>
-              <select id="time-of-day" style={selectStyle} value={value.timeOfDay || ''} onChange={(e) => onChange({ ...value, timeOfDay: e.target.value })}>
-                <option value="">不指定（仅用语景词，不写死时段）</option>
-                {timeOfDayOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTag(opt.label, opt.tag)}</option>
-                ))}
-              </select>
-              <span className="text-[11px] text-[#c9bfb5] leading-relaxed">不写进场景串时，由预设名 + 系统自然光提示推断</span>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="lighting" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">光照</label>
-              <select id="lighting" style={selectStyle} value={value.lighting || ''} onChange={(e) => onChange({ ...value, lighting: e.target.value })}>
-                <option value="">不指定（推荐：由系统「自然街拍光」提示主导）</option>
-                {lightingOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{withTag(opt.label, opt.tag)}</option>
-                ))}
-              </select>
-              <span className="text-[11px] text-[#c9bfb5] leading-relaxed">
-                {value.preset === STUDIO_PRESET_VALUE
-                  ? '当前是「摄影棚」预设，建议使用棚拍光照（如软光照明/室内均匀光/室内柔和顶灯），以减少和自然街拍光提示冲突。'
-                  : '留空时场景描述里不写光照词，生图提示词仍会强制户外混合自然光。若要手写，优先选户外日光类；「全局光」容易偏棚拍感。'}
-              </span>
-            </div>
-
+          {/* Basic Params */}
+          <div className="mb-2">
+            <div className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase mb-3">基础参数</div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-4 mb-6">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="composition" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">构图</label>
               <select id="composition" style={selectStyle} value={value.composition || ''} onChange={(e) => onChange({ ...value, composition: e.target.value })}>
-                <option value="">不指定（场景串不写构图，由画幅与内容推断）</option>
+                <option value="">自动</option>
                 {compositionOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="depth-of-field" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">景深</label>
-              <select
-                id="depth-of-field"
-                style={selectStyle}
-                value={value.depthOfField ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onChange({
-                    ...value,
-                    depthOfField: v ? (v as 'slight' | 'shallow' | 'deep') : undefined,
-                  });
-                }}
-              >
-                <option value="">不指定（默认轻微景深·自然虚化）</option>
-                {depthOfFieldOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
               </select>
             </div>
 
@@ -358,64 +373,98 @@ export function StepScene({ value, onChange }: StepSceneProps) {
                 id="aspect-ratio"
                 style={selectStyle}
                 value={value.aspectRatio ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onChange({
-                    ...value,
-                    aspectRatio: v ? (v as '1:1' | '3:4' | '4:3' | '9:16' | '16:9') : undefined,
-                  });
-                }}
+                onChange={(e) => onChange({ ...value, aspectRatio: e.target.value ? (e.target.value as '1:1' | '3:4' | '4:3' | '9:16' | '16:9') : undefined })}
               >
-                <option value="">不指定（默认 3:4 竖图）</option>
+                <option value="">默认 3:4</option>
                 {aspectRatioOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="grain" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">噪点</label>
-              <select
-                id="grain"
-                style={selectStyle}
-                value={value.grain ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onChange({
-                    ...value,
-                    grain: v ? (v as 'none' | 'light' | 'heavy') : undefined,
-                  });
-                }}
-              >
-                <option value="">不指定（默认无额外颗粒，提示里仍可带轻微 sensor noise）</option>
-                {grainOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-              </select>
-              <span className="text-[11px] text-[#c9bfb5] leading-relaxed">需要更「胶片/粗颗粒」时再选手动档</span>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="exposure-mode" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">曝光强度</label>
+              <label htmlFor="exposure-mode" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">曝光</label>
               <select
                 id="exposure-mode"
                 style={selectStyle}
                 value={value.exposureMode ?? 'natural'}
-                onChange={(e) => {
-                  const v = e.target.value as 'natural' | 'bright' | 'dark';
-                  onChange({
-                    ...value,
-                    exposureMode: v,
-                  });
-                }}
+                onChange={(e) => onChange({ ...value, exposureMode: e.target.value as 'natural' | 'bright' | 'dark' })}
               >
                 {exposureModeOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
               </select>
-              <span className="text-[11px] text-[#c9bfb5] leading-relaxed">默认自然；偏亮会提升画面亮度，偏暗会压高光避免过曝</span>
             </div>
           </div>
+
+          {/* Advanced Toggle */}
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 rounded-xl text-[12px] font-medium transition-all border cursor-pointer"
+            style={{
+              background: showAdvanced ? 'rgba(198,123,92,0.04)' : 'rgba(139,115,85,0.02)',
+              color: showAdvanced ? '#c67b5c' : '#b0a59a',
+              borderColor: showAdvanced ? 'rgba(198,123,92,0.15)' : 'rgba(139,115,85,0.06)',
+            }}
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            高级参数 ({showAdvanced ? '收起' : '展开'})
+            {hasAdvancedValues && !showAdvanced && <span className="text-[10px] text-[#7d9b76]">· 已配置</span>}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAdvanced && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-5 mb-6 p-4 rounded-2xl border border-[rgba(139,115,85,0.06)] bg-[rgba(139,115,85,0.01)]">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="time-of-day" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">时段</label>
+                <select id="time-of-day" style={selectStyle} value={value.timeOfDay || ''} onChange={(e) => onChange({ ...value, timeOfDay: e.target.value })}>
+                  <option value="">自动</option>
+                  {timeOfDayOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="lighting" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">光照</label>
+                <select id="lighting" style={selectStyle} value={value.lighting || ''} onChange={(e) => onChange({ ...value, lighting: e.target.value })}>
+                  <option value="">自动（推荐）</option>
+                  {lightingOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="depth-of-field" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">景深</label>
+                <select
+                  id="depth-of-field"
+                  style={selectStyle}
+                  value={value.depthOfField ?? ''}
+                  onChange={(e) => onChange({ ...value, depthOfField: e.target.value ? (e.target.value as 'slight' | 'shallow' | 'deep') : undefined })}
+                >
+                  <option value="">自动</option>
+                  {depthOfFieldOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="grain" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">噪点</label>
+                <select
+                  id="grain"
+                  style={selectStyle}
+                  value={value.grain ?? ''}
+                  onChange={(e) => onChange({ ...value, grain: e.target.value ? (e.target.value as 'none' | 'light' | 'heavy') : undefined })}
+                >
+                  <option value="">默认无</option>
+                  {grainOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                </select>
+              </div>
+            </div>
+          )}
         </>
       )}
 
       {/* Prompt */}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="scene-prompt" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">补充提示词</label>
+        <label htmlFor="scene-prompt" className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">补充提示词 <span className="text-[#c9bfb5] normal-case tracking-normal font-normal">（可选）</span></label>
         <textarea
           id="scene-prompt"
           className="w-full px-4 py-3 text-[13px] text-[#2d2422] resize-y min-h-[80px] rounded-xl outline-none transition-all duration-200"
@@ -433,10 +482,9 @@ export function StepScene({ value, onChange }: StepSceneProps) {
             e.currentTarget.style.borderColor = 'rgba(139,115,85,0.1)';
             e.currentTarget.style.boxShadow = 'none';
           }}
-          placeholder="例：阴天散射光、行人略远、手机抓拍略抖、橱窗弱反射（少写「大片/霓虹/强HDR」更易与系统一致）"
-          rows={4}
+          placeholder="例：阴天散射光、行人略远、橱窗弱反射..."
+          rows={3}
         />
-        <span className="text-[11px] text-[#c9bfb5] leading-relaxed">可选，添加更多细节描述以优化生成效果</span>
       </div>
     </>
   );

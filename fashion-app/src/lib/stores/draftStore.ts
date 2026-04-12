@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ClothingLength, ModelConfig, SceneConfig } from '@/lib/types';
 
 // ─── Workspace Draft ─────────────────────────────────────────
@@ -19,6 +20,8 @@ export interface RedesignDraft {
   imageUrl: string;
   mode: RedesignMode;
   customPrompt: string;
+  constraints: string;
+  count: number;
 }
 
 export interface RedesignResult {
@@ -64,25 +67,48 @@ interface DraftState {
   clearFusionResult: () => void;
 }
 
-export const useDraftStore = create<DraftState>((set) => ({
-  // Workspace
-  workspaceDraft: null,
-  setWorkspaceDraft: (draft) => set({ workspaceDraft: draft }),
-  clearWorkspaceDraft: () => set({ workspaceDraft: null }),
+export const useDraftStore = create<DraftState>()(
+  persist(
+    (set) => ({
+      // Workspace
+      workspaceDraft: null,
+      setWorkspaceDraft: (draft) => set({ workspaceDraft: draft }),
+      clearWorkspaceDraft: () => set({ workspaceDraft: null }),
 
-  // Redesign
-  redesignDraft: null,
-  redesignResult: null,
-  setRedesignDraft: (draft) => set({ redesignDraft: draft }),
-  clearRedesignDraft: () => set({ redesignDraft: null }),
-  setRedesignResult: (result) => set({ redesignResult: result }),
-  clearRedesignResult: () => set({ redesignResult: null }),
+      // Redesign
+      redesignDraft: null,
+      redesignResult: null,
+      setRedesignDraft: (draft) => set({ redesignDraft: draft }),
+      clearRedesignDraft: () => set({ redesignDraft: null }),
+      setRedesignResult: (result) => set({ redesignResult: result }),
+      clearRedesignResult: () => set({ redesignResult: null }),
 
-  // Model Fusion
-  fusionDraft: null,
-  fusionResult: null,
-  setFusionDraft: (draft) => set({ fusionDraft: draft }),
-  clearFusionDraft: () => set({ fusionDraft: null }),
-  setFusionResult: (result) => set({ fusionResult: result }),
-  clearFusionResult: () => set({ fusionResult: null }),
-}));
+      // Model Fusion
+      fusionDraft: null,
+      fusionResult: null,
+      setFusionDraft: (draft) => set({ fusionDraft: draft }),
+      clearFusionDraft: () => set({ fusionDraft: null }),
+      setFusionResult: (result) => set({ fusionResult: result }),
+      clearFusionResult: () => set({ fusionResult: null }),
+    }),
+    {
+      name: 'fashion-ai-draft',
+      storage: createJSONStorage(() => {
+        if (typeof window === 'undefined') {
+          const memoryStore = new Map<string, string>();
+          return {
+            getItem: (name: string) => memoryStore.get(name) ?? null,
+            setItem: (name: string, value: string) => { memoryStore.set(name, value); },
+            removeItem: (name: string) => { memoryStore.delete(name); },
+          };
+        }
+        return localStorage;
+      }),
+      partialize: (state) => ({
+        workspaceDraft: state.workspaceDraft,
+        redesignDraft: state.redesignDraft,
+        fusionDraft: state.fusionDraft,
+      }),
+    },
+  ),
+);

@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken, hashPassword } from '@/lib/auth'
+import { hashPassword } from '@/lib/auth'
+import { requireAdmin, isAuthed } from '@/lib/api-auth'
 import { decryptApiKey, encryptApiKey, maskApiKey } from '@/lib/utils/security'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMIN') {
-      return NextResponse.json({ message: '仅管理员可访问' }, { status: 403 })
-    }
+    const auth = requireAdmin(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -58,16 +52,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMIN') {
-      return NextResponse.json({ message: '仅管理员可创建用户' }, { status: 403 })
-    }
+    const auth = requireAdmin(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { email, password, initialCredits = 0, apiKey } = await request.json()
 
@@ -92,9 +79,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const passwordHash = await hashPassword(password)
     db.prepare(
       'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, normalizedEmail, hashPassword(password), 'CUSTOMER', userApiKey, initialCredits)
+    ).run(id, normalizedEmail, passwordHash, 'CUSTOMER', userApiKey, initialCredits)
 
     db.prepare(
       'INSERT INTO AdminAuditLog (id, adminId, action, targetUserId, detail) VALUES (?, ?, ?, ?, ?)'
@@ -114,16 +102,9 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMIN') {
-      return NextResponse.json({ message: '仅管理员可操作' }, { status: 403 })
-    }
+    const auth = requireAdmin(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { userId, credits, isActive, role } = await request.json()
 
@@ -149,6 +130,9 @@ export async function PUT(request: NextRequest) {
     }
 
     if (role !== undefined) {
+      if (!['ADMIN', 'CUSTOMER'].includes(role)) {
+        return NextResponse.json({ message: '无效的角色值' }, { status: 400 })
+      }
       db.prepare(`UPDATE User SET role = ?, updatedAt = datetime('now') WHERE id = ?`).run(role, userId)
     }
 
@@ -168,16 +152,9 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload || payload.role !== 'ADMIN') {
-      return NextResponse.json({ message: '仅管理员可操作' }, { status: 403 })
-    }
+    const auth = requireAdmin(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { userId } = await request.json()
     if (!userId) {

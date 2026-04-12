@@ -6,7 +6,7 @@ import { workspaceApi } from '@/lib/api/workspace';
 import type { GenerationTask } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Image, Download, ZoomIn, Maximize2, X, Loader2, Sparkles, Drama, Wand2 } from 'lucide-react';
+import { Image as ImageIcon, Download, ZoomIn, Maximize2, X, Loader2, Sparkles, Drama, Wand2 } from 'lucide-react';
 
 export default function AdminRecordsPage() {
   const [records, setRecords] = useState<GenerationTask[]>([]);
@@ -14,12 +14,14 @@ export default function AdminRecordsPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [upscaleModal, setUpscaleModal] = useState<{ taskId: string; task: GenerationTask } | null>(null);
   const [upscaleLoading, setUpscaleLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     void adminApi
       .getRecords()
       .then(setRecords)
-      .catch((loadError) => setError(getErrorMessage(loadError, '加载记录失败')));
+      .catch((loadError) => setError(getErrorMessage(loadError, '加载记录失败')))
+      .finally(() => setInitialLoading(false));
   }, []);
 
   const handleDownload = async (url: string, taskId: string) => {
@@ -46,7 +48,7 @@ export default function AdminRecordsPage() {
     setUpscaleLoading(true);
     try {
       const updatedTask = await workspaceApi.upscaleTask(upscaleModal.taskId, factor);
-      setRecords(records.map((r) => (r.id === updatedTask.id ? updatedTask : r)));
+      setRecords((prev) => prev.map((r) => (r.id === updatedTask.id ? updatedTask : r)));
       setUpscaleModal(null);
     } catch (err) {
       console.error('放大失败', err);
@@ -84,7 +86,7 @@ export default function AdminRecordsPage() {
         <div className="mb-1">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Image className="w-5 h-5 text-white" />
+              <ImageIcon className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">生图记录</h1>
           </div>
@@ -184,11 +186,15 @@ export default function AdminRecordsPage() {
           </table>
         </div>
 
-        {records.length === 0 && !error && (
+        {initialLoading ? (
+          <div className="flex items-center justify-center py-16 text-gray-400 bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载中...
+          </div>
+        ) : records.length === 0 && !error ? (
           <div className="text-center py-10 px-6 text-gray-400 text-sm bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
             暂无生图记录
           </div>
-        )}
+        ) : null}
       </div>
 
       {previewImage && (

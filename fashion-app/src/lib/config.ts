@@ -40,8 +40,23 @@ export const config = {
   creditPerUpscale: parseInt(process.env.CREDIT_PER_UPSCALE || '1'),
 
   publicApiBaseUrl: process.env.PUBLIC_API_BASE_URL || 'http://localhost:3001',
+
+  allowRegister: process.env.ALLOW_REGISTER !== 'false',
 }
 
 export function getUploadPath() {
   return path.resolve(process.cwd(), config.uploadDir)
+}
+
+// ─── 生产环境安全检查 ───
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET) {
+    console.warn('⚠️  JWT_SECRET 未设置，使用随机密钥。服务重启后所有登录态将失效！请在环境变量中配置固定值。')
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    console.warn('⚠️  JWT_REFRESH_SECRET 未设置，使用随机密钥。服务重启后 refresh token 将失效！')
+  }
+  if (!process.env.ADMIN_PASSWORD) {
+    console.warn('⚠️  ADMIN_PASSWORD 未设置，使用默认密码 admin123456，存在安全风险！请尽快修改。')
+  }
 }

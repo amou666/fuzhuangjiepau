@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createAccessToken, createRefreshToken, comparePassword } from '@/lib/auth'
 import { maskApiKey } from '@/lib/utils/security'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown'
+    const rl = checkRateLimit(`login:${ip}`, 10, 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ message: '请求过于频繁，请稍后重试' }, { status: 429 })
+    }
 
-    if (!email || !password) {
+    const body = await request.json()
+    const { email, password } = body ?? {}
+
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       return NextResponse.json({ message: '请输入有效邮箱和密码' }, { status: 400 })
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken } from '@/lib/auth'
+import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
@@ -16,19 +16,15 @@ const MODE_CREDITS: Record<RedesignMode, number> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload) {
-      return NextResponse.json({ message: '令牌无效' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const body = await request.json()
-    const { imageUrl, mode, customPrompt, excludedItems }: { imageUrl: string; mode: RedesignMode; customPrompt?: string; excludedItems?: string[] } = body
+    const { imageUrl, mode, customPrompt, excludedItems, constraints, count, refineFrom }: {
+      imageUrl: string; mode: RedesignMode; customPrompt?: string; excludedItems?: string[];
+      constraints?: string; count?: number; refineFrom?: string;
+    } = body
 
     if (!imageUrl || !mode) {
       return NextResponse.json({ message: '缺少必要参数' }, { status: 400 })
@@ -39,7 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '无效的改款模式' }, { status: 400 })
     }
 
-    const creditCost = MODE_CREDITS[mode]
+    const generateCount = Math.min(Math.max(count || 3, 1), 6)
+    const creditCost = generateCount
 
     // 检查积分和 API Key
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
@@ -83,18 +80,19 @@ export async function POST(request: NextRequest) {
       let resultUrls: string[] = []
       let generatedItems: string[] = []
       const exclude = excludedItems || []
+      const opts = { constraints: constraints || '', count: generateCount, refineFrom: refineFrom || '' }
       switch (mode) {
         case 'luxury-color':
-          ({ resultUrls, generatedItems } = await ai.luxuryColorTransform(taskId, imageUrl, user.apiKey, exclude))
+          ({ resultUrls, generatedItems } = await ai.luxuryColorTransform(taskId, imageUrl, user.apiKey, exclude, opts))
           break
         case 'material-element':
-          ({ resultUrls, generatedItems } = await ai.materialAwareElementAdd(taskId, imageUrl, user.apiKey, exclude))
+          ({ resultUrls, generatedItems } = await ai.materialAwareElementAdd(taskId, imageUrl, user.apiKey, exclude, opts))
           break
         case 'material-silhouette':
-          ({ resultUrls, generatedItems } = await ai.materialLockedSilhouetteChange(taskId, imageUrl, user.apiKey, exclude))
+          ({ resultUrls, generatedItems } = await ai.materialLockedSilhouetteChange(taskId, imageUrl, user.apiKey, exclude, opts))
           break
         case 'commercial-brainstorm':
-          ({ resultUrls, generatedItems } = await ai.commercialBrainstorm(taskId, imageUrl, customPrompt, user.apiKey, exclude))
+          ({ resultUrls, generatedItems } = await ai.commercialBrainstorm(taskId, imageUrl, customPrompt, user.apiKey, exclude, opts))
           break
       }
 

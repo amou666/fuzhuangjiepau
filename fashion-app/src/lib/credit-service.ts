@@ -5,16 +5,18 @@ export class CreditService {
   static addCredits(userId: string, amount: number, reason = 'admin_recharge'): number {
     if (amount <= 0) throw new Error('充值积分必须大于 0')
 
-    const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-    if (!user) throw new Error('用户不存在')
+    return db.transaction(() => {
+      const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
+      if (!user) throw new Error('用户不存在')
 
-    const newBalance = user.credits + amount
-    db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
-    db.prepare(
-      'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
-    ).run(uuidv4(), userId, amount, newBalance, reason)
+      const newBalance = user.credits + amount
+      db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
+      db.prepare(
+        'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
+      ).run(uuidv4(), userId, amount, newBalance, reason)
 
-    return newBalance
+      return newBalance
+    })()
   }
 
   static deductCredits(userId: string, amount: number, reason = '任务扣费'): number | null {

@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken, extractTokenFromHeader } from '@/lib/auth'
+import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { maskApiKey } from '@/lib/utils/security'
 
 export async function GET(request: NextRequest) {
   try {
-    const token = extractTokenFromHeader(request.headers.get('authorization'))
+    const auth = requireAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
-    if (!token) {
-      return NextResponse.json({ message: '未提供有效的访问令牌' }, { status: 401 })
-    }
-
-    const payload = verifyAccessToken(token)
     const user = db.prepare('SELECT id, email, role, apiKey, credits, isActive, createdAt FROM User WHERE id = ?').get(payload.userId) as any
 
     if (!user) {

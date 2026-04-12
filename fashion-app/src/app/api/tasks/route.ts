@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken } from '@/lib/auth'
+import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { mergeModelConfigWithCastingNarrative } from '@/lib/model-narrative'
 import { safeJsonParse } from '@/lib/utils/json'
 import { CreditService } from '@/lib/credit-service'
@@ -8,20 +8,13 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload) {
-      return NextResponse.json({ message: '令牌无效' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10') || 10))
     const status = searchParams.get('status') || undefined
     const offset = (page - 1) * limit
 
@@ -56,19 +49,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
-    if (!payload) {
-      return NextResponse.json({ message: '令牌无效' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     const body = await request.json()
-    const { clothingUrl, clothingBackUrl, clothingDetailUrls, clothingLength, modelConfig, sceneConfig, creditCost = 1 } = body
+    const { clothingUrl, clothingBackUrl, clothingDetailUrls, clothingLength, modelConfig, sceneConfig, creditCost: rawCreditCost } = body
+    const creditCost = Math.max(1, Math.min(20, Math.floor(Number(rawCreditCost) || 1)))
 
     if (!clothingUrl || !modelConfig || !sceneConfig) {
       return NextResponse.json({ message: '缺少必要参数' }, { status: 400 })

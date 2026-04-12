@@ -1,6 +1,71 @@
 export type Role = 'ADMIN' | 'CUSTOMER'
 export type TaskStatus = 'PENDING' | 'PROCESSING' | 'DESCRIBING_MODEL' | 'DESCRIBING_SCENE' | 'GENERATING' | 'COMPLETED' | 'FAILED'
 
+// ─── Raw DB row types (SQLite returns these before JSON-parsing) ───
+
+export interface UserRow {
+  id: string
+  email: string
+  password: string
+  role: string
+  apiKey: string | null
+  credits: number
+  isActive: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface GenerationTaskRow {
+  id: string
+  userId: string
+  status: string
+  type: string
+  creditCost: number
+  clothingUrl: string
+  clothingBackUrl: string | null
+  clothingDetailUrls: string
+  clothingDescription: string | null
+  modelConfig: string
+  sceneConfig: string
+  resultUrl: string | null
+  resultUrls: string
+  upscaledUrl: string | null
+  upscaleFactor: number | null
+  errorMsg: string | null
+  createdAt: string
+  updatedAt: string
+  finishedAt: string | null
+}
+
+export interface CreditLogRow {
+  id: string
+  userId: string
+  delta: number
+  balanceAfter: number
+  reason: string
+  createdAt: string
+}
+
+export interface NotificationRow {
+  id: string
+  userId: string | null
+  type: string
+  title: string
+  content: string
+  isRead: number
+  createdAt: string
+}
+
+export interface FavoriteRow {
+  id: string
+  userId: string
+  type: string
+  name: string
+  data: string
+  previewUrl: string | null
+  createdAt: string
+}
+
 export interface User {
   id: string
   email: string
@@ -27,6 +92,10 @@ export interface ModelConfig {
   gender: string
   skinTone: string
   bodyType: string
+  height?: string
+  faceShape?: string
+  hairStyle?: string
+  hairColor?: string
   faceFeature: string
   pose: string
   expression: string
@@ -131,4 +200,16 @@ export interface AuthResponse {
   user: User
   accessToken: string
   refreshToken: string
+}
+
+export type FavoriteType = 'model' | 'scene' | 'full'
+
+export interface Favorite {
+  id: string
+  userId: string
+  type: FavoriteType
+  name: string
+  data: ModelConfig | SceneConfig | Record<string, unknown>
+  previewUrl?: string | null
+  createdAt: string
 }

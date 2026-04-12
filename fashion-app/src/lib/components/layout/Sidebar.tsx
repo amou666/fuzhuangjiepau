@@ -21,15 +21,21 @@ import {
   X,
   Coins,
   Wand2,
+  BarChart3,
+  Megaphone,
+  LayoutTemplate,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useHydrated } from '@/lib/hooks/useHydrated'
 import { useSidebarStore } from '@/lib/stores/sidebarStore'
+import { NotificationBell } from './NotificationPanel'
 
 const appMenuIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   workspace: Sparkles,
   'model-fusion': Drama,
   redesign: Wand2,
+  favorites: Gem,
+  stats: BarChart3,
   history: Camera,
   profile: Settings,
 }
@@ -39,6 +45,9 @@ const adminMenuIcons: Record<string, React.ComponentType<{ className?: string }>
   customers: Users,
   credits: Gem,
   records: FileImage,
+  notifications: Megaphone,
+  templates: LayoutTemplate,
+  settings: Settings,
   'audit-logs': ShieldCheck,
 }
 
@@ -188,12 +197,15 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
           </div>
           <span className="font-bold text-[#2d2422] tracking-tight">Amou AI</span>
         </div>
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors"
-        >
-          <Menu className="w-5 h-5 text-[#8b7355]" />
-        </button>
+        <div className="flex items-center gap-1">
+          {variant === 'app' && <NotificationBell />}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors"
+          >
+            <Menu className="w-5 h-5 text-[#8b7355]" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile overlay */}
@@ -238,18 +250,21 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
               </div>
             )}
           </div>
-          <button
-            onClick={toggleCollapsed}
-            className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors text-[#b0a59a] hover:text-[#8b7355]"
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={closeMobile}
-            className="md:hidden p-1 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors"
-          >
-            <X className="w-5 h-5 text-[#9b8e82]" />
-          </button>
+          <div className="flex items-center gap-1">
+            {variant === 'app' && <NotificationBell />}
+            <button
+              onClick={toggleCollapsed}
+              className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors text-[#b0a59a] hover:text-[#8b7355]"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={closeMobile}
+              className="md:hidden p-1 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors"
+            >
+              <X className="w-5 h-5 text-[#9b8e82]" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -299,7 +314,7 @@ export function SidebarMain({ children, maxWidth }: { children: React.ReactNode;
   return (
     <main
       className={cn(
-        'min-h-screen transition-all duration-300 p-6 pt-20 md:pt-8 pb-24 md:pb-6',
+        'min-h-screen transition-all duration-300 p-4 md:p-6 pt-[68px] md:pt-8 pb-24 md:pb-6',
         collapsed ? 'md:ml-[68px]' : 'md:ml-[240px]',
       )}
       style={{ maxWidth: maxWidth || '1280px' }}
@@ -338,8 +353,10 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
 
   const menuItems = [
     { to: '/workspace', label: '工作台', icon: 'workspace' },
-    { to: '/model-fusion', label: '模特合成', icon: 'model-fusion' },
+    { to: '/model-fusion', label: '模特工厂', icon: 'model-fusion' },
     { to: '/redesign', label: 'AI 改款', icon: 'redesign' },
+    { to: '/favorites', label: '素材库', icon: 'favorites' },
+    { to: '/stats', label: '数据统计', icon: 'stats' },
     { to: '/history', label: '历史记录', icon: 'history' },
     { to: '/profile', label: '账户设置', icon: 'profile' },
   ]
@@ -356,7 +373,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
       />
       <SidebarMain maxWidth="1200px">{children}</SidebarMain>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar — only show 5 core items */}
       <div
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
         style={{
@@ -367,7 +384,9 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {menuItems.map((item) => {
+        {menuItems.filter((item) =>
+          ['/workspace', '/redesign', '/history', '/favorites', '/profile'].includes(item.to)
+        ).map((item) => {
           const Icon = appMenuIcons[item.icon] || Sparkles
           const isActive = pathname === item.to
           return (
@@ -418,6 +437,9 @@ export function AdminSidebarLayout({ children }: { children: React.ReactNode }) 
     { to: '/customers', label: '客户管理', icon: 'customers' },
     { to: '/credits', label: '积分管理', icon: 'credits' },
     { to: '/records', label: '生图记录', icon: 'records' },
+    { to: '/notifications', label: '通知管理', icon: 'notifications' },
+    { to: '/templates', label: '模板管理', icon: 'templates' },
+    { to: '/settings', label: '系统设置', icon: 'settings' },
     { to: '/audit-logs', label: '审计日志', icon: 'audit-logs' },
   ]
 

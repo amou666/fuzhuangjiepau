@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { workspaceApi } from '@/lib/api/workspace';
 import type { GenerationTask } from '@/lib/types';
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+  });
 
 interface TaskState {
   currentTask: GenerationTask | null;
@@ -10,9 +14,22 @@ interface TaskState {
   setCurrentTask: (task: GenerationTask | null) => void;
   clearTask: () => void;
   markPollingDone: () => void;
-  /** SSE 模式：提交任务后等待 SSE 推送完成，同时保留轮询作为降级兜底 */
   pollTask: (taskId: string) => Promise<GenerationTask | null>;
+  abortPolling: () => void;
+
+  batchTasks: GenerationTask[];
+  isBatchPolling: boolean;
+  setBatchTasks: (tasks: GenerationTask[]) => void;
+  clearBatch: () => void;
+  pollBatchTasks: (taskIds: string[]) => Promise<GenerationTask[]>;
+  abortBatchPolling: () => void;
 }
+
+const isTerminal = (status: string) =>
+  status === 'DONE' || status === 'COMPLETED' || status === 'FAILED';
+
+let pollAbort: AbortController | null = null;
+let batchPollAbort: AbortController | null = null;
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   currentTask: null,
@@ -20,44 +37,143 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   setCurrentTask: (task) => set({ currentTask: task }),
 
-  clearTask: () => set({ currentTask: null, isPolling: false }),
+  clearTask: () => {
+    pollAbort?.abort();
+    pollAbort = null;
+    set({ currentTask: null, isPolling: false });
+  },
 
-  markPollingDone: () => set({ isPolling: false }),
+  markPollingDone: () => {
+    pollAbort?.abort();
+    pollAbort = null;
+    set({ isPolling: false });
+  },
 
-  /**
-   * 提交任务后调用此方法。
-   * 优先等待 SSE 推送结果（通过 useTaskSse hook 更新 currentTask）；
-   * 同时每 3 秒轮询一次作为兜底，防止 SSE 连接不稳定时任务卡住。
-   */
+  abortPolling: () => {
+    pollAbort?.abort();
+    pollAbort = null;
+    set({ isPolling: false });
+  },
+
   pollTask: async (taskId) => {
+    pollAbort?.abort();
+    const ac = new AbortController();
+    pollAbort = ac;
     set({ isPolling: true });
 
     try {
-      // 最多等待 3 分钟（60 次 × 3s）
       for (let attempt = 0; attempt < 60; attempt += 1) {
-        const task = get().currentTask;
+        if (ac.signal.aborted) break;
 
-        // 若 SSE 已推送完成，直接结束（SSE 推送 DONE，API 返回 COMPLETED）
-        if (task && task.id === taskId && (task.status === 'DONE' || task.status === 'COMPLETED' || task.status === 'FAILED')) {
+        const task = get().currentTask;
+        if (task && task.id === taskId && isTerminal(task.status)) {
           set({ isPolling: false });
           return task;
         }
 
-        // 每 3 秒也主动拉取一次作为兜底
         const fetched = await workspaceApi.getTask(taskId);
         set({ currentTask: fetched });
 
-        if (fetched.status === 'DONE' || fetched.status === 'COMPLETED' || fetched.status === 'FAILED') {
+        if (isTerminal(fetched.status)) {
           set({ isPolling: false });
           return fetched;
         }
 
-        await sleep(3000);
+        await sleep(3000, ac.signal);
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        // graceful abort
+      } else {
+        throw e;
       }
     } finally {
+      if (pollAbort === ac) pollAbort = null;
       set({ isPolling: false });
     }
 
     return null;
+  },
+
+  batchTasks: [],
+  isBatchPolling: false,
+
+  setBatchTasks: (tasks) => set({ batchTasks: tasks }),
+
+  clearBatch: () => {
+    batchPollAbort?.abort();
+    batchPollAbort = null;
+    set({ batchTasks: [], isBatchPolling: false });
+  },
+
+  abortBatchPolling: () => {
+    batchPollAbort?.abort();
+    batchPollAbort = null;
+    set({ isBatchPolling: false });
+  },
+
+  pollBatchTasks: async (taskIds) => {
+    batchPollAbort?.abort();
+    const ac = new AbortController();
+    batchPollAbort = ac;
+    set({ isBatchPolling: true });
+
+    try {
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        if (ac.signal.aborted) break;
+
+        const current = get().batchTasks;
+        const pendingIds = taskIds.filter((id) => {
+          const t = current.find((x) => x.id === id);
+          return !t || !isTerminal(t.status);
+        });
+
+        if (pendingIds.length === 0) {
+          set({ isBatchPolling: false });
+          return get().batchTasks;
+        }
+
+        const fetched = await Promise.all(
+          pendingIds.map((id) => workspaceApi.getTask(id).catch(() => null)),
+        );
+
+        set((state) => {
+          const updated = [...state.batchTasks];
+          for (const task of fetched) {
+            if (!task) continue;
+            const idx = updated.findIndex((t) => t.id === task.id);
+            if (idx >= 0) {
+              updated[idx] = task;
+            } else {
+              updated.push(task);
+            }
+          }
+          return { batchTasks: updated };
+        });
+
+        const allDone = taskIds.every((id) => {
+          const t = get().batchTasks.find((x) => x.id === id);
+          return t && isTerminal(t.status);
+        });
+
+        if (allDone) {
+          set({ isBatchPolling: false });
+          return get().batchTasks;
+        }
+
+        await sleep(3000, ac.signal);
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        // graceful abort
+      } else {
+        throw e;
+      }
+    } finally {
+      if (batchPollAbort === ac) batchPollAbort = null;
+      set({ isBatchPolling: false });
+    }
+
+    return get().batchTasks;
   },
 }));

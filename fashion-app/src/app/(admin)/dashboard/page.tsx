@@ -5,17 +5,21 @@ import { adminApi } from '@/lib/api/admin';
 import type { DashboardResponse } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils/format';
 import { getErrorMessage } from '@/lib/utils/api';
-import { Users, Image, Coins, Activity, TrendingUp, Award } from 'lucide-react';
+import { Users, Image, Coins, Activity, TrendingUp, Award, Loader2, Star, ThumbsUp } from 'lucide-react';
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState<{ total: number; avgRating: number; positiveCount: number; negativeCount: number } | null>(null);
 
   useEffect(() => {
     void adminApi
       .getDashboard()
       .then(setData)
-      .catch((loadError) => setError(getErrorMessage(loadError, '加载看板失败')));
+      .catch((loadError) => setError(getErrorMessage(loadError, '加载看板失败')))
+      .finally(() => setLoading(false));
+    void adminApi.getFeedbackSummary().then((res) => setFeedback(res.summary)).catch(() => {});
   }, []);
 
   const metrics = data ? [
@@ -52,9 +56,13 @@ export default function DashboardPage() {
 
       {error ? <div className="text-red-500 text-sm font-medium">{error}</div> : null}
 
-      {!data ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-gray-400 bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> 看板数据加载中...
+        </div>
+      ) : !data ? (
         <div className="text-center py-10 text-gray-400 bg-white/40 rounded-2xl border border-dashed border-black/[0.08]">
-          看板数据加载中...
+          暂无数据
         </div>
       ) : (
         <>
@@ -77,6 +85,39 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Feedback Summary */}
+          {feedback && feedback.total > 0 && (
+            <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <h2 className="text-base font-semibold text-gray-900 m-0 mb-4 flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500" />
+                用户满意度
+              </h2>
+              <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2">
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold text-amber-500">{feedback.avgRating.toFixed(1)}</div>
+                  <div className="text-xs text-gray-400 mt-1">平均评分</div>
+                  <div className="flex justify-center mt-1.5 gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`w-3 h-3 ${s <= Math.round(feedback.avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} />
+                    ))}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold text-gray-800">{feedback.total}</div>
+                  <div className="text-xs text-gray-400 mt-1">总评价数</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold text-green-500">{feedback.positiveCount}</div>
+                  <div className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1"><ThumbsUp className="w-3 h-3" /> 满意</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold text-red-400">{feedback.negativeCount}</div>
+                  <div className="text-xs text-gray-400 mt-1">不满意</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Two columns */}
           <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">

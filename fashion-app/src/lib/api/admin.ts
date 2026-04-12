@@ -38,4 +38,64 @@ export const adminApi = {
     const response = await apiClient.get<{ logs: AuditLog[] }>('/admin/audit-logs');
     return response.data.logs;
   },
+  batchRecharge: async (userIds: string[], amount: number) => {
+    const response = await apiClient.post<{ results: { userId: string; email: string; newBalance: number }[]; count: number }>('/admin/credits/batch-recharge', { userIds, amount });
+    return response.data;
+  },
+  sendNotification: async (payload: { title: string; content?: string; type?: string; targetUserIds?: string[] }) => {
+    const response = await apiClient.post<{ ids: string[]; count: number }>('/admin/notifications', payload);
+    return response.data;
+  },
+  getNotifications: async () => {
+    const response = await apiClient.get<{ notifications: any[] }>('/admin/notifications');
+    return response.data.notifications;
+  },
+  getFeedbackSummary: async () => {
+    const response = await apiClient.get<{
+      summary: { total: number; avgRating: number; positiveCount: number; negativeCount: number };
+      distribution: Array<{ rating: number; count: number }>;
+      recent: any[];
+    }>('/admin/feedback');
+    return response.data;
+  },
+
+  getWatermark: async () => {
+    const response = await apiClient.get<{ watermark: { enabled: boolean; text: string; position: string; opacity: number; fontSize: number } }>('/admin/watermark');
+    return response.data.watermark;
+  },
+  updateWatermark: async (config: { enabled: boolean; text: string; position: string; opacity: number; fontSize: number }) => {
+    await apiClient.put('/admin/watermark', config);
+  },
+
+  getTemplates: async () => {
+    const response = await apiClient.get<{ templates: any[] }>('/admin/templates');
+    return response.data.templates;
+  },
+  createTemplate: async (payload: { name: string; description?: string; category?: string; previewUrl?: string; clothingUrl?: string; modelConfig?: Record<string, any>; sceneConfig?: Record<string, any> }) => {
+    const response = await apiClient.post<{ template: any }>('/admin/templates', payload);
+    return response.data.template;
+  },
+  updateTemplate: async (id: string, payload: Record<string, any>) => {
+    const response = await apiClient.patch<{ template: any }>(`/admin/templates/${id}`, payload);
+    return response.data.template;
+  },
+  deleteTemplate: async (id: string) => {
+    await apiClient.delete(`/admin/templates/${id}`);
+  },
+
+  exportCSV: async (type: 'customers' | 'tasks' | 'credits') => {
+    const response = await fetch(`/api/admin/export?type=${type}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('fashion-ai-auth') ? JSON.parse(JSON.parse(localStorage.getItem('fashion-ai-auth')!).state).accessToken : ''}` },
+    });
+    if (!response.ok) throw new Error('导出失败');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `export_${type}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
 };

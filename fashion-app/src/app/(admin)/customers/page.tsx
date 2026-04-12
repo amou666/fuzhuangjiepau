@@ -6,7 +6,7 @@ import type { Customer } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
 import { hasMinPasswordLength, isValidEmail, normalizeEmail } from '@/lib/utils/validation';
-import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles } from 'lucide-react';
+import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles, Download, Loader2, CheckSquare, Square, Zap } from 'lucide-react';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -18,6 +18,11 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(false);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [editingApiKey, setEditingApiKey] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchAmount, setBatchAmount] = useState(50);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadCustomers = async () => {
     try {
@@ -28,7 +33,7 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    void loadCustomers();
+    void loadCustomers().finally(() => setInitialLoading(false));
   }, []);
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -115,6 +120,50 @@ export default function CustomersPage() {
     });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const nonAdminIds = customers.filter((c) => c.role !== 'ADMIN').map((c) => c.id);
+    if (nonAdminIds.every((id) => selectedIds.has(id))) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(nonAdminIds));
+    }
+  };
+
+  const handleBatchRecharge = async () => {
+    if (selectedIds.size === 0 || batchAmount <= 0) return;
+    setBatchLoading(true);
+    setError('');
+    try {
+      const result = await adminApi.batchRecharge(Array.from(selectedIds), batchAmount);
+      alert(`批量充值成功！共 ${result.count} 人，每人 ${batchAmount} 积分`);
+      setSelectedIds(new Set());
+      await loadCustomers();
+    } catch (err) {
+      setError(getErrorMessage(err, '批量充值失败'));
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const handleExport = async (type: 'customers' | 'tasks' | 'credits') => {
+    setExportLoading(true);
+    try {
+      await adminApi.exportCSV(type);
+    } catch {
+      alert('导出失败');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div className="mb-1">
@@ -132,6 +181,55 @@ export default function CustomersPage() {
           {error}
         </div>
       )}
+
+      {/* 工具栏：批量充值 + 导出 */}
+      <div className="flex flex-wrap items-center gap-3">
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 bg-white/65 backdrop-blur-xl border border-white/50 rounded-xl px-4 py-2.5 shadow-sm">
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span className="text-[12px] font-semibold text-gray-700">批量充值 ({selectedIds.size} 人)</span>
+            <input
+              type="number"
+              min={1}
+              value={batchAmount}
+              onChange={(e) => setBatchAmount(Math.max(1, Number(e.target.value) || 0))}
+              className="w-20 px-2 py-1 rounded-lg border border-gray-200 text-[12px] text-gray-700"
+            />
+            <span className="text-[11px] text-gray-400">积分/人</span>
+            <button
+              onClick={handleBatchRecharge}
+              disabled={batchLoading}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm disabled:opacity-50"
+            >
+              {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Coins className="w-3 h-3" />}
+              充值
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={() => handleExport('customers')}
+            disabled={exportLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+          >
+            <Download className="w-3 h-3" /> 导出客户
+          </button>
+          <button
+            onClick={() => handleExport('tasks')}
+            disabled={exportLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+          >
+            <Download className="w-3 h-3" /> 导出任务
+          </button>
+          <button
+            onClick={() => handleExport('credits')}
+            disabled={exportLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+          >
+            <Download className="w-3 h-3" /> 导出积分
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
         <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -210,10 +308,21 @@ export default function CustomersPage() {
           <Users className="w-4 h-4 text-indigo-500" />
           客户列表
         </h2>
+        {initialLoading ? (
+          <div className="flex items-center justify-center py-16 text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载客户列表...
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
+                <th className="text-left px-3 py-3 text-xs border-b border-gray-200 bg-gray-50/50 w-8">
+                  <button onClick={toggleSelectAll} className="text-gray-400 hover:text-gray-600">
+                    {customers.filter((c) => c.role !== 'ADMIN').every((c) => selectedIds.has(c.id)) && customers.length > 0
+                      ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">邮箱</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">AI API Key</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">积分</th>
@@ -226,6 +335,13 @@ export default function CustomersPage() {
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.id} className="hover:bg-blue-500/[0.03] transition-colors">
+                  <td className="px-3 py-3 border-b border-gray-100 w-8">
+                    {customer.role !== 'ADMIN' && (
+                      <button onClick={() => toggleSelect(customer.id)} className="text-gray-400 hover:text-gray-600">
+                        {selectedIds.has(customer.id) ? <CheckSquare className="w-4 h-4 text-blue-500" /> : <Square className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </td>
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-700">
                     <div className="font-medium">{customer.email}</div>
                   </td>
@@ -300,6 +416,7 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

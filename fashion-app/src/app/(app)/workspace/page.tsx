@@ -12,15 +12,18 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import { useDraftStore } from '@/lib/stores/draftStore';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { useTaskStore } from '@/lib/stores/taskStore';
-import type { ClothingLength, ModelConfig, SceneConfig } from '@/lib/types';
+import type { ClothingLength, ModelConfig, SceneConfig, TaskPayload } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
-import { Check, Shirt, UserCircle, MapPin, Sparkles, Sun, Camera, Maximize2 } from 'lucide-react';
+import { Check, Shirt, UserCircle, MapPin, Sparkles, Sun, Camera, Maximize2, LayoutTemplate, ChevronDown } from 'lucide-react';
+import { categoryOptions, ethnicityOptions } from '@/lib/model-options';
+import { TutorialButton } from '@/lib/components/common/TutorialModal';
+import { TUTORIALS } from '@/lib/tutorials';
 
 const steps = [
   { title: '服装', subtitle: '上传服装', icon: Shirt },
-  { title: '场景', subtitle: '街拍场景', icon: MapPin },
   { title: '模特', subtitle: '人物参数', icon: UserCircle },
-  { title: '生成', subtitle: '融合出图', icon: Sparkles },
+  { title: '场景', subtitle: '街拍场景', icon: MapPin },
+  { title: '生成', subtitle: '确认出图', icon: Sparkles },
 ];
 
 const initialModelConfig: ModelConfig = {
@@ -53,6 +56,10 @@ export default function WorkspacePage() {
   const isPolling = useTaskStore((state) => state.isPolling);
   const setCurrentTask = useTaskStore((state) => state.setCurrentTask);
   const pollTask = useTaskStore((state) => state.pollTask);
+  const batchTasks = useTaskStore((state) => state.batchTasks);
+  const isBatchPolling = useTaskStore((state) => state.isBatchPolling);
+  const setBatchTasks = useTaskStore((state) => state.setBatchTasks);
+  const pollBatchTasks = useTaskStore((state) => state.pollBatchTasks);
   const addNotification = useNotificationStore((state) => state.add);
 
   const workspaceDraft = useDraftStore((state) => state.workspaceDraft);
@@ -70,7 +77,10 @@ export default function WorkspacePage() {
     ...draft.sceneConfig,
   } : initialSceneConfig);
   const [submitting, setSubmitting] = useState(false);
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
   const stepSectionRef = useRef<HTMLDivElement>(null);
   const shouldScrollToStepRef = useRef(false);
 
@@ -99,7 +109,20 @@ export default function WorkspacePage() {
 
   useEffect(() => {
     void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
+    void workspaceApi.getTemplates().then(setTemplates).catch(() => {});
   }, [updateCredits]);
+
+  const handleApplyTemplate = useCallback((tpl: any) => {
+    if (tpl.clothingUrl) setClothingUrl(tpl.clothingUrl);
+    if (tpl.modelConfig && Object.keys(tpl.modelConfig).length > 0) {
+      setModelConfig((prev) => ({ ...prev, ...tpl.modelConfig }));
+    }
+    if (tpl.sceneConfig && Object.keys(tpl.sceneConfig).length > 0) {
+      setSceneConfig((prev) => ({ ...prev, ...tpl.sceneConfig }));
+    }
+    setShowTemplates(false);
+    addNotification({ type: 'success', message: `已加载模板「${tpl.name}」` });
+  }, [addNotification]);
 
   useEffect(() => {
     if (!shouldScrollToStepRef.current) {
@@ -159,19 +182,40 @@ export default function WorkspacePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [clothingUrl, clothingBackUrl, clothingDetailUrls, clothingLength, modelConfig, pollTask, sceneConfig, setCurrentTask, updateCredits, addNotification]);
+  }, [clothingUrl, clothingBackUrl, clothingDetailUrls, clothingLength, modelConfig, pollTask, sceneConfig, setCurrentTask, updateCredits, addNotification, clearWorkspaceDraft]);
 
+  const handleBatchGenerate = useCallback(async (tasks: TaskPayload[]) => {
+    setBatchSubmitting(true);
+    setError('');
+
+    try {
+      const result = await workspaceApi.createBatchTasks(tasks);
+      setBatchTasks(result.tasks);
+      updateCredits(await workspaceApi.getBalance());
+      clearWorkspaceDraft();
+      addNotification({ type: 'info', message: `已提交 ${result.tasks.length} 个批量任务，生成完成后会自动通知你！` });
+      void pollBatchTasks(result.tasks.map((t) => t.id)).then(() => {
+        void workspaceApi.getBalance().then(updateCredits).catch(() => undefined);
+      });
+    } catch (batchError) {
+      setError(getErrorMessage(batchError, '批量提交失败'));
+    } finally {
+      setBatchSubmitting(false);
+    }
+  }, [setBatchTasks, pollBatchTasks, updateCredits, addNotification, clearWorkspaceDraft]);
+
+  // Step order: 0=Clothing, 1=Model, 2=Scene, 3=Generate
   const currentStepContent = useMemo(() => {
     if (step === 0) {
       return <StepClothing clothingUrl={clothingUrl} clothingBackUrl={clothingBackUrl} clothingDetailUrls={clothingDetailUrls} clothingLength={clothingLength} onChange={setClothingUrl} onBackChange={setClothingBackUrl} onDetailChange={setClothingDetailUrls} onClothingLengthChange={setClothingLength} />;
     }
 
     if (step === 1) {
-      return <StepScene value={sceneConfig} onChange={setSceneConfig} />;
+      return <StepModel value={modelConfig} onChange={setModelConfig} sceneMode={sceneConfig.mode} />;
     }
 
     if (step === 2) {
-      return <StepModel value={modelConfig} onChange={setModelConfig} sceneMode={sceneConfig.mode} />;
+      return <StepScene value={sceneConfig} onChange={setSceneConfig} />;
     }
 
     return (
@@ -188,9 +232,15 @@ export default function WorkspacePage() {
         onGenerate={() => {
           void handleGenerate();
         }}
+        batchTasks={batchTasks}
+        isBatchPolling={isBatchPolling}
+        isBatchSubmitting={batchSubmitting}
+        onBatchGenerate={(tasks) => {
+          void handleBatchGenerate(tasks);
+        }}
       />
     );
-  }, [clothingUrl, clothingBackUrl, clothingDetailUrls, currentTask, handleGenerate, isPolling, modelConfig, sceneConfig, step, submitting]);
+  }, [clothingUrl, clothingBackUrl, clothingDetailUrls, clothingLength, currentTask, handleGenerate, handleBatchGenerate, isPolling, isBatchPolling, modelConfig, sceneConfig, step, submitting, batchSubmitting, batchTasks]);
 
   const getClothingLengthDisplay = () => {
     if (!clothingLength) return '--';
@@ -205,13 +255,8 @@ export default function WorkspacePage() {
   };
 
   const getModelDisplay = () => {
-    const categoryMap: Record<string, string> = { normal: '普通女孩', supermodel: '时尚超模', kardashian: '卡戴珊风格' };
-    const ethnicityMap: Record<string, string> = {
-      Chinese: '中国人', American: '美国人', British: '英国人', French: '法国人',
-      Korean: '韩国人', Japanese: '日本人', Indian: '印度人'
-    };
-    const category = categoryMap[modelConfig.category] || '时尚超模';
-    const ethnicity = ethnicityMap[modelConfig.ethnicity] || '中国人';
+    const category = categoryOptions.find(o => o.value === modelConfig.category)?.label || modelConfig.category;
+    const ethnicity = ethnicityOptions.find(o => o.value === modelConfig.ethnicity)?.label || modelConfig.ethnicity;
     return `${category} / ${modelConfig.age}岁 / ${ethnicity}`;
   };
 
@@ -222,7 +267,8 @@ export default function WorkspacePage() {
     if (sceneConfig.sceneSource === 'upload') {
       return '上传场景图';
     }
-    return sceneConfig.preset;
+    const label = sceneConfig.preset?.match(/（(.+?)）/)?.[1] || sceneConfig.preset?.split('（')[0] || sceneConfig.preset;
+    return label;
   };
 
   const getExposureModeDisplay = () => {
@@ -234,13 +280,18 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header — Editorial Style */}
+      {/* Mobile tutorial */}
+      <div className="flex justify-end md:hidden -mb-4">
+        <TutorialButton id="workspace" steps={TUTORIALS.workspace} />
+      </div>
+      {/* Header */}
       <div className="hidden md:flex items-end justify-between">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">生图工作台</h1>
-          <p className="text-[13px] text-[#9b8e82] mt-1 tracking-wide">四步完成配置，生成真实街拍感大片</p>
+          <p className="text-[13px] text-[#9b8e82] mt-1 tracking-wide">上传服装，一键生成街拍大片</p>
         </div>
-        <div className="hidden md:flex items-center gap-2 text-[11px] text-[#b0a59a] tracking-widest uppercase">
+        <div className="hidden md:flex items-center gap-3 text-[11px] text-[#b0a59a] tracking-widest uppercase">
+          <TutorialButton id="workspace" steps={TUTORIALS.workspace} />
           <span>步骤</span>
           <span className="text-[#c67b5c] font-bold text-sm">{step + 1}</span>
           <span>/ 4</span>
@@ -254,9 +305,48 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Stepper — Minimal Dots + Labels */}
-      <div ref={stepSectionRef} className="flex items-center gap-0">
+      {/* Template Bar */}
+      {templates.length > 0 && (
+        <div className="fashion-glass rounded-2xl overflow-hidden">
+          <button
+            type="button"
+            className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-[rgba(139,115,85,0.02)] transition-all"
+            onClick={() => setShowTemplates(!showTemplates)}
+          >
+            <LayoutTemplate className="w-4 h-4 text-[#c67b5c]" />
+            <span className="text-[13px] font-semibold text-[#2d2422]">快捷模板</span>
+            <span className="text-[11px] text-[#b0a59a]">({templates.length} 套预设方案)</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-[#b0a59a] ml-auto transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
+          </button>
+          {showTemplates && (
+            <div className="px-4 pb-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {templates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  className="flex flex-col items-start gap-2 p-3 rounded-xl border border-[rgba(139,115,85,0.08)] hover:border-[rgba(198,123,92,0.3)] hover:bg-[rgba(198,123,92,0.03)] transition-all text-left group"
+                  onClick={() => handleApplyTemplate(tpl)}
+                >
+                  {tpl.previewUrl ? (
+                    <img src={tpl.previewUrl} alt="" className="w-full aspect-[4/3] rounded-lg object-cover border border-[rgba(139,115,85,0.06)]" />
+                  ) : (
+                    <div className="w-full aspect-[4/3] rounded-lg bg-[rgba(198,123,92,0.04)] flex items-center justify-center">
+                      <LayoutTemplate className="w-6 h-6 text-[#d4a882]" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#2d2422] group-hover:text-[#c67b5c] transition-colors">{tpl.name}</div>
+                    {tpl.description && <div className="text-[10px] text-[#b0a59a] mt-0.5 line-clamp-2">{tpl.description}</div>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* Stepper */}
+      <div ref={stepSectionRef} className="flex items-center gap-0">
         {steps.map((item, index) => {
           const Icon = item.icon;
           const isActive = step === index;
@@ -268,7 +358,6 @@ export default function WorkspacePage() {
               className="flex-1 group"
               onClick={() => updateStep(index)}
             >
-
               <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300"
                 style={{
                   background: isActive ? 'rgba(198,123,92,0.08)' : 'transparent',
@@ -302,7 +391,6 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               </div>
-              {/* Progress bar */}
               {index < steps.length - 1 && (
                 <div className="h-[2px] mx-4 -mt-1 rounded-full overflow-hidden bg-[rgba(139,115,85,0.06)]">
                   <div
@@ -321,9 +409,7 @@ export default function WorkspacePage() {
 
       {/* Content + Preview */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
-        {/* Main Content Area */}
         <div className="fashion-card rounded-[20px] p-7 md:p-7 max-md:p-5" {...swipeHandlers}>
-
           {currentStepContent}
 
           <div className="flex gap-3 mt-8 pt-6 border-t border-[rgba(139,115,85,0.08)]">
@@ -337,17 +423,6 @@ export default function WorkspacePage() {
               type="button"
               disabled={step === 0}
               onClick={() => updateStep((value) => Math.max(value - 1, 0))}
-
-              onMouseEnter={(e) => {
-                if (step !== 0) {
-                  e.currentTarget.style.background = 'rgba(139,115,85,0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(139,115,85,0.2)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(139,115,85,0.05)';
-                e.currentTarget.style.borderColor = 'rgba(139,115,85,0.1)';
-              }}
             >
               上一步
             </button>
@@ -360,15 +435,6 @@ export default function WorkspacePage() {
                 }}
                 type="button"
                 onClick={() => updateStep((value) => Math.min(value + 1, steps.length - 1))}
-
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(198,123,92,0.4)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 2px 12px rgba(198,123,92,0.25)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
               >
                 下一步
               </button>
@@ -376,14 +442,13 @@ export default function WorkspacePage() {
           </div>
         </div>
 
-        {/* Preview Sidebar — Editorial Layout */}
+        {/* Preview Sidebar */}
         <aside className="hidden md:block fashion-card rounded-[20px] p-6 sticky top-6 max-h-[calc(100vh-48px)] overflow-y-auto">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-[15px] font-bold text-[#2d2422] tracking-tight">预览</h2>
             <span className="text-[10px] text-[#b0a59a] tracking-widest uppercase">实时预览</span>
           </div>
 
-          {/* 汇总 */}
           <div className="mb-5 pb-5 border-b border-[rgba(139,115,85,0.06)]">
             <div className="text-[10px] font-semibold text-[#b0a59a] tracking-[0.15em] uppercase mb-3">汇总</div>
             <div className="grid gap-1.5">
@@ -408,7 +473,6 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          {/* Clothing */}
           <div className="mb-6">
             <div className="text-[10px] font-semibold text-[#b0a59a] tracking-[0.15em] uppercase mb-3">服装</div>
             {clothingUrl ? (
@@ -443,24 +507,22 @@ export default function WorkspacePage() {
             <div className="mt-2 text-[11px] text-[#b0a59a]">衣长: {getClothingLengthDisplay()}</div>
           </div>
 
-          {/* Scene */}
           <div className="mb-6 pb-6 border-b border-[rgba(139,115,85,0.06)]">
-            <div className="text-[10px] font-semibold text-[#b0a59a] tracking-[0.15em] uppercase mb-3">场景</div>
-            <div className="bg-[rgba(139,115,85,0.03)] rounded-xl p-3.5">
-              <p className="text-[13px] font-semibold text-[#2d2422] m-0">{getSceneDisplay()}</p>
-              <p className="text-[11px] text-[#9b8e82] mt-1.5 m-0">
-                {sceneConfig.prompt || '无补充提示词'}
-              </p>
-            </div>
-          </div>
-
-          {/* Model */}
-          <div>
             <div className="text-[10px] font-semibold text-[#b0a59a] tracking-[0.15em] uppercase mb-3">模特</div>
             <div className="bg-[rgba(139,115,85,0.03)] rounded-xl p-3.5">
               <p className="text-[13px] font-semibold text-[#2d2422] m-0">{getModelDisplay()}</p>
               <p className="text-[11px] text-[#9b8e82] mt-1.5 m-0">
                 {sceneConfig.mode === 'replace' ? '由参考图决定' : `${modelConfig.pose || '自由姿势'} / ${modelConfig.expression || '自由表情'}`}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] font-semibold text-[#b0a59a] tracking-[0.15em] uppercase mb-3">场景</div>
+            <div className="bg-[rgba(139,115,85,0.03)] rounded-xl p-3.5">
+              <p className="text-[13px] font-semibold text-[#2d2422] m-0">{getSceneDisplay()}</p>
+              <p className="text-[11px] text-[#9b8e82] mt-1.5 m-0">
+                {sceneConfig.prompt || '无补充提示词'}
               </p>
             </div>
           </div>

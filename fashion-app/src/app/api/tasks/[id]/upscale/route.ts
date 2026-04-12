@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyAccessToken } from '@/lib/auth'
+import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { safeJsonParse } from '@/lib/utils/json'
 import { CreditService } from '@/lib/credit-service'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // 1. 验证身份
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ message: '未授权' }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-    let payload
-    try {
-      payload = verifyAccessToken(token)
-    } catch {
-      return NextResponse.json({ message: '令牌已过期，请重新登录' }, { status: 401 })
-    }
-    if (!payload) {
-      return NextResponse.json({ message: '令牌无效' }, { status: 401 })
-    }
+    const auth = requireAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { payload } = auth
 
     // 2. 获取任务
     const { id } = await params
@@ -43,9 +30,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } catch {
       return NextResponse.json({ message: '请求体解析失败' }, { status: 400 })
     }
-    const factor = body.factor || 2
+    const factor = Number(body.factor) || 2
+    if (![2, 4].includes(factor)) {
+      return NextResponse.json({ message: '放大倍数只支持 2x 或 4x' }, { status: 400 })
+    }
     const imageUrl = body.imageUrl
-    console.log(`[Upscale] factor=${factor}, imageUrl=${imageUrl}`)
 
     // 优先使用传入的 imageUrl，否则用 task.resultUrl
     const upscaleSourceUrl = imageUrl || task.resultUrl

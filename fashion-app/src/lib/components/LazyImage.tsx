@@ -13,6 +13,10 @@ export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    setLoaded(false);
+  }, [src]);
+
+  useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
@@ -28,7 +32,7 @@ export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [src]);
 
   return (
     <div ref={ref} className="relative w-full h-full" style={{ minHeight: '60px' }}>
