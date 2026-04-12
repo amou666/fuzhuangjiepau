@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAccessToken, hashPassword } from '@/lib/auth'
+import { decryptApiKey, encryptApiKey, maskApiKey } from '@/lib/utils/security'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
       const taskCount = (db.prepare('SELECT COUNT(*) as count FROM GenerationTask WHERE userId = ?').get(u.id) as any).count
       return {
         ...u,
+        apiKey: maskApiKey(u.apiKey),
         isActive: !!u.isActive,
         taskCount,
       }

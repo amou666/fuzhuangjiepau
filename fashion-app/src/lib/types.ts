@@ -1,5 +1,5 @@
 export type Role = 'ADMIN' | 'CUSTOMER'
-export type TaskStatus = 'PENDING' | 'PROCESSING' | 'ANALYZING_CLOTHING' | 'DESCRIBING_MODEL' | 'DESCRIBING_SCENE' | 'GENERATING' | 'COMPLETED' | 'FAILED'
+export type TaskStatus = 'PENDING' | 'PROCESSING' | 'DESCRIBING_MODEL' | 'DESCRIBING_SCENE' | 'GENERATING' | 'COMPLETED' | 'FAILED'
 
 export interface User {
   id: string
@@ -27,8 +27,11 @@ export interface ModelConfig {
   gender: string
   skinTone: string
   bodyType: string
+  faceFeature: string
   pose: string
   expression: string
+  /** 与 category 等枚举对应的完整英文 casting 段落，提交任务时由前后端一并写入 */
+  castingNarrative?: string
 }
 
 export interface SceneConfig {
@@ -41,6 +44,8 @@ export interface SceneConfig {
   composition?: string
   depthOfField?: 'slight' | 'shallow' | 'deep'
   aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9'
+  grain?: 'none' | 'light' | 'heavy'
+  exposureMode?: 'natural' | 'bright' | 'dark'
   prompt: string
 }
 
@@ -59,6 +64,7 @@ export interface GenerationTask {
   id: string
   userId: string
   status: string
+  type: 'workspace' | 'model-fusion' | 'redesign'
   creditCost: number
   clothingUrl: string
   clothingBackUrl?: string | null
@@ -67,6 +73,7 @@ export interface GenerationTask {
   modelConfig: ModelConfig
   sceneConfig: SceneConfig
   resultUrl?: string | null
+  resultUrls?: string[]
   upscaledUrl?: string | null
   upscaleFactor?: number | null
   errorMsg?: string | null

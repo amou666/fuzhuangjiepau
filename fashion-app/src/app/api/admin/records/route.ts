@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         clothingDetailUrls: safeJsonParse(r.clothingDetailUrls, []),
         modelConfig: safeJsonParse(r.modelConfig, {}),
         sceneConfig: safeJsonParse(r.sceneConfig, {}),
+        resultUrls: safeJsonParse(r.resultUrls, []),
         user: r.userEmail ? { email: r.userEmail } : undefined,
       })),
     })

@@ -7,10 +7,6 @@ interface LazyImageProps {
   className?: string;
 }
 
-/**
- * 懒加载图片组件：使用 IntersectionObserver，
- * 未进入视口时显示骨架屏，进入视口后再加载真实图片。
- */
 export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -27,7 +23,7 @@ export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
           observer.disconnect();
         }
       },
-      { rootMargin: '100px' }, // 提前 100px 预加载
+      { rootMargin: '100px' },
     );
 
     observer.observe(el);
@@ -35,15 +31,26 @@ export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
   }, []);
 
   return (
-    <div ref={ref} className="lazy-image-wrapper">
-      {/* 骨架屏：图片加载前或未进入视口时显示 */}
-      {(!inView || !loaded) && <div className="skeleton-shimmer" />}
+    <div ref={ref} className="relative w-full h-full" style={{ minHeight: '60px' }}>
+      {(!inView || !loaded) && (
+        <div
+          className="w-full bg-gradient-to-r from-slate-200/80 via-slate-50/90 to-slate-200/80 animate-[shimmer_1.4s_ease-in-out_infinite]"
+          style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.8), rgba(248,250,252,0.9), rgba(203,213,225,0.8))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite', borderRadius: 'inherit', minHeight: '60px' }}
+        />
+      )}
       {inView && (
         <img
           src={src}
           alt={alt}
           className={className}
-          style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
+          style={{
+            opacity: loaded ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            objectFit: 'cover',
+          }}
           onLoad={() => setLoaded(true)}
           onClick={onClick}
         />

@@ -5,9 +5,7 @@ export const workspaceApi = {
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('image', file);
-    const response = await apiClient.post<{ url: string }>('/uploads/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await apiClient.post<{ url: string }>('/uploads/image', formData);
     return response.data.url;
   },
   createTask: async (payload: { clothingUrl: string; clothingBackUrl?: string; clothingDetailUrls?: string[]; clothingLength?: ClothingLength; modelConfig: ModelConfig; sceneConfig: SceneConfig }) => {
@@ -22,8 +20,8 @@ export const workspaceApi = {
     const response = await apiClient.delete(`/tasks/${taskId}`);
     return response.data;
   },
-  upscaleTask: async (taskId: string, factor: number = 2) => {
-    const response = await apiClient.post<{ task: GenerationTask }>(`/tasks/${taskId}/upscale`, { factor });
+  upscaleTask: async (taskId: string, factor: number = 2, imageUrl?: string) => {
+    const response = await apiClient.post<{ task: GenerationTask }>(`/tasks/${taskId}/upscale`, { factor, imageUrl });
     return response.data.task;
   },
   getRecords: async () => {
@@ -91,5 +89,17 @@ export const workspaceApi = {
       dailyStats: Array<{ date: string; total: number; success: number; failed: number }>;
     }>('/stats/generation');
     return response.data;
+  },
+  fuseModels: async (imageUrls: string[]) => {
+    const response = await apiClient.post<{ resultUrl: string }>('/model-fusion', { modelUrls: imageUrls });
+    return response.data;
+  },
+  redesign: async (imageUrl: string, mode: string, customPrompt?: string, excludedItems?: string[]) => {
+    const response = await apiClient.post<{ resultUrls: string[]; credits: number; generatedItems: string[] }>('/redesign', { imageUrl, mode, customPrompt, excludedItems });
+    return response.data;
+  },
+  recognizeMaterial: async (imageUrl: string) => {
+    const response = await apiClient.post<{ materialInfo: string }>('/redesign/recognize', { imageUrl });
+    return response.data.materialInfo;
   },
 };

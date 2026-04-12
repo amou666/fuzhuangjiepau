@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAccessToken } from '@/lib/auth'
+import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
-import { getUploadPath } from '@/lib/config'
-import path from 'path'
-import fs from 'fs/promises'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '最多支持 3 张模特参考图' }, { status: 400 })
     }
 
-    // 检查积分
+    // 检查积分和 API Key
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
     if (!user || user.credits < 1) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
@@ -41,29 +39,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
-    // 扣积分
-    const newCredits = user.credits - 1
-    db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
+    // 事务保护：扣积分 + 记录日志
+    const deductResult = db.transaction(() => {
+      const currentUser = db.prepare('SELECT credits FROM User WHERE id = ?').get(payload.userId) as any
+      if (!currentUser || currentUser.credits < 1) {
+        return null
+      }
+      const newCredits = currentUser.credits - 1
+      db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
+      db.prepare(
+        'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
+      ).run(uuidv4(), payload.userId, -1, newCredits, '模特合成')
+      return newCredits
+    })()
 
-    // 记录积分日志
-    db.prepare(
-      'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
-    ).run(uuidv4(), payload.userId, -1, newCredits, '模特合成')
+    if (deductResult === null) {
+      return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
+    }
 
     // 执行 AI 合成
     const taskId = uuidv4()
     const ai = new AIService()
-    const resultUrl = await ai.fuseModelFaces(taskId, modelUrls, user.apiKey)
 
-    return NextResponse.json({
-      resultUrl,
-      credits: newCredits,
-    })
+    try {
+      const resultUrl = await ai.fuseModelFaces(taskId, modelUrls, user.apiKey)
+
+      // 保存记录到 GenerationTask
+      db.prepare(
+        `INSERT INTO GenerationTask (id, userId, status, type, creditCost, clothingUrl, modelConfig, sceneConfig, resultUrl, resultUrls, finishedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+      ).run(
+        taskId, payload.userId, 'COMPLETED', 'model-fusion', 1,
+        '', JSON.stringify({ modelUrls }), '{}',
+        resultUrl, JSON.stringify([resultUrl])
+      )
+
+      return NextResponse.json({
+        resultUrl,
+        taskId,
+        credits: deductResult,
+      })
+    } catch (aiError) {
+      // AI 合成失败，退还积分
+      try {
+        CreditService.addCredits(payload.userId, 1, `模特合成失败退款 (${taskId.slice(0, 8)})`)
+      } catch (refundError) {
+        console.error('[Model Fusion Refund Error]', refundError)
+      }
+      throw aiError
+    }
   } catch (error) {
     console.error('[Model Fusion Error]', error)
-    if (error instanceof Error) {
-      console.error('[Model Fusion Error Stack]', error.stack)
-    }
     const message = error instanceof Error ? error.message : '模特合成失败'
     return NextResponse.json({ message }, { status: 500 })
   }

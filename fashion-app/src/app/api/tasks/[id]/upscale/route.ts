@@ -2,22 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAccessToken } from '@/lib/auth'
 import { safeJsonParse } from '@/lib/utils/json'
-import { v4 as uuidv4 } from 'uuid'
+import { CreditService } from '@/lib/credit-service'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // 1. 验证身份
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ message: '未授权' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
+    let payload
+    try {
+      payload = verifyAccessToken(token)
+    } catch {
+      return NextResponse.json({ message: '令牌已过期，请重新登录' }, { status: 401 })
+    }
     if (!payload) {
       return NextResponse.json({ message: '令牌无效' }, { status: 401 })
     }
 
+    // 2. 获取任务
     const { id } = await params
+    console.log(`[Upscale] start taskId=${id}`)
     const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
 
     if (!task) {
@@ -28,55 +36,78 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ message: '无权操作此任务' }, { status: 403 })
     }
 
-    if (!task.resultUrl) {
+    // 3. 解析请求体
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ message: '请求体解析失败' }, { status: 400 })
+    }
+    const factor = body.factor || 2
+    const imageUrl = body.imageUrl
+    console.log(`[Upscale] factor=${factor}, imageUrl=${imageUrl}`)
+
+    // 优先使用传入的 imageUrl，否则用 task.resultUrl
+    const upscaleSourceUrl = imageUrl || task.resultUrl
+    if (!upscaleSourceUrl) {
       return NextResponse.json({ message: '任务尚未生成结果，无法放大' }, { status: 400 })
     }
 
-    const { factor = 2 } = await request.json()
-    const upscaleCost = 1
-
-    // 检查积分
+    // 4. 检查积分和 API Key
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < upscaleCost) {
+    if (!user || user.credits < 1) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
 
-    // 检查 AI API Key
     if (!user.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
-    // 扣积分
-    const newCredits = user.credits - upscaleCost
-    db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
-    db.prepare(
-      'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
-    ).run(uuidv4(), payload.userId, -upscaleCost, newCredits, `图片放大 ${factor}x`)
+    // 5. 扣积分
+    let deductResult: number | null
+    try {
+      deductResult = CreditService.deductCredits(payload.userId, 1, `图片放大 ${factor}x`)
+    } catch (dbErr: any) {
+      console.error('[Upscale] 扣积分失败:', dbErr)
+      return NextResponse.json({ message: `扣积分失败: ${dbErr.message}` }, { status: 500 })
+    }
 
-    // 更新任务状态
-    db.prepare(`UPDATE GenerationTask SET upscaleFactor = ?, updatedAt = datetime('now') WHERE id = ?`)
-      .run(factor, id)
+    if (deductResult === null) {
+      return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
+    }
 
-    // 异步处理放大
-    processUpscale(id, task.resultUrl, factor).catch(err => console.error('[Upscale Error]', err))
+    // 6. 清空旧的放大结果
+    try {
+      db.prepare(`UPDATE GenerationTask SET upscaleFactor = ?, upscaledUrl = NULL, errorMsg = NULL, updatedAt = datetime('now') WHERE id = ?`)
+        .run(factor, id)
+    } catch (dbErr: any) {
+      console.error('[Upscale] 更新任务失败:', dbErr)
+      return NextResponse.json({ message: `更新任务失败: ${dbErr.message}` }, { status: 500 })
+    }
 
-    // 返回更新后的任务
+    // 7. 异步处理放大
+    processUpscale(id, upscaleSourceUrl, factor, payload.userId).catch(err => console.error('[Upscale] 异步放大失败:', err))
+
+    // 8. 返回更新后的任务
     const updatedTask = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
+    console.log(`[Upscale] 启动成功, taskId=${id}`)
     return NextResponse.json({
       task: {
         ...updatedTask,
         clothingDetailUrls: safeJsonParse(updatedTask.clothingDetailUrls, []),
         modelConfig: safeJsonParse(updatedTask.modelConfig, {}),
         sceneConfig: safeJsonParse(updatedTask.sceneConfig, {}),
+        resultUrls: safeJsonParse(updatedTask.resultUrls, []),
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Upscale POST Error]', error)
-    return NextResponse.json({ message: '启动放大任务失败' }, { status: 500 })
+    const detail = error?.message || '未知错误'
+    return NextResponse.json({ message: `启动放大任务失败: ${detail}` }, { status: 500 })
   }
 }
 
-async function processUpscale(taskId: string, imageUrl: string, factor: number) {
+async function processUpscale(taskId: string, imageUrl: string, factor: number, userId: string) {
   const { processUpscaleTask } = await import('@/lib/task-processor')
-  await processUpscaleTask(taskId, imageUrl, factor)
+  await processUpscaleTask(taskId, imageUrl, factor, userId)
 }

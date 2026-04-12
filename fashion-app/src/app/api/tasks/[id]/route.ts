@@ -33,6 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         clothingDetailUrls: safeJsonParse(task.clothingDetailUrls, []),
         modelConfig: safeJsonParse(task.modelConfig, {}),
         sceneConfig: safeJsonParse(task.sceneConfig, {}),
+        resultUrls: safeJsonParse(task.resultUrls, []),
       },
     })
   } catch (error) {

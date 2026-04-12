@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    const payload = verifyAccessToken(token)
+    let payload
+    try {
+      payload = verifyAccessToken(token)
+    } catch {
+      return NextResponse.json({ message: '令牌已过期，请重新登录' }, { status: 401 })
+    }
     if (!payload) {
       return NextResponse.json({ message: '令牌无效' }, { status: 401 })
     }
@@ -28,6 +33,7 @@ export async function GET(request: NextRequest) {
         clothingDetailUrls: safeJsonParse(r.clothingDetailUrls, []),
         modelConfig: safeJsonParse(r.modelConfig, {}),
         sceneConfig: safeJsonParse(r.sceneConfig, {}),
+        resultUrls: safeJsonParse(r.resultUrls, []),
       })),
     })
   } catch (error) {

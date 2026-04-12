@@ -1,9 +1,0 @@
-process.env.NODE_ENV = 'test';
-process.env.APP_AUTO_START = 'false';
-process.env.PORT = '3101';
-process.env.DATABASE_URL = 'file:./test.db';
-process.env.PUBLIC_API_BASE_URL = 'http://127.0.0.1:3101';
-process.env.FRONTEND_ORIGIN = 'http://127.0.0.1:4173';
-process.env.UPLOAD_DIR = 'uploads-test';
-process.env.MOCK_AI = 'true';
-process.env.TZ = 'UTC';

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createAccessToken, createRefreshToken, comparePassword } from '@/lib/auth'
+import { maskApiKey } from '@/lib/utils/security'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
-      apiKey: user.apiKey,
+      apiKey: maskApiKey(user.apiKey),
       credits: user.credits,
       isActive: !!user.isActive,
       createdAt: user.createdAt,

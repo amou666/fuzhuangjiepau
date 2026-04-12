@@ -20,12 +20,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = (page - 1) * limit
 
-    const total = (db.prepare('SELECT COUNT(*) as count FROM CreditLog').get() as any).count
+    const whereClause = "WHERE cl.reason NOT LIKE 'task:%'"
+
+    const total = (db.prepare(`SELECT COUNT(*) as count FROM CreditLog cl ${whereClause}`).get() as any).count
     const logs = db.prepare(`
-      SELECT cl.*, u.email as userEmail, tu.email as targetEmail
+      SELECT cl.*, u.email as userEmail
       FROM CreditLog cl
       LEFT JOIN User u ON cl.userId = u.id
-      LEFT JOIN User tu ON cl.userId = tu.id
+      ${whereClause}
       ORDER BY cl.createdAt DESC
       LIMIT ? OFFSET ?
     `).all(limit, offset)

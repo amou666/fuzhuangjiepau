@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAccessToken, extractTokenFromHeader } from '@/lib/auth'
+import { maskApiKey } from '@/lib/utils/security'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      user: { ...user, isActive: !!user.isActive },
+      user: {
+        ...user,
+        apiKey: maskApiKey(user.apiKey),
+        isActive: !!user.isActive,
+      },
     })
   } catch (error) {
     return NextResponse.json({ message: '访问令牌已失效，请重新登录' }, { status: 401 })

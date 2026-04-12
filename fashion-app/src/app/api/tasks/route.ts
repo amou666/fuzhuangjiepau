@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAccessToken } from '@/lib/auth'
+import { mergeModelConfigWithCastingNarrative } from '@/lib/model-narrative'
 import { safeJsonParse } from '@/lib/utils/json'
+import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
         clothingDetailUrls: safeJsonParse(t.clothingDetailUrls, []),
         modelConfig: safeJsonParse(t.modelConfig, {}),
         sceneConfig: safeJsonParse(t.sceneConfig, {}),
+        resultUrls: safeJsonParse(t.resultUrls, []),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
@@ -71,6 +74,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '缺少必要参数' }, { status: 400 })
     }
 
+    const sceneMode = sceneConfig.mode === 'replace' ? 'replace' : 'preset'
+    const modelConfigStored = mergeModelConfigWithCastingNarrative(modelConfig, sceneMode)
+
     // 检查积分
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
     if (!user || user.credits < creditCost) {
@@ -82,21 +88,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
-    // 扣积分
-    const newCredits = user.credits - creditCost
-    db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
-
-    // 记录积分日志
-    db.prepare(
-      'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
-    ).run(uuidv4(), payload.userId, -creditCost, newCredits, '创建生成任务')
-
-    // 创建任务
+    // 扣积分 + 创建任务
     const taskId = uuidv4()
-    db.prepare(
-      `INSERT INTO GenerationTask (id, userId, status, creditCost, clothingUrl, clothingBackUrl, clothingDetailUrls, clothingDescription, modelConfig, sceneConfig)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(taskId, payload.userId, 'PENDING', creditCost, clothingUrl, clothingBackUrl || '', JSON.stringify(clothingDetailUrls || []), clothingLength || '', JSON.stringify(modelConfig), JSON.stringify(sceneConfig))
+    const result = db.transaction(() => {
+      const newCredits = CreditService.deductCredits(payload.userId, creditCost, '创建生成任务')
+      if (newCredits === null) {
+        return null
+      }
+
+      db.prepare(
+        `INSERT INTO GenerationTask (id, userId, status, creditCost, clothingUrl, clothingBackUrl, clothingDetailUrls, clothingDescription, modelConfig, sceneConfig)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(taskId, payload.userId, 'PENDING', creditCost, clothingUrl, clothingBackUrl || '', JSON.stringify(clothingDetailUrls || []), clothingLength || '', JSON.stringify(modelConfigStored), JSON.stringify(sceneConfig))
+
+      return taskId
+    })()
+
+    if (!result) {
+      return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
+    }
 
     const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(taskId) as any
 
@@ -109,6 +119,7 @@ export async function POST(request: NextRequest) {
         clothingDetailUrls: safeJsonParse(task.clothingDetailUrls, []),
         modelConfig: safeJsonParse(task.modelConfig, {}),
         sceneConfig: safeJsonParse(task.sceneConfig, {}),
+        resultUrls: safeJsonParse(task.resultUrls, []),
       },
     }, { status: 201 })
   } catch (error) {

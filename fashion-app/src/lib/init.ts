@@ -13,7 +13,7 @@ export async function ensureBaseUsers() {
     const passwordHash = await hashPassword(config.adminPassword)
     db.prepare(
       'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, config.adminEmail, passwordHash, 'ADMIN', uuidv4(), 999999)
+    ).run(id, config.adminEmail, passwordHash, 'ADMIN', null, 9999)
     console.log(`✅ Created admin: ${config.adminEmail}`)
   }
 
@@ -24,7 +24,7 @@ export async function ensureBaseUsers() {
     const passwordHash = await hashPassword(config.demoPassword)
     db.prepare(
       'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, config.demoEmail, passwordHash, 'CUSTOMER', uuidv4(), 100)
+    ).run(id, config.demoEmail, passwordHash, 'CUSTOMER', null, 100)
     console.log(`✅ Created demo user: ${config.demoEmail}`)
   }
 }

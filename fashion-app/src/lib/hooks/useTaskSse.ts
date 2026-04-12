@@ -16,6 +16,11 @@ interface TaskSseEvent {
 /**
  * 全局 SSE Hook：在用户登录后建立长连接，接收任务状态推送
  * 只需在顶层布局 (AppLayout) 挂载一次
+ *
+ * 防重复通知策略：
+ * - SSE 重连时后端可能重新推送已完成任务的状态
+ * - notifiedTaskIds 集合确保同一 taskId 的 DONE/FAILED 只弹一次通知
+ * - notificationStore 限制同时只显示 1 条通知
  */
 export const useTaskSse = () => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -61,7 +66,7 @@ export const useTaskSse = () => {
           }
         }
 
-        // 发送全局 Toast 通知
+        // 发送全局 Toast 通知（带 taskId，由 store 层去重）
         if (status === 'DONE') {
           addNotification({ type: 'success', message: '生图任务已完成，快去查看结果！', taskId });
           // 刷新积分

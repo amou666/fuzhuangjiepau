@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Loader2, Sparkles } from 'lucide-react'
 import { authApi } from '@/lib/api/auth'
-import { useAuthStore } from '@/lib/stores/authStore'
 import { useHydrated } from '@/lib/hooks/useHydrated'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import { isValidEmail, normalizeEmail } from '@/lib/utils/validation'
 
@@ -26,8 +27,14 @@ export default function LoginPage() {
 
   if (!hydrated) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a2e', color: '#fff' }}>
-        <div>加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#faf7f4] px-6">
+        <div className="flex items-center gap-3 text-[#9b8e82]">
+          <div
+            className="h-5 w-5 rounded-full border-2 animate-spin"
+            style={{ borderColor: 'rgba(198,123,92,0.2)', borderTopColor: '#c67b5c' }}
+          />
+          <span className="text-sm">加载中...</span>
+        </div>
       </div>
     )
   }
@@ -60,40 +67,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <section className="hero-panel">
-          <div>
-            <div className="code-chip">AI Fashion SaaS</div>
-            <h1>让服装上新图像生成真正可运营。</h1>
-            <p>一个前后端已打通、可直接本地运行的服装 AI 生图平台原型。</p>
-          </div>
-          <div className="hero-points">
-            <div className="hero-point">管理员可管理客户、充值积分、查看生成记录。</div>
-            <div className="hero-point">客户可上传服装图、配置模特和场景，并异步生成结果。</div>
-            <div className="hero-point">AI 生图引擎已就绪，一键生成高质量街拍图。</div>
-          </div>
-        </section>
-        <section className="form-panel">
-          <h2 className="section-title">登录系统</h2>
-          <p className="section-subtitle">请输入您的账号和密码</p>
-          <form className="form-grid" onSubmit={handleSubmit}>
-            <div className="field">
-              <label htmlFor="email">邮箱</label>
-              <input id="email" className="input" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            </div>
-            <div className="field">
-              <label htmlFor="password">密码</label>
-              <input id="password" className="input" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
-            </div>
-            {error ? <div className="error-text">{error}</div> : null}
-            <button className="btn" type="submit" disabled={loading}>
-              {loading ? '登录中...' : '立即登录'}
-            </button>
-          </form>
+    <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-[#faf7f4]">
+      <div className="w-full max-w-[420px] rounded-[32px] border border-[rgba(139,115,85,0.08)] bg-[rgba(255,252,249,0.9)] p-8 shadow-[0_20px_60px_rgba(139,115,85,0.12)] backdrop-blur-sm sm:p-10">
+        <h1 className="m-0 text-[34px] font-bold tracking-tight text-[#2d2422]">登录系统</h1>
+        <p className="mt-2 mb-8 text-[15px] leading-6 text-[#9b8e82]">请输入您的账号和密码</p>
 
-        </section>
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="email" className="text-[14px] font-semibold text-[#6f5f55]">
+              邮箱
+            </label>
+            <input
+              id="email"
+              className="h-14 w-full rounded-2xl border border-[rgba(139,115,85,0.12)] bg-[#f6efe8] px-4 text-[15px] text-[#2d2422] outline-none transition-all placeholder:text-[#c4b4a7] focus:border-[rgba(198,123,92,0.35)] focus:bg-[#fffaf6] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="请输入邮箱"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="password" className="text-[14px] font-semibold text-[#6f5f55]">
+              密码
+            </label>
+            <input
+              id="password"
+              className="h-14 w-full rounded-2xl border border-[rgba(139,115,85,0.12)] bg-[#f6efe8] px-4 text-[15px] text-[#2d2422] outline-none transition-all placeholder:text-[#c4b4a7] focus:border-[rgba(198,123,92,0.35)] focus:bg-[#fffaf6] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="请输入密码"
+            />
+          </div>
+
+          {error ? (
+            <div className="rounded-2xl border border-[rgba(196,112,112,0.16)] bg-[rgba(254,242,240,0.9)] px-4 py-3 text-sm font-medium text-[#c47070]">
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            className="mt-1 inline-flex h-14 items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(135deg,#c67b5c_0%,#d4a882_100%)] px-6 text-[16px] font-bold text-white transition-all shadow-[0_12px_28px_rgba(198,123,92,0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(198,123,92,0.34)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                登录中...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                立即登录
+              </>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   )
 }
+

@@ -1,0 +1,184 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - generic [ref=e10]:
+            - generic [ref=e11]: Amou AI
+            - text: 工作台
+        - button [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - generic [ref=e17]: 导航
+        - link "工作台" [ref=e18] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e19]
+          - generic [ref=e22]: 工作台
+        - link "模特合成" [ref=e23] [cursor=pointer]:
+          - /url: /model-fusion
+          - img [ref=e24]
+          - generic [ref=e29]: 模特合成
+        - link "AI 改款" [ref=e30] [cursor=pointer]:
+          - /url: /redesign
+          - img [ref=e31]
+          - generic [ref=e34]: AI 改款
+        - link "历史记录" [ref=e35] [cursor=pointer]:
+          - /url: /history
+          - img [ref=e36]
+          - generic [ref=e39]: 历史记录
+        - link "账户设置" [ref=e40] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e41]
+          - generic [ref=e44]: 账户设置
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: 积分余额
+          - generic [ref=e49]: "999999"
+        - generic [ref=e50]:
+          - generic [ref=e51]: A
+          - generic [ref=e52]:
+            - generic [ref=e53]: admin@fashionai.local
+            - generic [ref=e54]: 管理员
+        - button "退出登录" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: 退出登录
+    - main [ref=e60]:
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - heading "生图工作台" [level=1] [ref=e64]
+            - paragraph [ref=e65]: 四步完成配置，生成真实街拍感大片
+          - generic [ref=e66]:
+            - generic [ref=e67]: 步骤
+            - generic [ref=e68]: "1"
+            - generic [ref=e69]: / 4
+        - generic [ref=e70]:
+          - button "服装 上传服装" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]:
+              - img [ref=e74]
+              - generic [ref=e76]:
+                - generic [ref=e77]: 服装
+                - generic [ref=e78]: 上传服装
+          - button "场景 街拍场景" [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]:
+              - img [ref=e83]
+              - generic [ref=e86]:
+                - generic [ref=e87]: 场景
+                - generic [ref=e88]: 街拍场景
+          - button "模特 人物参数" [ref=e90] [cursor=pointer]:
+            - generic [ref=e91]:
+              - img [ref=e93]
+              - generic [ref=e97]:
+                - generic [ref=e98]: 模特
+                - generic [ref=e99]: 人物参数
+          - button "生成 融合出图" [ref=e101] [cursor=pointer]:
+            - generic [ref=e102]:
+              - img [ref=e104]
+              - generic [ref=e107]:
+                - generic [ref=e108]: 生成
+                - generic [ref=e109]: 融合出图
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - heading "上传服装图" [level=3] [ref=e113]
+              - paragraph [ref=e114]: 上传服装主图，支持正面、背面和细节图
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e117]: 正面 *
+                - button "点击上传图片 建议纯背景、裁切清晰的正面图" [ref=e119] [cursor=pointer]:
+                  - img [ref=e122]
+                  - generic [ref=e125]: 点击上传图片
+                  - generic [ref=e126]: 建议纯背景、裁切清晰的正面图
+              - generic [ref=e127]:
+                - generic [ref=e128]: 背面
+                - button "点击上传图片 帮助 AI 更完整理解服装设计" [ref=e130] [cursor=pointer]:
+                  - img [ref=e133]
+                  - generic [ref=e136]: 点击上传图片
+                  - generic [ref=e137]: 帮助 AI 更完整理解服装设计
+            - generic [ref=e138]:
+              - generic [ref=e140]:
+                - generic [ref=e141]: 细节
+                - generic [ref=e142]: 领口、袖口、面料纹理等细节，最多 4 张
+              - button [ref=e145] [cursor=pointer]:
+                - img [ref=e146]
+            - generic [ref=e147]:
+              - generic [ref=e148]: 衣长
+              - generic [ref=e149]:
+                - button "短款 腰部以上" [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]: 短款
+                  - generic [ref=e152]: 腰部以上
+                - button "标准 齐腰" [ref=e153] [cursor=pointer]:
+                  - generic [ref=e154]: 标准
+                  - generic [ref=e155]: 齐腰
+                - button "盖臀 覆盖臀部" [ref=e156] [cursor=pointer]:
+                  - generic [ref=e157]: 盖臀
+                  - generic [ref=e158]: 覆盖臀部
+                - button "膝盖长 及膝" [ref=e159] [cursor=pointer]:
+                  - generic [ref=e160]: 膝盖长
+                  - generic [ref=e161]: 及膝
+                - button "脚踝长 及踝" [ref=e162] [cursor=pointer]:
+                  - generic [ref=e163]: 脚踝长
+                  - generic [ref=e164]: 及踝
+              - generic [ref=e165]: 选择衣长类型帮助 AI 理解服装比例，点击已选中项可取消
+            - generic [ref=e166]:
+              - button "上一步" [disabled] [ref=e167] [cursor=pointer]
+              - button "下一步" [ref=e168] [cursor=pointer]
+          - complementary [ref=e169]:
+            - generic [ref=e170]:
+              - heading "预览" [level=2] [ref=e171]
+              - generic [ref=e172]: 实时预览
+            - generic [ref=e173]:
+              - generic [ref=e174]: 汇总
+              - generic [ref=e175]:
+                - generic [ref=e176]:
+                  - img [ref=e178]
+                  - generic [ref=e180]: 服装
+                  - generic [ref=e181]: 未上传
+                - generic [ref=e182]:
+                  - img [ref=e184]
+                  - generic [ref=e188]: 模特
+                  - generic [ref=e189]:
+                    - img [ref=e191]
+                    - text: 时尚超模 / 20岁 / 美国人
+                - generic [ref=e193]:
+                  - img [ref=e195]
+                  - generic [ref=e198]: 场景
+                  - generic [ref=e199]:
+                    - img [ref=e201]
+                    - text: city street（城市街道）
+                - generic [ref=e203]:
+                  - img [ref=e205]
+                  - generic [ref=e211]: 时段
+                  - generic [ref=e212]:
+                    - img [ref=e214]
+                    - text: noon（中午）
+                - generic [ref=e216]:
+                  - img [ref=e218]
+                  - generic [ref=e223]: 光照
+                  - generic [ref=e224]:
+                    - img [ref=e226]
+                    - text: 全局光
+                - generic [ref=e228]:
+                  - img [ref=e230]
+                  - generic [ref=e233]: 构图
+                  - generic [ref=e234]:
+                    - img [ref=e236]
+                    - text: full-body（全身）
+            - generic [ref=e238]:
+              - generic [ref=e239]: 服装
+              - generic [ref=e240]: 尚未上传服装图
+              - generic [ref=e241]: "衣长: --"
+            - generic [ref=e242]:
+              - generic [ref=e243]: 场景
+              - generic [ref=e244]:
+                - paragraph [ref=e245]: city street（城市街道）
+                - paragraph [ref=e246]: 无补充提示词
+            - generic [ref=e247]:
+              - generic [ref=e248]: 模特
+              - generic [ref=e249]:
+                - paragraph [ref=e250]: 时尚超模 / 20岁 / 美国人
+                - paragraph [ref=e251]: 自由姿势 / 自由表情
+  - button "Open Next.js Dev Tools" [ref=e258] [cursor=pointer]:
+    - img [ref=e259]
+  - alert [ref=e252]

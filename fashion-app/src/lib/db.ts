@@ -16,7 +16,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'CUSTOMER',
-    apiKey TEXT UNIQUE NOT NULL DEFAULT '',
+    apiKey TEXT DEFAULT NULL,
     credits INTEGER NOT NULL DEFAULT 0,
     isActive INTEGER NOT NULL DEFAULT 1,
     createdAt TEXT NOT NULL DEFAULT (datetime('now')),
@@ -63,6 +63,16 @@ db.exec(`
     createdAt TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (adminId) REFERENCES User(id)
   );
+
+  CREATE TABLE IF NOT EXISTS ClothingCache (
+    imageUrl TEXT PRIMARY KEY,
+    materialDesc TEXT,
+    materialDna TEXT,
+    category TEXT,
+    silhouette TEXT,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+    updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `)
 
 export { db }
@@ -73,4 +83,14 @@ try {
 } catch {}
 try {
   db.exec(`ALTER TABLE GenerationTask ADD COLUMN clothingDetailUrls TEXT DEFAULT '[]'`)
+} catch {}
+try {
+  db.exec(`ALTER TABLE GenerationTask ADD COLUMN type TEXT NOT NULL DEFAULT 'workspace'`)
+} catch {}
+try {
+  db.exec(`ALTER TABLE GenerationTask ADD COLUMN resultUrls TEXT DEFAULT '[]'`)
+} catch {}
+// 迁移：将空字符串 apiKey 改为 NULL，避免 UNIQUE 约束冲突
+try {
+  db.exec(`UPDATE User SET apiKey = NULL WHERE apiKey = ''`)
 } catch {}

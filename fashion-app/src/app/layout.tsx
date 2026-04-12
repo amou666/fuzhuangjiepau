@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '服装街拍 AI',
+  title: 'Amou AI',
   description: 'AI 服装街拍生图平台',
 }
 
