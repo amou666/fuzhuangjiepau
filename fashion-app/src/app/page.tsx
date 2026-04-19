@@ -13,7 +13,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!hydrated) return
     if (user) {
-      router.push(user.role === 'ADMIN' ? '/dashboard' : '/workspace')
+      router.push(user.role === 'ADMIN' ? '/dashboard' : '/quick-workspace')
     } else {
       router.push('/login')
     }

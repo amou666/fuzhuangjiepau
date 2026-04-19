@@ -116,6 +116,27 @@ export interface SceneConfig {
   grain?: 'none' | 'light' | 'heavy'
   exposureMode?: 'natural' | 'bright' | 'dark'
   prompt: string
+  /** 批量生成时写入，提示词中强化「同套穿搭」锁定，避免每张图随机换包/首饰 */
+  batchVariation?: 'pose' | 'scene' | 'both'
+  /** 快速工作台模式标识：'background' 纯背景 / 'fusion' 含原人物（用作姿势参考） */
+  quickMode?: 'background' | 'fusion'
+  /** 快速工作台取景偏好：'auto' | 'half' | 'full' */
+  quickFraming?: 'auto' | 'half' | 'full'
+}
+
+export type QuickWorkspaceMode = 'background' | 'fusion'
+export type QuickWorkspaceAspectRatio = '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
+export type QuickWorkspaceFraming = 'auto' | 'half' | 'full'
+
+export interface QuickWorkspacePayload {
+  clothingUrl: string
+  clothingBackUrl?: string
+  modelImageUrl: string
+  sceneImageUrl: string
+  mode: QuickWorkspaceMode
+  aspectRatio?: QuickWorkspaceAspectRatio
+  framing?: QuickWorkspaceFraming
+  extraPrompt?: string
 }
 
 export type ClothingLength = 'cropped' | 'standard' | 'hip-length' | 'knee-length' | 'ankle-length'
@@ -133,7 +154,7 @@ export interface GenerationTask {
   id: string
   userId: string
   status: string
-  type: 'workspace' | 'model-fusion' | 'redesign'
+  type: 'workspace' | 'model-fusion' | 'redesign' | 'quick-workspace'
   creditCost: number
   clothingUrl: string
   clothingBackUrl?: string | null
@@ -202,7 +223,7 @@ export interface AuthResponse {
   refreshToken: string
 }
 
-export type FavoriteType = 'model' | 'scene' | 'full'
+export type FavoriteType = 'clothing' | 'model' | 'scene' | 'full'
 
 export interface Favorite {
   id: string

@@ -1,8 +1,24 @@
 import fs from 'fs/promises'
 import path from 'path'
+import { Agent, ProxyAgent, fetch as undiciFetch } from 'undici'
 import { config, getUploadPath } from './config'
 import { db } from './db'
 import type { ModelConfig, SceneConfig } from './types'
+
+// 下载 AI 返回的图片 URL 时使用的 dispatcher：
+// - 连接超时拉长到 30s（Node 原生 fetch 默认 10s 对国内 CDN 不够）
+// - 支持 HTTPS_PROXY / HTTP_PROXY 环境变量
+const imageDownloadDispatcher = (() => {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy
+  if (proxyUrl) {
+    try {
+      return new ProxyAgent({ uri: proxyUrl, connectTimeout: 30_000, headersTimeout: 60_000, bodyTimeout: 120_000 })
+    } catch (err) {
+      console.warn('[ai-service] ProxyAgent 初始化失败，回退到默认 Agent:', err)
+    }
+  }
+  return new Agent({ connect: { timeout: 30_000 }, headersTimeout: 60_000, bodyTimeout: 120_000 })
+})()
 import {
   appendPoseAndExpression,
   buildModelCorePhysical,
@@ -25,6 +41,7 @@ type ChatCompletionResponse = {
       content?: unknown
       images?: Array<{
         b64_json?: string
+        url?: string
         mime_type?: string
         media_type?: string
       }>
@@ -32,6 +49,7 @@ type ChatCompletionResponse = {
   }>
   data?: Array<{
     b64_json?: string
+    url?: string
     mime_type?: string
     media_type?: string
   }>
@@ -195,6 +213,13 @@ export class AIService {
     modelConfig: ModelConfig,
     sceneConfig: SceneConfig
   ): string {
+    const accessoryGeneral =
+      'STYLING LOCK — ACCESSORIES: Do not invent handbags, purses, totes, backpacks, jewelry, watches, sunglasses, hats, belts, scarves, or gloves unless they are clearly visible in the CLOTHING reference images. Hands, wrists, neck, and ears should have no added bling unless shown in references. If the frame omits lower body, imply plain neutral bottoms and minimal or off-frame footwear — no logos, no statement shoes, no props.'
+
+    const accessoryBatch = sceneConfig.batchVariation
+      ? ' BATCH CONSISTENCY LOCK (CRITICAL — each image in this batch is generated independently, so you MUST follow these FIXED decisions exactly): ZERO handbags/purses/totes/clutches — hands are empty. ZERO jewelry (no necklaces, earrings, rings, bracelets, watches). ZERO sunglasses. ZERO hats/headwear. ZERO belts unless the referenced garment itself has one. ZERO scarves/gloves. Footwear: plain minimal neutral shoes (simple white sneakers or nude flats) if feet are visible, otherwise off-frame. Bottoms: plain dark neutral trousers/jeans if lower body is visible and the referenced garment does not cover it. These decisions are ABSOLUTE and IDENTICAL for every image in this batch — only pose and/or scene change.'
+      : ''
+
     const isReplaceMode = sceneConfig.mode === 'replace'
     // 前端「不指定」时 omits / undefined：用与街拍一致的稳妥默认，避免误走浅景深分支
     const depthOfField = sceneConfig.depthOfField ?? 'slight'
@@ -226,6 +251,7 @@ export class AIService {
         `New model description: ${modelDescription}.`,
         'CRITICAL FACE RULE: The generated model\'s face MUST be identical to [1] — same face shape, eyes, nose, mouth, hair, skin tone. Copy the face from [1] exactly, do not invent or blend.',
         'CRITICAL CLOTHING RULE: The garment MUST be identical to [2] — same design, color, fabric texture, patterns, fit.',
+        accessoryGeneral + accessoryBatch,
         'CRITICAL POSE RULE: The body position MUST match [3] — same posture, gesture, angle, stance.',
         'CRITICAL DELETION: Completely remove the original person from [3]. Keep only background + pose blueprint.',
         `Maintain natural skin texture (pores, no wax), realistic textile folds, accurate garment details, real-camera street-snap quality${grainPart ? `, ${grainPart}` : ''}. ${exposureGuidance} Avoid CGI polish and beauty-filter faces.`,
@@ -281,6 +307,7 @@ export class AIService {
       'Generate ONE image that is indistinguishable from a real photograph (not illustration, not 3D, not AI-art).',
       realismBlock,
       `Keep the garment faithful to the clothing reference image — reproduce it exactly as shown, preserving all details, color, fabric texture, patterns, and structural elements.`,
+      accessoryGeneral + accessoryBatch,
       `Model requirement: ${modelDescription}.`,
       `Scene requirement: ${sceneDescription}.`,
       `Style: authentic street fashion documentation — realistic textile folds, accurate garment details, balanced anatomy, visible skin pores and subtle asymmetry, ${lightingIntegration}, ${depthEffect}${aspectGuidance ? `, ${aspectGuidance}` : ''}. ${exposureGuidance}`,
@@ -476,6 +503,11 @@ Return only the generated image in base64 without markdown or explanation.`
       systemPrompt = 'You are an expert fashion photographer\'s image generator: output must be indistinguishable from a real camera photo of street fashion. When a model reference image is provided, extract ONLY facial features, hair, and skin tone. The pose, expression, lighting, and aspect ratio MUST come from the text prompt, not from the reference images. IMPORTANT: Ignore the dimensions and aspect ratio of all reference images. Generate the output image with the exact aspect ratio specified in the prompt. CRITICAL REALISM: natural ambient light only (no fake studio rim), visible skin pores and micro-imperfections, soft peach-fuzz, subtle under-eye and nasolabial texture, slight face asymmetry, muted natural color grading, subtle sensor noise OK — reject plastic skin, airbrushed faces, poreless beauty-filter finish, CGI sheen, oversharpening, and illustration style. Return only the generated image in base64 without markdown or explanation.'
     }
 
+    if (references.sceneConfig.batchVariation) {
+      systemPrompt +=
+        ' BATCH SERIES (CRITICAL): This image is ONE of multiple independent renders using the same garment. Because each render is independent, you MUST follow these FIXED styling rules exactly to guarantee visual consistency across all images: (1) ZERO accessories — no handbags, purses, clutches, jewelry, watches, necklaces, earrings, rings, bracelets, sunglasses, hats, headwear, belts (unless on the garment itself), scarves, or gloves. Hands must be EMPTY. (2) If lower body is visible and the garment does not cover it, use ONLY plain dark neutral trousers or jeans. (3) If feet are visible, use ONLY plain minimal shoes (simple white sneakers or nude flats). (4) ONLY vary pose and/or scene as the user text states — everything else about the outfit must be identical across renders.'
+    }
+
     const genPayload: Record<string, unknown> = {
       model: config.aiModel,
       stream: false,
@@ -496,7 +528,243 @@ Return only the generated image in base64 without markdown or explanation.`
 
     const response = await this.requestChatCompletion(genPayload, userApiKey)
 
-    const image = this.extractImagePayload(response)
+    const image = await this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+    return toStoredFilePath(`uploads/results/${fileName}`)
+  }
+
+  // ===== 快速工作台 =====
+  /**
+   * 分析纯背景图，返回「模特在这张图里站在哪 / 以什么姿势」的视觉布局建议。
+   * 用于 background 模式：先读背景 → 文字蓝图 → 再合成最终图。
+   */
+  async analyzeBackgroundForPlacement(backgroundUrl: string, userApiKey?: string, options?: { framing?: 'auto' | 'half' | 'full' }): Promise<string> {
+    const framing = options?.framing || 'auto'
+    const framingHint = framing === 'full'
+      ? '\n\n【用户指定取景：全身照】请在 <posePrompt> 中明确描述"全身站立姿势"，让模特脚到头全部可见；在 <positionPrompt> 中指出画面中头顶和脚底大致的位置，确保出图能完整展示全身。'
+      : framing === 'half'
+      ? '\n\n【用户指定取景：半身照】请在 <posePrompt> 中描述半身（腰部以上/胸以上）的姿势与手部动作；在 <positionPrompt> 中指出头顶与腰部的画面位置，确保出图以半身为主。'
+      : ''
+    const instruction = `你是一个专业的场景分析与模特摆姿专家。请分析用户提供的场景图片（空白场景，无人物），重点关注：
+
+1. 场景类型与风格（室内/室外、装修风格、氛围）
+2. 光线条件（光源方向、光线质感、阴影分布）
+3. 空间布局（前景/中景/后景区分、视觉焦点位置）
+4. 构图美学（黄金分割点、视觉引导线、留白区域）
+
+基于以上分析，输出两部分提示词（用 XML 标签包裹）：
+
+<posePrompt>
+描述模特最适合的姿势、动作、神态。包括：
+- 身体姿态（站姿/坐姿/行走/倚靠等）
+- 四肢动作（手部位置、腿部姿势）
+- 头部朝向与表情
+- 整体动态感（自然/优雅/活力等）
+</posePrompt>
+
+<positionPrompt>
+描述模特在场景中的最佳位置，包括：
+- 具体站位（画面左侧/右侧/中央等）
+- 与场景元素的关系（靠近窗户、站在沙发旁等）
+- 景深层次（前景突出/融入背景）
+- 与光线的互动（面向光源/背光/侧光）
+</positionPrompt>
+
+请用中文输出，描述要具体且符合场景氛围。${framingHint}`
+    const raw = await this.analyzeImage(backgroundUrl, instruction, userApiKey)
+    return this.normalizeQuickWorkspaceBlueprint(raw)
+  }
+
+  /** 从 AI 输出中抽取 <posePrompt> / <positionPrompt>，拼成结构化蓝图。抽取失败时退回原文。 */
+  private normalizeQuickWorkspaceBlueprint(raw: string): string {
+    const text = raw?.trim?.() || ''
+    if (!text) return ''
+    const poseMatch = text.match(/<posePrompt>([\s\S]*?)<\/posePrompt>/i)
+    const posMatch = text.match(/<positionPrompt>([\s\S]*?)<\/positionPrompt>/i)
+    const pose = poseMatch?.[1]?.trim() || ''
+    const position = posMatch?.[1]?.trim() || ''
+    if (!pose && !position) return text
+    const parts: string[] = []
+    if (position) parts.push(`【模特位置】${position}`)
+    if (pose) parts.push(`【模特姿势】${pose}`)
+    return parts.join('\n')
+  }
+
+  /**
+   * 分析含人物的图：返回 (1) 原人物的位置/姿势蓝图；(2) 背景本身的简洁描述。
+   * 用于 fusion 模式：读出姿势蓝图 → 生图时让新模特穿新衣服、站到同一位置 + 同样姿势，背景保留原样。
+   */
+  async analyzePersonInScene(sceneUrl: string, userApiKey?: string): Promise<string> {
+    const instruction = [
+      'You are a senior fashion photographer & art director. This image contains a PERSON inside a scene. We will REPLACE that person with a new model wearing different clothes, while keeping THE SAME COMPOSITION, camera angle, framing and position (this is a person-swap, not a re-shoot).',
+      'Produce ONE compact English paragraph that will be used as a BLUEPRINT to redraw the shot. It MUST include:',
+      '  1. FRAME & CAMERA: framing category (full body / 3-4 length / waist-up / half body), camera height (eye-level / low / high) and focal-length feel (wide / standard / short tele).',
+      '  2. POSITION inside the frame: horizontal placement (left / center / right, with thirds if useful) and where the feet / hip line sit vertically.',
+      '  3. HUMAN SCALE: approximate head height in percent of the frame height — be concrete (a single number like "head ≈ 12% of frame height"). Also note the head-top y% and feet/ground-contact y% from the top of the frame.',
+      '  4. POSE: detailed body pose — body orientation (front / 3-4 / profile), weight leg, arm and hand positions, head tilt, gaze direction.',
+      '  5. LIGHT ON PERSON: direction of the key light, which side is highlighted vs in shadow, shadow softness, and the direction and softness of the ground-contact shadow.',
+      '  6. BACKGROUND: short description of the scene (location, surfaces, depth, atmosphere) so we know what to preserve after removing the original person.',
+      'CRITICAL: DO NOT describe the original person\'s face, hair, skin tone, age, body shape, or clothing — those will be replaced. Describe ONLY framing + position + scale + pose + light + background.',
+      'No disclaimers, no markdown, no lists — ONE paragraph only.',
+    ].join(' ')
+    return this.analyzeImage(sceneUrl, instruction, userApiKey)
+  }
+
+  /**
+   * 快速工作台一键合成：衣服（正+可选反面）+ 模特参考图 + 场景图 + 布局蓝图 → 最终图。
+   */
+  async generateQuickWorkspaceImage(
+    taskId: string,
+    input: {
+      mode: 'background' | 'fusion'
+      clothingUrl: string
+      clothingBackUrl?: string
+      modelImageUrl: string
+      sceneImageUrl: string
+      placementBlueprint: string
+      extraPrompt?: string
+      aspectRatio?: '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
+      framing?: 'auto' | 'half' | 'full'
+    },
+    userApiKey?: string
+  ): Promise<string> {
+    const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, placementBlueprint, extraPrompt } = input
+    const aspectRatio = input.aspectRatio || '3:4'
+    const framing = input.framing || 'auto'
+
+    const aspectHintMap: Record<string, string> = {
+      '3:4': '输出图像比例必须为 3:4（竖向人像比例）',
+      '1:1': '输出图像比例必须为 1:1（正方形）',
+      '4:3': '输出图像比例必须为 4:3（横向）',
+      '16:9': '输出图像比例必须为 16:9（宽屏横向）',
+      '9:16': '输出图像比例必须为 9:16（手机竖屏）',
+    }
+    const aspectHint = aspectHintMap[aspectRatio] || '输出图像比例 3:4'
+
+    const framingHintZh = framing === 'full'
+      ? '构图要求：全身照——模特从头到脚完整入画，头顶以上和脚以下各留一点空气，不得裁切身体任一部位。'
+      : framing === 'half'
+      ? '构图要求：半身照——以腰部或胸部以上入画，双手至少一只可见；画面不得露出脚部。'
+      : '构图要求：根据场景氛围自动选择最合适的取景。'
+
+    const universalAntiFakeFace = this.getUniversalAntiFakeFaceClause()
+
+    const userPrompt = mode === 'background'
+      ? [
+          '你是专业的虚拟试衣助手。用户会提供多张图片和一段姿势描述。',
+          '',
+          '你的任务：根据用户提供的姿势描述，将衣服穿到对应姿势的人物身上。',
+          '',
+          `【输出图片比例】${aspectHint}。不要输出其他比例，不要额外填黑边或拉伸。`,
+          `【${framingHintZh}】`,
+          '',
+          '【图片顺序与角色】',
+          '  - 图[1] 模特参考图：仅用作模特的脸型、五官、发色发型、肤色等身份特征，严禁复制该图的身体比例、姿势、构图、相机角度、光照和背景。',
+          '  - 图[2] 衣服正面：模特必须穿着这件衣服，颜色、面料、纹理、图案、版型、细节都要与原图完全一致。',
+          clothingBackUrl ? '  - 图[3] 衣服反面：用于补全衣服背面的细节。' : '',
+          `  - 图[${clothingBackUrl ? 4 : 3}] 场景图：作为最终拍摄地点参考（建筑、材质、空间氛围、主光方向等）。允许重新取景/调整相机角度，但必须看得出是"同一个地方"，至少保留 2 个该场景中可辨识的元素。`,
+          '',
+          '【姿势与位置描述（请严格按照此描述渲染人物姿态和在画面中的位置）】',
+          placementBlueprint,
+          extraPrompt ? `\n【用户补充要求】${extraPrompt}` : '',
+          '',
+          '【关于下装和鞋子的重要要求】',
+          '- 如果用户只提供了上衣（如T恤、衬衫、外套等），你必须为模特搭配合适的下装（裤子/裙子/短裤等）和鞋子。',
+          '- 下装风格必须与上衣协调（如休闲上衣配休闲裤/牛仔裤，正式衬衫配西裤等）。',
+          '- 鞋子也要搭配完整（运动鞋、皮鞋、凉鞋等，根据整体风格决定）。',
+          '- 绝对不允许生成没穿裤子或没穿鞋子的模特。',
+          '- 根据模特可见的身体部分推断合适的下装和鞋子。',
+          '',
+          '【其他要求】',
+          '- 必须严格按照上方"姿势与位置描述"生成人物姿态与在画面中的站位。',
+          '- 衣服细节必须和用户提供的完全一致。',
+          '- 优先使用模特参考图的脸部与身体特征（身份锁定），不要复制模特参考图的构图。',
+          '- 背景可以根据需要适当调整取景，但必须明显是场景图中的同一地点。',
+          '- 保持提示词中描述的角度、姿势、动态感。',
+          '',
+          '【人体比例硬约束（避免比例错误或悬浮）】',
+          '- 按真实成人比例渲染（约 7.5 头身，身高约 1.7m），双脚踏实地面，地面接触阴影要自然。',
+          '- 透视与地平线必须与场景一致；禁止巨人感、娃娃头、悬空。',
+          '- 画面中人物占比要与姿势描述中的取景（全身/三分之二身/半身）匹配。',
+          '',
+          '【配饰锁定】',
+          '- 除非衣服原图里本来就有，不要新增任何手袋、首饰、手表、墨镜、帽子、腰带、围巾、手套等配饰，手里不要拿东西。',
+          '',
+          '请直接生成最终图片（base64，无需 markdown 或解释）。',
+        ].filter(Boolean).join('\n')
+      : [
+          '你是专业的虚拟试衣助手。用户会提供多张图片：',
+          '  - 图[1] 模特参考图：用于提取模特的脸部特征（脸型、五官轮廓、肤色）。',
+          '  - 图[2] 衣服正面' + (clothingBackUrl ? '；图[3] 衣服反面' : '') + '。',
+          `  - 图[${clothingBackUrl ? 4 : 3}] 参考图（含原模特与场景）：提供基础姿态、构图、场景氛围。`,
+          '',
+          `【输出图片比例】${aspectHint}。`,
+          `【${framingHintZh}】`,
+          '',
+          '你的任务：生成"把用户的衣服、并结合模特参考图的脸部特征，穿到参考模特身上，并把参考模特的特征替换成上传模特的特征"的图片。要求：',
+          '- 衣服细节必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁）——这是最重要的。',
+          '- 下装（裤子/裙子等）可以做轻微调整（版型微调、长度微调、褶皱纹理变化），风格保持协调；如果参考图里原本没穿鞋或没穿裤，必须补全合适的下装和鞋子。',
+          '- 模特发型必须改变（换一种不同的发型和发色），脸型微调，以避免侵权；但模特年龄必须控制在 30 岁以下，保持年轻感。',
+          '- 配饰要有变化（首饰、包包、帽子、鞋子等与原图不同）。',
+          '- 场景背景要有较明显调整（更换光影角度、调整色调饱和度、微调景深虚化）。若参考图是具体场景，场景中的物品要有多处变化：室内场景更换家具、摆件、窗帘、地毯、花瓶等；户外场景更换植被种类、调整树木花草位置、更换或移除长椅/路灯/围栏等地景元素，添加或移除天空中的云彩。若参考图是纯色背景（白底、灰底等棚拍纯色），则不要新增任何物品，只调整光影和色调。整体仍保持在同一类型场景中，不要换成完全不相关的场景。',
+          '- 保持模特的姿态和构图基本不变。',
+          '- 参考图中的所有文字、水印、logo 必须全部过滤掉，生成结果中不要出现任何文字。',
+          '',
+          '【原模特姿态与构图参考（供保持姿态一致使用）】',
+          placementBlueprint,
+          extraPrompt ? `\n【用户补充要求】${extraPrompt}` : '',
+          '',
+          '【人体比例硬约束】按真实成人比例渲染（约 7.5 头身），双脚踏实地面；透视与地平线与参考图一致；禁止巨人感、娃娃头、悬空。',
+          '',
+          '请直接生成换装后的图片（base64，无需 markdown 或解释）。',
+        ].filter(Boolean).join('\n')
+
+    const imageUserPrompt = appendNanoBananaRealismHint(`${userPrompt}\n\n${universalAntiFakeFace}`, config.aiModel)
+    const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
+
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
+    })
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
+    })
+    if (clothingBackUrl) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
+      })
+    }
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
+    })
+
+    const systemPrompt = mode === 'background'
+      ? '你是专业的虚拟试衣助手，也是顶级时尚摄影师。严格按照用户给出的"姿势与位置描述"把指定模特（仅用其脸、发型、肤色）穿着指定衣服放入场景地点中。可以重新取景与调整机位，但必须保留场景地点的标志性元素（至少 2 处可辨识元素），让观众看得出是同一个地方。模特必须按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与场景一致，禁止巨人、娃娃头或悬空。严格还原衣服的颜色、面料、纹理、图案、版型；模特参考图仅用于面部身份，禁止复制其身体比例、姿势、构图、相机角度、光照或背景。如果衣服仅是上衣，必须搭配协调的下装和鞋子，严禁生成没穿裤子或没穿鞋子的模特。光照、色温、阴影方向与场景一致。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
+      : '你是专业的虚拟试衣助手。本次任务是"换装合成"：使用模特参考图的脸部特征（脸型、五官、肤色）作为新模特的脸，但发型和发色必须换成与原参考图不同的样式；模特年龄控制在 30 岁以下并保持年轻感；脸型可做轻微调整以避免侵权。衣服必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁），这是最重要的；下装可做轻微版型/长度/褶皱调整；未覆盖部分必须补全合适的下装和鞋子，严禁没穿裤子或没穿鞋子。配饰（首饰、包、帽子、鞋等）需要与参考图不同。姿态与构图基本保持；背景要有明显调整：若参考图是具体场景则替换家具/摆件/植被/云彩等物品并调整光影色调，若参考图是纯色棚拍背景则只调整光影色调、不新增物品；整体仍属于同一类型场景。必须过滤掉参考图中的所有文字、水印、logo，生成图中不得出现任何文字。模特需按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与参考图一致，禁止巨人、娃娃头或悬空。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
+
+    const genPayload: Record<string, unknown> = {
+      model: config.aiModel,
+      stream: false,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content },
+      ],
+    }
+    if (config.aiGenerationTemperature !== undefined) {
+      genPayload.temperature = config.aiGenerationTemperature
+    }
+
+    const response = await this.requestChatCompletion(genPayload, userApiKey)
+
+    const image = await this.extractImagePayload(response)
     const extension = extensionByMime[image.mimeType] || '.png'
     const fileName = `${taskId}${extension}`
     const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -551,7 +819,7 @@ Return only the generated image in base64 without markdown or explanation.`
       ],
     }, userApiKey)
 
-    const image = this.extractImagePayload(response)
+    const image = await this.extractImagePayload(response)
     const extension = extensionByMime[image.mimeType] || '.png'
     const fileName = `${taskId}_face_ref${extension}`
     const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -627,7 +895,7 @@ Return only the generated image in base64 without markdown or explanation.`
       ],
     }, userApiKey)
 
-    const image = this.extractImagePayload(response)
+    const image = await this.extractImagePayload(response)
     const extension = extensionByMime[image.mimeType] || '.png'
     const fileName = `${taskId}_portrait${extension}`
     const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -779,7 +1047,7 @@ CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no ac
       ],
     }, userApiKey)
 
-    const image = this.extractImagePayload(response)
+    const image = await this.extractImagePayload(response)
     const extension = extensionByMime[image.mimeType] || '.png'
     const fileName = `${taskId}_fusion${extension}`
     const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -969,7 +1237,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         ],
       }, userApiKey)
 
-      const image = this.extractImagePayload(response)
+      const image = await this.extractImagePayload(response)
       const extension = extensionByMime[image.mimeType] || '.png'
       const fileName = `${taskId}_color_${i + 1}${extension}`
       const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -1032,7 +1300,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         ],
       }, userApiKey)
 
-      const image = this.extractImagePayload(response)
+      const image = await this.extractImagePayload(response)
       const extension = extensionByMime[image.mimeType] || '.png'
       const fileName = `${taskId}_element_${i + 1}${extension}`
       const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -1044,11 +1312,11 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
     return { resultUrls: results, generatedItems: elements }
   }
 
-  // 材质锁定改款式（品类感知版：AI识别材质+款式，同品类内改款，符合欧美趋势）
+  // 材质锁定改款式（强锁定版：材质强锁 + 剪裁拓扑演化 + 历史去重）
   async materialLockedSilhouetteChange(taskId: string, imageUrl: string, userApiKey?: string, excludedItems: string[] = [], opts: { constraints?: string; count?: number; refineFrom?: string } = {}): Promise<{ resultUrls: string[]; generatedItems: string[] }> {
     const genCount = opts.count || 3
     const constraintHint = opts.constraints ? ` ADDITIONAL USER CONSTRAINTS: ${opts.constraints}.` : ''
-    const refineHint = opts.refineFrom ? ` The user liked the direction "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME design direction (minor tweaks to proportions, details, or finishing), not completely different directions.` : ''
+    const refineHint = opts.refineFrom ? ` The user liked the direction "${opts.refineFrom}" — generate ${genCount} subtle variations of that SAME topology direction (minor tweaks along the same structural axis, e.g. slightly different hem length or collar height), not completely different axes.` : ''
 
     // Step 1: 结构化识别 — 材质 DNA + 品类 + 款式
     const { materialDna, category, silhouette } = await this.recognizeGarmentStructure(imageUrl, userApiKey)
@@ -1057,78 +1325,124 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
     const categoryRules = this.getCategoryRules(category)
     const categoryLabel = this.getCategoryLabel(category)
 
-    // Step 3: AI 基于原款式 + 材质 + 欧美趋势推导改款方向
-    const excludeHint = excludedItems.length > 0
-      ? ` IMPORTANT: Do NOT propose any of these already-generated directions: ${excludedItems.join('; ')}. You must propose completely different redesign directions.`
+    // Step 3: 追加时的去重（基于当次会话已生成的方向）
+    const dedupedExcluded: string[] = []
+    const seen = new Set<string>()
+    for (const d of excludedItems) {
+      const key = d.trim().toLowerCase()
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      dedupedExcluded.push(d.trim())
+    }
+
+    // Step 4: AI 基于"拓扑演化"提议改款方向（聚焦剪裁，而非潮流标签）
+    const excludeHint = dedupedExcluded.length > 0
+      ? `
+
+ALREADY GENERATED IN THIS SESSION (DO NOT repeat any of these, even semantically — if an earlier direction already modified the "length" axis from short to long, avoid proposing another "short → long" variant; choose a DIFFERENT topology axis or a DIFFERENT mutation on the same axis):
+${dedupedExcluded.map((d, i) => `  ${i + 1}. ${d}`).join('\n')}`
       : ''
+
     const directionBrainstorm = await this.analyzeImage(
       imageUrl,
-      `You are a fashion design director for European and American markets. The original garment is a ${categoryLabel} with these details: "${silhouette}". Material DNA: "${materialDna}".
+      `You are a pattern-making & cutting specialist. The original garment is a ${categoryLabel}. Current silhouette: "${silhouette}". Locked material identity: "${materialDna}".
 
-Propose EXACTLY ${genCount} redesign directions that:
-(1) Stay within the SAME garment category (${categoryLabel}) — do NOT change to a different category;
-(2) Align with current European/American fashion trends (e.g., quiet luxury, minimalist refinement, deconstructed details, oversized proportions, Y2K revival, utility influence);
-(3) Preserve the original material DNA — fabric, color, texture must remain the same;
-(4) Are distinctly different from each other and from the original design.${constraintHint}${refineHint}
+TASK: Propose EXACTLY ${genCount} redesign directions that are PURE TOPOLOGY EVOLUTIONS of the cutting/construction. Each direction must be a structural mutation along ONE OR TWO of these axes:
+  • LENGTH AXIS — short ↔ regular ↔ long ↔ floor-length / cropped ↔ hip ↔ knee ↔ ankle
+  • COLLAR / NECKLINE AXIS — hood ↔ stand collar ↔ lapel ↔ crew ↔ V-neck ↔ square ↔ boat ↔ turtleneck ↔ cowl
+  • SLEEVE AXIS — sleeveless ↔ cap ↔ short ↔ 3/4 ↔ long ↔ bell ↔ bishop ↔ raglan ↔ dolman ↔ puff
+  • CLOSURE / OPENING AXIS — pullover ↔ front-zip ↔ full-button ↔ half-placket ↔ wrap ↔ double-breasted
+  • FIT / VOLUME AXIS — slim ↔ regular ↔ relaxed ↔ oversized ↔ A-line ↔ boxy ↔ tapered ↔ cocoon
+  • HEM / OPENING DETAIL AXIS — straight ↔ curved ↔ high-low ↔ side-slit ↔ vent ↔ ribbed cuff ↔ elastic cuff ↔ drawstring
 
-Each direction should modify within the category's design vocabulary (neckline, sleeve, silhouette proportions, construction details, etc.).
+HARD CONSTRAINTS:
+(1) MATERIAL IS ABSOLUTELY LOCKED — fiber type, weight/gsm, weave/knit structure, hand-feel, drape, color, sheen, pattern MUST stay identical. You are ONLY changing the PATTERN/CUT, never the fabric.
+(2) Stay within the SAME category: ${categoryLabel}. No category jumps.
+(3) Each direction must differ from every other on at least ONE topology axis — do NOT cluster all three on the same axis (e.g. avoid "all three change sleeves").
+(4) Prefer bold, clearly recognizable structural changes (e.g. hooded → stand collar; cropped → floor-length; pullover → full-zip) over cosmetic detail tweaks.
+(5) Describe cut/construction in concrete pattern-maker language. AVOID trend labels like "minimalist" / "Y2K" / "quiet luxury" — these are marketing words, not cuts.${constraintHint}${refineHint}${excludeHint}
 
-Format: Return EXACTLY ${genCount} directions, one per line, with a brief name and description.
-Example: Minimalist Midi — Clean bateau neckline, sleeveless, fluid A-line silhouette, knee-length
-Relaxed Wrap — Soft wrap front, 3/4 bishop sleeves, midi length with side slit
-Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi skirt${excludeHint}`,
+Format: Return EXACTLY ${genCount} directions, one per line. Each line: "<Name> — <axis(es) touched>: <concrete topology change>".
+Example output:
+Long Stand-Collar — length + collar: extend hem to ankle-length, replace hood with 6cm stand collar with two-button closure, keep front zip.
+Wrap Kimono — closure + sleeve: remove front zip, convert to wrap-front with self-tie belt, widen sleeves into dolman cut.
+Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulders, drop armhole into boxy oversized silhouette, remove hood entirely.`,
       userApiKey
     )
 
-    const directions = directionBrainstorm.split('\n').map(l => l.trim()).filter(Boolean).slice(0, genCount)
+    const directions = directionBrainstorm.split('\n').map(l => l.trim()).filter(l => l && l.length > 10).slice(0, genCount)
     if (directions.length === 0) {
       directions.push(
-        `Minimalist ${categoryLabel} — Clean lines, refined silhouette`,
-        `Relaxed ${categoryLabel} — Soft proportions, modern ease`,
-        `Structured ${categoryLabel} — Defined shape, bold details`,
+        `Length Mutation — length: extend/shorten hem by one size tier while preserving all other construction.`,
+        `Collar Swap — collar: replace current neckline with a distinctly different collar family.`,
+        `Volume Shift — fit: transform to a noticeably different fit/volume while keeping the same cut lines.`,
       )
     }
 
-    // Step 4: 生成改款图
+    // Step 5: 生成改款图（强材质锁定 prompt）—— 单张失败不影响其他
     const results: string[] = []
+    const successDirections: string[] = []
+    const failures: Array<{ direction: string; error: string }> = []
     for (let i = 0; i < directions.length; i++) {
       const direction = directions[i]
-      const prompt = [
-        `Generate a photorealistic fashion image of a redesigned ${categoryLabel} based on the reference garment, following this design direction: "${direction}".`,
-        `Original Material DNA: ${materialDna}`,
-        `CATEGORY RULES: ${categoryRules}`,
-        `CRITICAL CONSTRAINTS: (1) The fabric, color, texture, weave pattern, and material properties MUST be 100% identical to the reference garment — this is MATERIAL-LOCKED redesign; (2) The new garment MUST remain in the "${categoryLabel}" category — same garment type, same category structure, only design details change; (3) The redesign must follow current European/American fashion aesthetics and trends; (4) The new design must be realistic, wearable, and look like a premium fashion product; (5) All surface details (sheen, texture, weight, drape) must match the reference material; (6) Maintain premium editorial quality with natural textile rendering.`,
-        constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
-        'Return only the final image as base64 data without markdown.',
-      ].filter(Boolean).join(' ')
+      try {
+        const prompt = [
+          `Generate a photorealistic fashion image of a redesigned ${categoryLabel} based on the reference garment, following this TOPOLOGY mutation: "${direction}".`,
+          `LOCKED MATERIAL IDENTITY (must be 100% preserved): ${materialDna}`,
+          `CATEGORY RULES: ${categoryRules}`,
+          `STRONG MATERIAL LOCK — ZERO tolerance for material drift:`,
+          `  • Fiber identity (e.g. heavy-gauge knit / pure cotton / silk / wool melton / denim) must be visually IDENTICAL to the reference image.`,
+          `  • Fabric WEIGHT / GSM and DRAPE behavior must match the reference exactly (a heavy knit cannot become a drapey jersey; silk cannot become cotton).`,
+          `  • Weave / knit structure (rib pattern, cable, twill, plain, interlock, etc.) must be the SAME pattern at the SAME scale.`,
+          `  • Color (hue + saturation + brightness), pattern, print, sheen, and surface texture must be 100% identical.`,
+          `  • Seam stitch type & density should match the reference construction quality.`,
+          `ONLY the PATTERN / CUT / CONSTRUCTION changes — think of it as re-drafting the paper pattern with the SAME bolt of fabric.`,
+          `CATEGORY LOCK: the result must remain a "${categoryLabel}". Do NOT change garment category.`,
+          `TOPOLOGY CHANGE SCOPE: apply ONLY the mutation described above. Do not introduce additional random details (no new pockets, trims, or hardware unless the mutation explicitly requires them).`,
+          constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
+          `Render as a clean premium product photo on a neutral studio background, flat-lay or ghost-mannequin style consistent with the reference, with natural textile rendering that makes the locked material instantly recognizable.`,
+          'Return only the final image as base64 data without markdown.',
+        ].filter(Boolean).join(' ')
 
-      const content: ChatMessageContentPart[] = [
-        { type: 'text', text: prompt },
-        { type: 'image_url', image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail } },
-      ]
+        const content: ChatMessageContentPart[] = [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail } },
+        ]
 
-      const response = await this.requestChatCompletion({
-        model: config.aiModel,
-        stream: false,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert fashion redesign model specializing in same-category garment transformations. You receive a garment reference image and must create a NEW version within the SAME garment category, preserving 100% of the original fabric, color, texture, and material properties. You may change design details (neckline, sleeves, proportions, construction) but MUST stay within the original garment category. The design must align with European/American fashion trends. Return only the generated image in base64 without markdown or explanation.`,
-          },
-          { role: 'user', content },
-        ],
-      }, userApiKey)
+        const response = await this.requestChatCompletion({
+          model: config.aiModel,
+          stream: false,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a senior pattern-maker and fashion redesign model. Your ONE job: re-draft the paper pattern of a garment using the EXACT SAME bolt of fabric. The fiber, weight, weave, color, sheen, and drape of the output MUST be pixel-level identical to the reference. You only change cut/construction topology (length, collar, sleeves, closure, fit, hem). You never change the material, never change the garment category, never add random decorative details. Output a clean premium product image. Return only the generated image in base64 without markdown or explanation.`,
+            },
+            { role: 'user', content },
+          ],
+        }, userApiKey)
 
-      const image = this.extractImagePayload(response)
-      const extension = extensionByMime[image.mimeType] || '.png'
-      const fileName = `${taskId}_silhouette_${i + 1}${extension}`
-      const filePath = path.join(getUploadPath(), 'results', fileName)
-      await fs.mkdir(path.dirname(filePath), { recursive: true })
-      await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
-      results.push(toStoredFilePath(`uploads/results/${fileName}`))
+        const image = await this.extractImagePayload(response)
+        const extension = extensionByMime[image.mimeType] || '.png'
+        const fileName = `${taskId}_silhouette_${i + 1}${extension}`
+        const filePath = path.join(getUploadPath(), 'results', fileName)
+        await fs.mkdir(path.dirname(filePath), { recursive: true })
+        await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+        results.push(toStoredFilePath(`uploads/results/${fileName}`))
+        successDirections.push(direction)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[materialLockedSilhouetteChange] direction ${i + 1} "${direction.slice(0, 40)}" failed:`, msg)
+        failures.push({ direction, error: msg })
+      }
     }
 
-    return { resultUrls: results, generatedItems: directions }
+    // 全部失败：抛错让上游退款
+    if (results.length === 0) {
+      const reasons = failures.map(f => f.error).join(' | ')
+      throw new Error(`全部 ${directions.length} 张改款图生成失败：${reasons || '未知错误'}`)
+    }
+
+    return { resultUrls: results, generatedItems: successDirections }
   }
 
   // 商业脑暴模式
@@ -1179,7 +1493,7 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
         ],
       }, userApiKey)
 
-      const image = this.extractImagePayload(response)
+      const image = await this.extractImagePayload(response)
       const extension = extensionByMime[image.mimeType] || '.png'
       const fileName = `${taskId}_brainstorm_${i + 1}${extension}`
       const filePath = path.join(getUploadPath(), 'results', fileName)
@@ -1241,7 +1555,7 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
         messages: upscaleMessages,
       }, userApiKey)
 
-      const image = this.extractImagePayload(response)
+      const image = await this.extractImagePayload(response)
       const aiBuffer = Buffer.from(image.base64, 'base64')
       const aiDims = this.getImageDimensions(aiBuffer)
 
@@ -1426,7 +1740,8 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
     return text
   }
 
-  private extractImagePayload(response: ChatCompletionResponse): ImagePayload {
+  /** 仅解析接口返回的 base64 / data URL / 纯 base64 字符串（不含远程 URL） */
+  private tryExtractBase64Image(response: ChatCompletionResponse): ImagePayload | null {
     const directData = response.data?.find((item) => typeof item.b64_json === 'string' && item.b64_json.trim())
     if (directData?.b64_json) {
       return {
@@ -1447,7 +1762,135 @@ Structured A-Line — Boat neck, cap sleeves, defined waist, full A-line midi sk
     const fromContent = this.extractImageFromUnknown(message?.content)
     if (fromContent) return fromContent
 
-    throw new Error('AI 生图接口未返回 base64 图片数据')
+    return null
+  }
+
+  /** 部分网关 / DALL·E 风格返回图片 URL 而非 b64_json */
+  private tryExtractImageUrl(response: ChatCompletionResponse): string | null {
+    const dataItem = response.data?.find((item) => typeof item.url === 'string' && item.url.trim())
+    if (dataItem?.url) return dataItem.url.trim()
+
+    const msgImg = response.choices?.[0]?.message?.images?.find((item) => typeof item.url === 'string' && item.url.trim())
+    if (msgImg?.url) return msgImg.url.trim()
+
+    return this.extractImageUrlFromUnknown(response.choices?.[0]?.message?.content)
+  }
+
+  private extractImageUrlFromUnknown(value: unknown): string | null {
+    if (!value) return null
+
+    if (typeof value === 'string') {
+      const t = value.trim()
+      if (/^https?:\/\//i.test(t)) {
+        const first = t.split(/\s+/)[0].replace(/[,;)"']+$/g, '')
+        return first || null
+      }
+      const md = t.match(/!\[[^\]]*\]\((https?:[^)\s]+)\)/i)
+      if (md?.[1]) return md[1].trim()
+      const parsed = this.parseJson<unknown>(t)
+      if (parsed) return this.extractImageUrlFromUnknown(parsed)
+      return null
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const u = this.extractImageUrlFromUnknown(item)
+        if (u) return u
+      }
+      return null
+    }
+
+    if (typeof value !== 'object') return null
+
+    const obj = value as Record<string, unknown>
+    for (const key of ['url', 'image_url', 'imageUrl', 'image']) {
+      const v = obj[key]
+      if (typeof v === 'string' && /^https?:\/\//i.test(v.trim())) return v.trim()
+      if (v && typeof v === 'object' && key === 'image_url') {
+        const inner = (v as { url?: string }).url
+        if (typeof inner === 'string' && /^https?:\/\//i.test(inner.trim())) return inner.trim()
+      }
+    }
+
+    for (const nestedKey of ['image', 'content', 'source', 'output', 'result', 'data']) {
+      const nested = Reflect.get(obj, nestedKey)
+      const u = this.extractImageUrlFromUnknown(nested)
+      if (u) return u
+    }
+
+    return null
+  }
+
+  private async fetchImageUrlAsPayload(url: string): Promise<ImagePayload> {
+    const maxAttempts = 3
+    const baseDelayMs = 2000
+    let lastError: unknown = null
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const controller = new AbortController()
+      // 整体请求超时：60s（足够覆盖 30s 连接 + 下载）
+      const overallTimeoutMs = 60_000
+      const timeout = setTimeout(() => controller.abort(), overallTimeoutMs)
+
+      try {
+        const res = await undiciFetch(url, {
+          signal: controller.signal,
+          redirect: 'follow',
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FashionAI/1.0)' },
+          dispatcher: imageDownloadDispatcher,
+        })
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
+        }
+        const buf = Buffer.from(await res.arrayBuffer())
+        const ct = res.headers.get('content-type') || ''
+        const mime = this.normalizeMimeType(ct.split(';')[0]) || this.guessMimeFromUrl(url) || 'image/png'
+        console.log(`[fetchImageUrlAsPayload] ✓ attempt ${attempt} downloaded ${buf.length} bytes from ${url.slice(0, 80)}`)
+        return { base64: buf.toString('base64'), mimeType: mime || 'image/png' }
+      } catch (e) {
+        lastError = e
+        const isLast = attempt === maxAttempts
+        const reason = e instanceof Error ? (e.name === 'AbortError' ? 'timeout' : (e.message || e.name)) : String(e)
+        const causeCode = (e as Error & { cause?: { code?: string } })?.cause?.code
+        console.warn(`[fetchImageUrlAsPayload] attempt ${attempt}/${maxAttempts} failed (${reason}${causeCode ? ` / ${causeCode}` : ''}) url=${url}`)
+        if (isLast) break
+        // 指数退避：2s → 4s → 8s
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt))
+      } finally {
+        clearTimeout(timeout)
+      }
+    }
+
+    if (lastError instanceof Error) {
+      if (lastError.name === 'AbortError') {
+        throw new Error(`下载生成图超时（已重试 ${maxAttempts} 次，可尝试设置 HTTPS_PROXY 环境变量）`)
+      }
+      const cause = (lastError as Error & { cause?: { code?: string } }).cause
+      if (cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
+        throw new Error(`下载生成图连接超时：CDN 地址在你的网络下不可达（已重试 ${maxAttempts} 次）。建议设置 HTTPS_PROXY 环境变量走代理：${url}`)
+      }
+      throw new Error(`下载生成图失败（已重试 ${maxAttempts} 次）：${lastError.message || lastError.name}`)
+    }
+    throw new Error(`下载生成图失败（已重试 ${maxAttempts} 次）`)
+  }
+
+  private guessMimeFromUrl(url: string): string {
+    const lower = url.split('?')[0].toLowerCase()
+    if (lower.endsWith('.png')) return 'image/png'
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+    if (lower.endsWith('.webp')) return 'image/webp'
+    if (lower.endsWith('.gif')) return 'image/gif'
+    return ''
+  }
+
+  private async extractImagePayload(response: ChatCompletionResponse): Promise<ImagePayload> {
+    const fromB64 = this.tryExtractBase64Image(response)
+    if (fromB64) return fromB64
+
+    const imageUrl = this.tryExtractImageUrl(response)
+    if (imageUrl) return this.fetchImageUrlAsPayload(imageUrl)
+
+    throw new Error('AI 生图接口未返回可识别的图片数据（无 base64 且未解析到可下载的图片 URL）')
   }
 
   private extractImageFromUnknown(value: unknown): ImagePayload | null {

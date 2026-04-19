@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 function pushTaskNotification(userId: string, type: 'success' | 'failed', taskId: string, taskType: string) {
   try {
-    const typeLabel = taskType === 'model-fusion' ? '模特合成' : taskType === 'redesign' ? 'AI 改款' : '生图'
+    const typeLabel = taskType === 'model-fusion' ? '模特合成' : taskType === 'redesign' ? 'AI 改款' : taskType === 'quick-workspace' ? '快速工作台' : '生图'
     const title = type === 'success' ? `${typeLabel}任务完成` : `${typeLabel}任务失败`
     const content = type === 'success'
       ? `你的${typeLabel}任务已完成，前往历史记录查看结果。`
@@ -38,6 +38,44 @@ export async function processGenerationTask(taskId: string) {
     const sceneConfig: SceneConfig = safeJsonParse(task.sceneConfig, {}) as SceneConfig
     const clothingDetailUrls: string[] = safeJsonParse(task.clothingDetailUrls, []) as string[]
     const ai = new AIService()
+
+    // 快速工作台：串行执行「分析布局 → 合成」
+    if (task.type === 'quick-workspace') {
+      const quickMode: 'background' | 'fusion' = sceneConfig.quickMode === 'fusion' ? 'fusion' : 'background'
+      const sceneImageUrl = sceneConfig.imageUrl || ''
+      const modelImageUrl = modelConfig.imageUrl || ''
+      if (!sceneImageUrl) throw new Error('缺少场景图片')
+      if (!modelImageUrl) throw new Error('缺少模特图片')
+
+      const quickFraming: 'auto' | 'half' | 'full' = sceneConfig.quickFraming === 'full' || sceneConfig.quickFraming === 'half' ? sceneConfig.quickFraming : 'auto'
+      const quickAspect = sceneConfig.aspectRatio || '3:4'
+
+      db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('DESCRIBING_SCENE', taskId)
+      const placementBlueprint = quickMode === 'background'
+        ? await ai.analyzeBackgroundForPlacement(sceneImageUrl, userApiKey, { framing: quickFraming })
+        : await ai.analyzePersonInScene(sceneImageUrl, userApiKey)
+
+      db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('GENERATING', taskId)
+      const resultUrl = await ai.generateQuickWorkspaceImage(taskId, {
+        mode: quickMode,
+        clothingUrl: task.clothingUrl,
+        clothingBackUrl: task.clothingBackUrl || undefined,
+        modelImageUrl,
+        sceneImageUrl,
+        placementBlueprint,
+        extraPrompt: sceneConfig.prompt || undefined,
+        aspectRatio: quickAspect,
+        framing: quickFraming,
+      }, userApiKey)
+
+      db.prepare(
+        "UPDATE GenerationTask SET status = ?, resultUrl = ?, clothingDescription = ?, finishedAt = datetime('now'), updatedAt = datetime('now') WHERE id = ?"
+      ).run('COMPLETED', resultUrl, placementBlueprint, taskId)
+
+      pushTaskNotification(task.userId, 'success', taskId, 'quick-workspace')
+      console.log(`✅ Quick-workspace task ${taskId} completed`)
+      return
+    }
 
     // Step 1: 服装不调用AI接口，直接由 generateResultImage 参考原图
     const clothingDesc = ''

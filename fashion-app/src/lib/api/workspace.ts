@@ -1,19 +1,24 @@
 import { apiClient } from './client';
-import type { ClothingLength, CreditLog, Favorite, FavoriteType, GenerationTask, ModelConfig, SceneConfig, TaskPayload } from '@/lib/types';
+import type { CreditLog, Favorite, FavoriteType, GenerationTask, QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types';
 
 export const workspaceApi = {
-  createBatchTasks: async (tasks: TaskPayload[]) => {
-    const response = await apiClient.post<{ batchId: string; tasks: GenerationTask[] }>('/tasks/batch', { tasks });
-    return response.data;
-  },
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('image', file);
     const response = await apiClient.post<{ url: string }>('/uploads/image', formData);
     return response.data.url;
   },
-  createTask: async (payload: { clothingUrl: string; clothingBackUrl?: string; clothingDetailUrls?: string[]; clothingLength?: ClothingLength; modelConfig: ModelConfig; sceneConfig: SceneConfig }) => {
-    const response = await apiClient.post<{ task: GenerationTask }>('/tasks', payload);
+  createQuickWorkspaceTask: async (payload: {
+    clothingUrl: string;
+    clothingBackUrl?: string;
+    modelImageUrl: string;
+    sceneImageUrl: string;
+    mode: QuickWorkspaceMode;
+    aspectRatio?: QuickWorkspaceAspectRatio;
+    framing?: QuickWorkspaceFraming;
+    extraPrompt?: string;
+  }) => {
+    const response = await apiClient.post<{ task: GenerationTask }>('/quick-workspace', payload);
     return response.data.task;
   },
   getTask: async (taskId: string) => {

@@ -1,17 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { ClothingLength, ModelConfig, SceneConfig } from '@/lib/types';
-
-// ─── Workspace Draft ─────────────────────────────────────────
-export interface WorkspaceDraft {
-  clothingUrl: string;
-  clothingBackUrl: string;
-  clothingDetailUrls: string[];
-  clothingLength: ClothingLength | undefined;
-  modelConfig: ModelConfig;
-  sceneConfig: SceneConfig;
-  step: number;
-}
+import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types';
 
 // ─── Redesign Draft ──────────────────────────────────────────
 export type RedesignMode = 'luxury-color' | 'material-element' | 'material-silhouette' | 'commercial-brainstorm';
@@ -43,13 +32,20 @@ export interface FusionResult {
   modelUrls: string[];
 }
 
+// ─── Quick Workspace Draft ───────────────────────────────────
+export interface QuickWorkspaceDraft {
+  mode: QuickWorkspaceMode;
+  clothingUrl: string;
+  clothingBackUrl: string;
+  modelImageUrl: string;
+  sceneImageUrl: string;
+  aspectRatio: QuickWorkspaceAspectRatio;
+  framing: QuickWorkspaceFraming;
+  extraPrompt: string;
+}
+
 // ─── Store ───────────────────────────────────────────────────
 interface DraftState {
-  // Workspace
-  workspaceDraft: WorkspaceDraft | null;
-  setWorkspaceDraft: (draft: WorkspaceDraft) => void;
-  clearWorkspaceDraft: () => void;
-
   // Redesign
   redesignDraft: RedesignDraft | null;
   redesignResult: RedesignResult | null;
@@ -65,16 +61,16 @@ interface DraftState {
   clearFusionDraft: () => void;
   setFusionResult: (result: FusionResult) => void;
   clearFusionResult: () => void;
+
+  // Quick Workspace
+  quickWorkspaceDraft: QuickWorkspaceDraft | null;
+  setQuickWorkspaceDraft: (draft: QuickWorkspaceDraft) => void;
+  clearQuickWorkspaceDraft: () => void;
 }
 
 export const useDraftStore = create<DraftState>()(
   persist(
     (set) => ({
-      // Workspace
-      workspaceDraft: null,
-      setWorkspaceDraft: (draft) => set({ workspaceDraft: draft }),
-      clearWorkspaceDraft: () => set({ workspaceDraft: null }),
-
       // Redesign
       redesignDraft: null,
       redesignResult: null,
@@ -90,6 +86,11 @@ export const useDraftStore = create<DraftState>()(
       clearFusionDraft: () => set({ fusionDraft: null }),
       setFusionResult: (result) => set({ fusionResult: result }),
       clearFusionResult: () => set({ fusionResult: null }),
+
+      // Quick Workspace
+      quickWorkspaceDraft: null,
+      setQuickWorkspaceDraft: (draft) => set({ quickWorkspaceDraft: draft }),
+      clearQuickWorkspaceDraft: () => set({ quickWorkspaceDraft: null }),
     }),
     {
       name: 'fashion-ai-draft',
@@ -105,9 +106,9 @@ export const useDraftStore = create<DraftState>()(
         return localStorage;
       }),
       partialize: (state) => ({
-        workspaceDraft: state.workspaceDraft,
         redesignDraft: state.redesignDraft,
         fusionDraft: state.fusionDraft,
+        quickWorkspaceDraft: state.quickWorkspaceDraft,
       }),
     },
   ),

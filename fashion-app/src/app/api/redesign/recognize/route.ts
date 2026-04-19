@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { AIService } from '@/lib/ai-service'
+import { decryptApiKey } from '@/lib/utils/security'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,9 +19,13 @@ export async function POST(request: NextRequest) {
     if (!user?.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key' }, { status: 403 })
     }
+    const apiKey = decryptApiKey(user.apiKey)
+    if (!apiKey) {
+      return NextResponse.json({ message: 'AI API Key 解密失败，请联系管理员重新设置' }, { status: 500 })
+    }
 
     const ai = new AIService()
-    const materialInfo = await ai.recognizeMaterial(imageUrl, user.apiKey)
+    const materialInfo = await ai.recognizeMaterial(imageUrl, apiKey)
 
     return NextResponse.json({ materialInfo })
   } catch (error) {

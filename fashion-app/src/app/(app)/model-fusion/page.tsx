@@ -8,7 +8,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
-import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2 } from 'lucide-react'
+import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon } from 'lucide-react'
 import { TutorialButton } from '@/lib/components/common/TutorialModal'
 import { TUTORIALS } from '@/lib/tutorials'
 import type { ModelConfig } from '@/lib/types'
@@ -59,7 +59,7 @@ export default function ModelFusionPage() {
   const clearFusionDraft = useDraftStore((state) => state.clearFusionDraft)
   const fusionResult = useDraftStore((state) => state.fusionResult)
   const setFusionResult = useDraftStore((state) => state.setFusionResult)
-  const setWorkspaceDraft = useDraftStore((state) => state.setWorkspaceDraft)
+  const setQuickWorkspaceDraft = useDraftStore((state) => state.setQuickWorkspaceDraft)
   const updateCredits = useAuthStore((state) => state.updateCredits)
   const addNotification = useNotificationStore((state) => state.add)
 
@@ -170,40 +170,26 @@ export default function ModelFusionPage() {
     document.body.removeChild(link)
   }
 
-  // ─── 发送到工作台（支持指定 url） ───
+  // ─── 发送到快速工作台（把模特图注入到 quickWorkspaceDraft.modelImageUrl） ───
   const handleSendToWorkspace = (url?: string) => {
     const src = url || resultUrl
     if (!src) return
     try {
-      const existing = useDraftStore.getState().workspaceDraft
-      setWorkspaceDraft({
+      const existing = useDraftStore.getState().quickWorkspaceDraft
+      setQuickWorkspaceDraft({
+        mode: existing?.mode ?? 'background',
         clothingUrl: existing?.clothingUrl ?? '',
         clothingBackUrl: existing?.clothingBackUrl ?? '',
-        clothingDetailUrls: existing?.clothingDetailUrls ?? [],
-        clothingLength: existing?.clothingLength,
-        modelConfig: {
-          ...(existing?.modelConfig || {}),
-          ...(tab === 'generate' ? genConfig : {}),
-          mode: 'upload' as const,
-          imageUrl: src,
-        } as ModelConfig,
-        sceneConfig: existing?.sceneConfig ?? {
-          mode: 'preset',
-          sceneSource: 'preset',
-          preset: 'city street（城市街道）',
-          timeOfDay: 'noon（中午）',
-          lighting: '全局光',
-          composition: 'full-body（全身）',
-          depthOfField: 'slight',
-          aspectRatio: '3:4',
-          prompt: '',
-        },
-        step: existing?.step ?? 1,
+        modelImageUrl: src,
+        sceneImageUrl: existing?.sceneImageUrl ?? '',
+        aspectRatio: existing?.aspectRatio ?? '3:4',
+        framing: existing?.framing ?? 'auto',
+        extraPrompt: existing?.extraPrompt ?? '',
       })
-      addNotification({ type: 'success', message: '已发送到工作台，正在跳转...' })
-      router.push('/workspace')
+      addNotification({ type: 'success', message: '已发送到快速工作台，正在跳转...' })
+      router.push('/quick-workspace')
     } catch {
-      addNotification({ type: 'error', message: '发送到工作台失败' })
+      addNotification({ type: 'error', message: '发送到快速工作台失败' })
     }
   }
 
@@ -226,38 +212,42 @@ export default function ModelFusionPage() {
         <p className="text-gray-500 text-sm ml-[52px]">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
       </div>
 
-      {/* ─── 顶部 Tab 切换 ─── */}
-      <div className="flex gap-2 p-1 rounded-2xl" style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.06)' }}>
-        {([
-          { key: 'generate' as PageTab, label: '参数生成', icon: Settings2, desc: '按参数描述生成模特' },
-          { key: 'fusion' as PageTab, label: '图片融合', icon: Blend, desc: '多张参考图融合模特' },
-        ]).map(t => {
-          const Icon = t.icon
-          const active = tab === t.key
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => { setTab(t.key); setError('') }}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all"
-              style={{
-                background: active ? 'white' : 'transparent',
-                color: active ? '#c67b5c' : '#8b7355',
-                boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-              }}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{t.label}</span>
-              <span className="hidden sm:inline text-[11px] font-normal opacity-60">· {t.desc}</span>
-            </button>
-          )
-        })}
-      </div>
+      {/* ═══════════════ 左右分栏布局 ═══════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-6">
+        {/* ─── 左栏：配置表单 ─── */}
+        <div className="flex flex-col gap-6 min-w-0">
+          {/* 顶部 Tab 切换 */}
+          <div className="flex gap-2 p-1 rounded-2xl" style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.06)' }}>
+            {([
+              { key: 'generate' as PageTab, label: '参数生成', icon: Settings2, desc: '按参数描述生成模特' },
+              { key: 'fusion' as PageTab, label: '图片融合', icon: Blend, desc: '多张参考图融合模特' },
+            ]).map(t => {
+              const Icon = t.icon
+              const active = tab === t.key
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => { setTab(t.key); setError('') }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all"
+                  style={{
+                    background: active ? 'white' : 'transparent',
+                    color: active ? '#c67b5c' : '#8b7355',
+                    boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{t.label}</span>
+                  <span className="hidden sm:inline text-[11px] font-normal opacity-60">· {t.desc}</span>
+                </button>
+              )
+            })}
+          </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100">{error}</div>
-      )}
+          {/* Error */}
+          {error && (
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100">{error}</div>
+          )}
 
       {/* ═══════════════ 参数生成模式 ═══════════════ */}
       {tab === 'generate' && (
@@ -410,51 +400,87 @@ export default function ModelFusionPage() {
         </>
       )}
 
-      {/* ═══════════════ 结果展示（两种模式共用） ═══════════════ */}
-      {resultUrls.length > 0 && (
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-          <div className="mb-5">
-            <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              {tab === 'generate' ? '生成结果' : '合成结果'}
-            </h3>
-            <p className="text-[13px] text-gray-400 m-0">
-              {tab === 'generate' ? 'AI 根据参数生成的全新模特' : '融合后的新模特半身像'}
-            </p>
-          </div>
+        </div>
+        {/* ─── /左栏 ─── */}
 
-          <div className={`flex flex-wrap justify-center gap-4 ${resultUrls.length > 1 ? '' : ''}`}>
-            {resultUrls.map((url, i) => (
-              <div key={i} className="flex flex-col items-center gap-3">
-                <img
-                  src={url}
-                  alt={`结果 ${i + 1}`}
-                  onClick={() => setPreviewSrc(url)}
-                  className="max-w-[260px] sm:max-w-[300px] max-h-[360px] sm:max-h-[400px] w-auto h-auto object-contain rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-all"
-                />
+        {/* ─── 右栏：结果面板（sticky） ─── */}
+        <aside className="lg:sticky lg:top-4 self-start w-full">
+          <div className="bg-white/75 backdrop-blur-xl border border-white/60 rounded-2xl p-5 shadow-sm min-h-[520px] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] font-semibold text-[#2d2422] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                {tab === 'generate' ? '生成结果' : '合成结果'}
+              </h3>
+              {submitting && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[rgba(198,123,92,0.1)] text-[#c67b5c] font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin" /> 生成中
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 rounded-xl border border-dashed border-[rgba(139,115,85,0.18)] bg-[rgba(139,115,85,0.02)] flex items-center justify-center overflow-hidden p-4 min-h-[420px]">
+              {submitting ? (
+                <div className="text-center">
+                  <div className="relative w-16 h-16 mx-auto mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-[rgba(198,123,92,0.15)]" />
+                    <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#c67b5c] animate-spin" />
+                  </div>
+                  <div className="text-[13px] text-[#2d2422] font-semibold mb-1">
+                    {tab === 'generate' ? 'AI 正在生成模特...' : 'AI 正在融合模特...'}
+                  </div>
+                  <div className="text-[11px] text-[#8b7355]">大约需要 10~30 秒，请稍候</div>
+                </div>
+              ) : resultUrls.length === 0 ? (
+                <div className="text-center text-[#b0a59a]">
+                  <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-60" />
+                  <div className="text-[12px]">
+                    {tab === 'generate' ? '填写左侧参数后点击「生成模特」' : '上传参考图后点击「合成模特」'}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full flex flex-wrap justify-center gap-3">
+                  {resultUrls.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`结果 ${i + 1}`}
+                      onClick={() => setPreviewSrc(url)}
+                      className="max-w-full max-h-[420px] object-contain rounded-xl shadow-[0_4px_18px_rgba(0,0,0,0.1)] cursor-pointer hover:shadow-[0_8px_28px_rgba(0,0,0,0.16)] transition-all"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {!submitting && resultUrls.length > 0 && (
+              <div className="mt-4 flex flex-col gap-2">
+                {resultUrls.length > 1 && (
+                  <div className="text-[11px] text-[#8b7355]">共 {resultUrls.length} 张，点击图片可放大预览</div>
+                )}
                 <div className="flex gap-2">
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[#8b7355] transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl text-[12px] font-medium text-[#8b7355] transition-all"
                     style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.1)' }}
                     type="button"
-                    onClick={() => handleDownload(url)}
+                    onClick={() => handleDownload(resultUrls[0])}
                   >
                     <Download className="w-3.5 h-3.5" /> 下载
                   </button>
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl text-[12px] font-semibold text-white transition-all"
                     style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
                     type="button"
-                    onClick={() => handleSendToWorkspace(url)}
+                    onClick={() => handleSendToWorkspace(resultUrls[0])}
                   >
-                    <Send className="w-3.5 h-3.5" /> 发送到工作台
+                    <Send className="w-3.5 h-3.5" /> 发送到快速工作台
                   </button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        </aside>
+      </div>
+      {/* ═══════════════ /左右分栏布局 ═══════════════ */}
 
       {/* ─── 全屏预览（拍立得） ─── */}
       {previewSrc && (

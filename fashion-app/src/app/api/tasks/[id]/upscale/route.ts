@@ -31,8 +31,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ message: '请求体解析失败' }, { status: 400 })
     }
     const factor = Number(body.factor) || 2
-    if (![2, 4].includes(factor)) {
-      return NextResponse.json({ message: '放大倍数只支持 2x 或 4x' }, { status: 400 })
+    if (factor !== 2) {
+      return NextResponse.json({ message: '当前仅支持 2x 放大' }, { status: 400 })
     }
     const imageUrl = body.imageUrl
 

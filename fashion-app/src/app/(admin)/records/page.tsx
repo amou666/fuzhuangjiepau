@@ -222,15 +222,7 @@ export default function AdminRecordsPage() {
                 disabled={upscaleLoading}
               >
                 <div className="text-2xl font-bold text-gray-800 mb-2">2x</div>
-                <div className="text-xs text-gray-500">消耗 5 积分</div>
-              </button>
-              <button
-                className="flex-1 p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl cursor-pointer transition-all disabled:cursor-not-allowed disabled:bg-gray-100"
-                onClick={() => handleUpscale(4)}
-                disabled={upscaleLoading}
-              >
-                <div className="text-2xl font-bold text-gray-800 mb-2">4x</div>
-                <div className="text-xs text-gray-500">消耗 5 积分</div>
+                <div className="text-xs text-gray-500">消耗 1 积分</div>
               </button>
             </div>
             {upscaleLoading && (

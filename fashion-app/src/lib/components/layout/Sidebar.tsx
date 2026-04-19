@@ -24,6 +24,7 @@ import {
   BarChart3,
   Megaphone,
   LayoutTemplate,
+  Zap,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useHydrated } from '@/lib/hooks/useHydrated'
@@ -32,6 +33,7 @@ import { NotificationBell } from './NotificationPanel'
 
 const appMenuIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   workspace: Sparkles,
+  'quick-workspace': Zap,
   'model-fusion': Drama,
   redesign: Wand2,
   favorites: Gem,
@@ -352,7 +354,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
   }
 
   const menuItems = [
-    { to: '/workspace', label: '工作台', icon: 'workspace' },
+    { to: '/quick-workspace', label: '快速工作台', icon: 'quick-workspace' },
     { to: '/model-fusion', label: '模特工厂', icon: 'model-fusion' },
     { to: '/redesign', label: 'AI 改款', icon: 'redesign' },
     { to: '/favorites', label: '素材库', icon: 'favorites' },
@@ -385,7 +387,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {menuItems.filter((item) =>
-          ['/workspace', '/redesign', '/history', '/favorites', '/profile'].includes(item.to)
+          ['/quick-workspace', '/redesign', '/history', '/favorites', '/profile'].includes(item.to)
         ).map((item) => {
           const Icon = appMenuIcons[item.icon] || Sparkles
           const isActive = pathname === item.to

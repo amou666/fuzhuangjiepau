@@ -4,14 +4,15 @@ import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
+import { decryptApiKey } from '@/lib/utils/security'
 
 type RedesignMode = 'luxury-color' | 'material-element' | 'material-silhouette' | 'commercial-brainstorm'
 
-const MODE_CREDITS: Record<RedesignMode, number> = {
-  'luxury-color': 3,
-  'material-element': 3,
-  'material-silhouette': 3,
-  'commercial-brainstorm': 3,
+const MODE_LABELS: Record<RedesignMode, string> = {
+  'luxury-color': '奢侈品色系变色',
+  'material-element': '材质感知加元素',
+  'material-silhouette': '材质锁定改款式',
+  'commercial-brainstorm': '商业脑暴模式',
 }
 
 export async function POST(request: NextRequest) {
@@ -47,6 +48,10 @@ export async function POST(request: NextRequest) {
     if (!user.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
+    const apiKey = decryptApiKey(user.apiKey)
+    if (!apiKey) {
+      return NextResponse.json({ message: 'AI API Key 解密失败，请联系管理员重新设置' }, { status: 500 })
+    }
 
     // 事务保护：扣积分 + 记录日志
     const deductResult = db.transaction(() => {
@@ -56,15 +61,9 @@ export async function POST(request: NextRequest) {
       }
       const newCredits = currentUser.credits - creditCost
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
-      const modeLabels: Record<RedesignMode, string> = {
-        'luxury-color': '奢侈品色系变色',
-        'material-element': '材质感知加元素',
-        'material-silhouette': '材质锁定改款式',
-        'commercial-brainstorm': '商业脑暴模式',
-      }
       db.prepare(
         'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
-      ).run(uuidv4(), payload.userId, -creditCost, newCredits, modeLabels[mode])
+      ).run(uuidv4(), payload.userId, -creditCost, newCredits, MODE_LABELS[mode])
       return newCredits
     })()
 
@@ -83,46 +82,64 @@ export async function POST(request: NextRequest) {
       const opts = { constraints: constraints || '', count: generateCount, refineFrom: refineFrom || '' }
       switch (mode) {
         case 'luxury-color':
-          ({ resultUrls, generatedItems } = await ai.luxuryColorTransform(taskId, imageUrl, user.apiKey, exclude, opts))
+          ({ resultUrls, generatedItems } = await ai.luxuryColorTransform(taskId, imageUrl, apiKey, exclude, opts))
           break
         case 'material-element':
-          ({ resultUrls, generatedItems } = await ai.materialAwareElementAdd(taskId, imageUrl, user.apiKey, exclude, opts))
+          ({ resultUrls, generatedItems } = await ai.materialAwareElementAdd(taskId, imageUrl, apiKey, exclude, opts))
           break
         case 'material-silhouette':
-          ({ resultUrls, generatedItems } = await ai.materialLockedSilhouetteChange(taskId, imageUrl, user.apiKey, exclude, opts))
+          ({ resultUrls, generatedItems } = await ai.materialLockedSilhouetteChange(taskId, imageUrl, apiKey, exclude, opts))
           break
         case 'commercial-brainstorm':
-          ({ resultUrls, generatedItems } = await ai.commercialBrainstorm(taskId, imageUrl, customPrompt, user.apiKey, exclude, opts))
+          ({ resultUrls, generatedItems } = await ai.commercialBrainstorm(taskId, imageUrl, customPrompt, apiKey, exclude, opts))
           break
       }
 
-      // 保存记录到 GenerationTask
-      const redesignLabels: Record<RedesignMode, string> = {
-        'luxury-color': '奢侈品色系变色',
-        'material-element': '材质感知加元素',
-        'material-silhouette': '材质锁定改款式',
-        'commercial-brainstorm': '商业脑暴模式',
+      // 部分失败时按实际成功张数退还剩余积分（幂等退款，避免重试重复退）
+      let finalCredits = deductResult
+      const succeededCount = resultUrls.length
+      const refundCount = generateCount - succeededCount
+      if (refundCount > 0) {
+        try {
+          const refunded = CreditService.refundCreditsOnce(
+            payload.userId,
+            refundCount,
+            `${taskId}:partial`,
+            `改款部分失败退款 (${taskId.slice(0, 8)}) x${refundCount}`,
+          )
+          finalCredits = refunded.balance
+        } catch (refundError) {
+          console.error('[Redesign Partial Refund Error]', refundError)
+        }
       }
+
+      // 保存记录到 GenerationTask
       db.prepare(
         `INSERT INTO GenerationTask (id, userId, status, type, creditCost, clothingUrl, modelConfig, sceneConfig, resultUrl, resultUrls, clothingDescription, finishedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
       ).run(
-        taskId, payload.userId, 'COMPLETED', 'redesign', creditCost,
+        taskId, payload.userId, 'COMPLETED', 'redesign', succeededCount,
         imageUrl, '{}', '{}',
         resultUrls[0] || '', JSON.stringify(resultUrls),
-        `${redesignLabels[mode]}${customPrompt ? ` | 自定义: ${customPrompt}` : ''}${generatedItems.length > 0 ? ` | 生成项: ${generatedItems.join(', ')}` : ''}`
+        `${MODE_LABELS[mode]}${customPrompt ? ` | 自定义: ${customPrompt}` : ''}${generatedItems.length > 0 ? ` | 生成项: ${generatedItems.join(', ')}` : ''}`
       )
 
       return NextResponse.json({
         resultUrls,
         generatedItems,
         taskId,
-        credits: deductResult,
+        credits: finalCredits,
+        partial: refundCount > 0 ? { requested: generateCount, succeeded: succeededCount, refunded: refundCount } : undefined,
       })
     } catch (aiError) {
-      // AI 失败，退还积分
+      // AI 失败，退还积分（幂等，避免重试重复退）
       try {
-        CreditService.addCredits(payload.userId, creditCost, `改款失败退款 (${taskId.slice(0, 8)})`)
+        CreditService.refundCreditsOnce(
+          payload.userId,
+          creditCost,
+          taskId,
+          `改款失败退款 (${taskId.slice(0, 8)})`,
+        )
       } catch (refundError) {
         console.error('[Redesign Refund Error]', refundError)
       }

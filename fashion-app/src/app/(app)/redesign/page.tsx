@@ -133,7 +133,7 @@ export default function RedesignPage() {
   const redesignResult = useDraftStore((state) => state.redesignResult)
   const setRedesignResult = useDraftStore((state) => state.setRedesignResult)
   const clearRedesignResult = useDraftStore((state) => state.clearRedesignResult)
-  const setWorkspaceDraft = useDraftStore((state) => state.setWorkspaceDraft)
+  const setQuickWorkspaceDraft = useDraftStore((state) => state.setQuickWorkspaceDraft)
 
   const [imageUrl, setImageUrl] = useState(redesignDraft?.imageUrl ?? '')
   const [mode, setMode] = useState<RedesignModeLocal>(redesignDraft?.mode ?? 'luxury-color')
@@ -248,23 +248,21 @@ export default function RedesignPage() {
 
   const handleSendToWorkspace = (url: string) => {
     try {
-      setWorkspaceDraft({
+      const existing = useDraftStore.getState().quickWorkspaceDraft
+      setQuickWorkspaceDraft({
+        mode: existing?.mode ?? 'background',
         clothingUrl: url,
-        clothingBackUrl: '',
-        clothingDetailUrls: [],
-        clothingLength: undefined,
-        modelConfig: { mode: 'upload', imageUrl: '' } as any,
-        sceneConfig: {
-          mode: 'preset', sceneSource: 'preset', preset: 'city street（城市街道）',
-          timeOfDay: 'noon（中午）', lighting: '全局光', composition: 'full-body（全身）',
-          depthOfField: 'slight', aspectRatio: '3:4', prompt: '',
-        },
-        step: 1,
+        clothingBackUrl: existing?.clothingBackUrl ?? '',
+        modelImageUrl: existing?.modelImageUrl ?? '',
+        sceneImageUrl: existing?.sceneImageUrl ?? '',
+        aspectRatio: existing?.aspectRatio ?? '3:4',
+        framing: existing?.framing ?? 'auto',
+        extraPrompt: existing?.extraPrompt ?? '',
       })
-      addNotification({ type: 'success', message: '已发送到工作台，正在跳转...' })
-      router.push('/workspace')
+      addNotification({ type: 'success', message: '已发送到快速工作台，正在跳转...' })
+      router.push('/quick-workspace')
     } catch {
-      addNotification({ type: 'error', message: '发送到工作台失败' })
+      addNotification({ type: 'error', message: '发送到快速工作台失败' })
     }
   }
 
@@ -537,7 +535,7 @@ export default function RedesignPage() {
                           onClick={() => handleSendToWorkspace(url)}
                         >
                           <Send className="w-3 h-3" />
-                          <span className="hidden sm:inline">工作台</span>
+                          <span className="hidden sm:inline">快速工作台</span>
                         </button>
                         <button
                           className="inline-flex items-center gap-0.5 p-1.5 rounded-lg hover:bg-[rgba(198,123,92,0.06)] text-[#b0a59a] hover:text-[#c67b5c] transition-colors text-[10px]"

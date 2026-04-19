@@ -2,25 +2,25 @@ import { Upload, Sliders, Sparkles, Eye, Image as ImageIcon, Palette, Layers, Sh
 import type { TutorialStep } from '@/lib/components/common/TutorialModal'
 
 export const TUTORIALS: Record<string, TutorialStep[]> = {
-  workspace: [
+  'quick-workspace': [
     {
-      title: '上传服装图片',
-      content: '第一步：上传你的服装正面图。可选上传背面图和细节图，帮助 AI 更准确地理解服装结构和面料。\n\n支持 PNG、JPG、WEBP 格式，最大 10MB。',
+      title: '上传衣服',
+      content: '上传服装正面（必选）和反面（可选）。清晰无遮挡的正面图效果最好。\n\n支持 PNG / JPG / WEBP / GIF，点击衣服右上角「收藏」可把这件衣服存进素材库。',
       icon: <Upload className="w-5 h-5 text-white" />,
     },
     {
-      title: '配置模特参数',
-      content: '第二步：选择模特的性别、体型、肤色、姿势和表情。可以上传真人照片让 AI 参考，也可以全部由 AI 生成。\n\n提示：收藏常用的模特配置，下次一键加载。',
+      title: '选择模特',
+      content: '上传一张清晰的半身/全身模特照片，作为面部与身材锚点。\n\n也可以在「模特工厂」先生成全新模特，再用「发送到快速工作台」同步过来；或从素材库直接「应用」已收藏的模特。',
       icon: <Sliders className="w-5 h-5 text-white" />,
     },
     {
-      title: '选择场景',
-      content: '第三步：选择拍摄场景（城市街道、时尚展厅、自然户外等）。可以调节光线、构图、景深、比例等高级参数。\n\n也支持上传自己的场景图片。',
+      title: '选择模式 + 上传场景图',
+      content: '「背景图模式」：上传纯背景图，AI 自动决定模特最佳站位与姿势。\n「融合模式」：上传带人物的图片，AI 读取原人物姿势后换成你的模特和新衣服。\n\n可配合「图片比例」「构图」微调输出。',
       icon: <ImageIcon className="w-5 h-5 text-white" />,
     },
     {
-      title: '生成与查看结果',
-      content: '点击「开始生成」，AI 将处理你的请求。完成后结果会自动显示。\n\n你可以在历史记录中查看所有结果，支持高清放大、下载和对比。',
+      title: '一键生成',
+      content: '点击「一键生成」，右侧面板会实时显示生成进度，完成后可下载或在「历史记录」中回看。\n\n每次生图消耗 1 积分，失败会自动退回。',
       icon: <Sparkles className="w-5 h-5 text-white" />,
     },
   ],
@@ -43,7 +43,7 @@ export const TUTORIALS: Record<string, TutorialStep[]> = {
     },
     {
       title: '对比与深化',
-      content: '结果图左下角有原图缩略图，点「对比」可滑块对比。\n\n满意某个方案？点「深化」让 AI 生成该方向的微调变体。点「工作台」可把改款结果发送去生成上身效果图。',
+      content: '结果图左下角有原图缩略图，点「对比」可滑块对比。\n\n满意某个方案？点「深化」让 AI 生成该方向的微调变体。点「快速工作台」可把改款结果发送去生成上身效果图。',
       icon: <Eye className="w-5 h-5 text-white" />,
     },
   ],
@@ -56,7 +56,7 @@ export const TUTORIALS: Record<string, TutorialStep[]> = {
     },
     {
       title: '参数生成',
-      content: '选择模特基础属性后点击「生成模特」。可选上传一张面部参考图让 AI 参考五官。\n\n生成的模特可以直接发送到工作台，同步参数配置。消耗 1 积分。',
+      content: '选择模特基础属性后点击「生成模特」。可选上传一张面部参考图让 AI 参考五官。\n\n生成的模特可以直接发送到快速工作台，一键合成服装上身效果。消耗 1 积分。',
       icon: <Sliders className="w-5 h-5 text-white" />,
     },
     {
@@ -65,8 +65,8 @@ export const TUTORIALS: Record<string, TutorialStep[]> = {
       icon: <Layers className="w-5 h-5 text-white" />,
     },
     {
-      title: '发送到工作台',
-      content: '结果图下方点击「发送到工作台」，模特形象和参数会一并同步。\n\n到工作台后即可直接上传服装、选择场景，生成最终大片。',
+      title: '发送到快速工作台',
+      content: '结果图下方点击「发送到快速工作台」，模特图会自动注入到快速工作台的模特位置。\n\n到快速工作台后上传服装和场景图，即可一键合成最终大片。',
       icon: <Sparkles className="w-5 h-5 text-white" />,
     },
   ],
@@ -92,12 +92,12 @@ export const TUTORIALS: Record<string, TutorialStep[]> = {
   favorites: [
     {
       title: '什么是素材库',
-      content: '素材库用来保存你常用的模特配置、场景配置或完整方案，方便下次一键复用。\n\n在工作台的模特和场景步骤中，上方都有「收藏」栏。',
+      content: '素材库用来保存你常用的服装、模特、场景图片，方便下次在「快速工作台」一键复用。\n\n在「快速工作台」每个上传区块的标题右侧都有「收藏」按钮。',
       icon: <Star className="w-5 h-5 text-white" />,
     },
     {
       title: '收藏与加载',
-      content: '在工作台配好参数后，点收藏栏的「保存」即可收藏当前配置。\n\n下次直接点击收藏项就能一键加载全部参数，节省重复操作。',
+      content: '在快速工作台上传图片后，点击每块右上的「收藏」即可命名保存到素材库。\n\n素材库里点击收藏卡片的「应用到快速工作台」，会把对应图片自动填回到快速工作台。',
       icon: <Download className="w-5 h-5 text-white" />,
     },
   ],

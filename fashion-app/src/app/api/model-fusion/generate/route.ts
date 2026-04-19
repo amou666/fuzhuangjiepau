@@ -4,6 +4,7 @@ import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
+import { decryptApiKey } from '@/lib/utils/security'
 import type { ModelConfig } from '@/lib/types'
 
 export async function POST(request: NextRequest) {
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
     if (!user.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
+    const apiKey = decryptApiKey(user.apiKey)
+    if (!apiKey) {
+      return NextResponse.json({ message: 'AI API Key 解密失败，请联系管理员重新设置' }, { status: 500 })
+    }
 
     const deductResult = db.transaction(() => {
       const currentUser = db.prepare('SELECT credits FROM User WHERE id = ?').get(payload.userId) as any
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
     const ai = new AIService()
 
     try {
-      const resultUrls = await ai.generateModelPortrait(taskId, modelConfig, user.apiKey, {
+      const resultUrls = await ai.generateModelPortrait(taskId, modelConfig, apiKey, {
         referenceUrl,
       })
 
@@ -69,7 +74,12 @@ export async function POST(request: NextRequest) {
       })
     } catch (aiError) {
       try {
-        CreditService.addCredits(payload.userId, 1, `参数生成模特失败退款 (${taskId.slice(0, 8)})`)
+        CreditService.refundCreditsOnce(
+          payload.userId,
+          1,
+          taskId,
+          `参数生成模特失败退款 (${taskId.slice(0, 8)})`,
+        )
       } catch (refundError) {
         console.error('[Model Generate Refund Error]', refundError)
       }

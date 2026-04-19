@@ -31,9 +31,11 @@ Thumbs.db
 *.swp
 *.swo
 
-# Uploads
-uploads/
+# Uploads (runtime storage only — do NOT ignore the API route folder)
+/uploads/
+/fashion-app/uploads/
 temp/
+
 
 # .codebuddy
 .codebuddy/

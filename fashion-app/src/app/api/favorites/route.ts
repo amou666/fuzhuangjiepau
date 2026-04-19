@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { v4 as uuidv4 } from 'uuid'
 
-const VALID_TYPES = ['model', 'scene', 'full']
+const VALID_TYPES = ['clothing', 'model', 'scene', 'full']
 
 export async function GET(request: NextRequest) {
   try {

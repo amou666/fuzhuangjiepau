@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hydrated && user) {
-      router.push(user.role === 'ADMIN' ? '/dashboard' : '/workspace')
+      router.push(user.role === 'ADMIN' ? '/dashboard' : '/quick-workspace')
     }
   }, [user, hydrated, router])
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
     try {
       const response = await authApi.login({ email: normalizedEmail, password })
       setSession(response)
-      router.push(response.user.role === 'ADMIN' ? '/dashboard' : '/workspace')
+      router.push(response.user.role === 'ADMIN' ? '/dashboard' : '/quick-workspace')
     } catch (submitError) {
       setError(getErrorMessage(submitError, '登录失败，请稍后再试'))
     } finally {

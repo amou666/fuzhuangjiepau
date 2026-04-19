@@ -4,6 +4,7 @@ import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
+import { decryptApiKey } from '@/lib/utils/security'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
     if (!user.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
+    const apiKey = decryptApiKey(user.apiKey)
+    if (!apiKey) {
+      return NextResponse.json({ message: 'AI API Key 解密失败，请联系管理员重新设置' }, { status: 500 })
+    }
 
     // 事务保护：扣积分 + 记录日志
     const deductResult = db.transaction(() => {
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
     const ai = new AIService()
 
     try {
-      const resultUrl = await ai.fuseModelFaces(taskId, modelUrls, user.apiKey, { weights, strategy })
+      const resultUrl = await ai.fuseModelFaces(taskId, modelUrls, apiKey, { weights, strategy })
 
       // 保存记录到 GenerationTask
       db.prepare(
@@ -77,9 +82,14 @@ export async function POST(request: NextRequest) {
         credits: deductResult,
       })
     } catch (aiError) {
-      // AI 合成失败，退还积分
+      // AI 合成失败，退还积分（幂等）
       try {
-        CreditService.addCredits(payload.userId, 1, `模特合成失败退款 (${taskId.slice(0, 8)})`)
+        CreditService.refundCreditsOnce(
+          payload.userId,
+          1,
+          taskId,
+          `模特合成失败退款 (${taskId.slice(0, 8)})`,
+        )
       } catch (refundError) {
         console.error('[Model Fusion Refund Error]', refundError)
       }
