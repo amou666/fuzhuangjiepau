@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Sparkles, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check } from 'lucide-react'
+import { Loader2, Sparkles, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check, Camera, Smartphone } from 'lucide-react'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useTaskStore } from '@/lib/stores/taskStore'
@@ -10,6 +10,7 @@ import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import type { FavoriteType, QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
+import { CAMERA_PRESETS, PHONE_PRESETS, isValidDeviceId } from '@/lib/device-presets'
 
 const ASPECT_OPTIONS: { value: QuickWorkspaceAspectRatio; label: string }[] = [
   { value: '3:4', label: '3:4（竖向人像）' },
@@ -53,6 +54,9 @@ export default function QuickWorkspacePage() {
   const [extraPrompt, setExtraPrompt] = useState(quickDraft?.extraPrompt || '')
   const [aspectRatio, setAspectRatio] = useState<QuickWorkspaceAspectRatio>(quickDraft?.aspectRatio || '3:4')
   const [framing, setFraming] = useState<QuickWorkspaceFraming>(quickDraft?.framing || 'auto')
+  const [device, setDevice] = useState<string>(
+    quickDraft?.device && isValidDeviceId(quickDraft.device) ? quickDraft.device : 'auto'
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -75,8 +79,9 @@ export default function QuickWorkspacePage() {
       extraPrompt,
       aspectRatio,
       framing,
+      device,
     })
-  }, [mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt, aspectRatio, framing, setQuickDraft])
+  }, [mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt, aspectRatio, framing, device, setQuickDraft])
 
   const pollTask = useTaskStore((s) => s.pollTask)
   const currentTask = useTaskStore((s) => s.currentTask)
@@ -109,6 +114,7 @@ export default function QuickWorkspacePage() {
         mode,
         aspectRatio,
         framing,
+        device,
         extraPrompt: extraPrompt.trim() || undefined,
       })
       setCurrentTask(task)
@@ -127,7 +133,7 @@ export default function QuickWorkspacePage() {
     } finally {
       setSubmitting(false)
     }
-  }, [canSubmit, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, mode, aspectRatio, framing, extraPrompt, clearTask, setCurrentTask, pollTask, updateCredits, addNotification])
+  }, [canSubmit, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, mode, aspectRatio, framing, device, extraPrompt, clearTask, setCurrentTask, pollTask, updateCredits, addNotification])
 
   const openFavDialog = useCallback((type: FavoriteType) => {
     const now = new Date()
@@ -190,6 +196,7 @@ export default function QuickWorkspacePage() {
     setExtraPrompt('')
     setAspectRatio('3:4')
     setFraming('auto')
+    setDevice('auto')
     setMode('background')
     setError('')
   }, [clearTask, clearQuickDraft])
@@ -337,6 +344,93 @@ export default function QuickWorkspacePage() {
                       )
                     })}
                   </div>
+                </div>
+              </div>
+
+              {/* 拍摄设备 */}
+              <div className="mt-5 pt-5 border-t border-[rgba(139,115,85,0.08)]">
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <div className="text-[11px] font-semibold text-[#8b7355]">拍摄设备</div>
+                  <div className="text-[10px] text-[#b0a59a]">焦距 / 光圈 / 景深 / 焦外 / 透视 / 成像风格 由设备决定</div>
+                </div>
+
+                {/* 自动 */}
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setDevice('auto')}
+                    className="w-full text-left px-3 py-2 rounded-lg border transition-all"
+                    style={{
+                      borderColor: device === 'auto' ? 'rgba(198,123,92,0.5)' : 'rgba(139,115,85,0.12)',
+                      background: device === 'auto' ? 'rgba(198,123,92,0.06)' : 'rgba(139,115,85,0.02)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-[#c67b5c]" />
+                      <span className="text-[12px] font-semibold text-[#2d2422]">自动</span>
+                      <span className="text-[10px] text-[#8b7355]">不指定器材，由 AI 自主决定拍摄方式</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* 相机 */}
+                <div className="mb-2 flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-[#8b7355]" />
+                  <span className="text-[11px] font-semibold text-[#8b7355]">相机</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                  {CAMERA_PRESETS.map((p) => {
+                    const active = device === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setDevice(p.id)}
+                        className="text-left p-3 rounded-lg border transition-all"
+                        style={{
+                          borderColor: active ? 'rgba(198,123,92,0.5)' : 'rgba(139,115,85,0.12)',
+                          background: active ? 'rgba(198,123,92,0.06)' : 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[12px] font-semibold text-[#2d2422]">{p.label}</span>
+                          {active && <Check className="w-3.5 h-3.5 text-[#c67b5c]" />}
+                        </div>
+                        <div className="text-[10px] text-[#c67b5c] font-mono mb-1">{p.specLine}</div>
+                        <div className="text-[10px] text-[#8b7355] leading-relaxed">{p.desc}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* 手机 */}
+                <div className="mb-2 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-[#8b7355]" />
+                  <span className="text-[11px] font-semibold text-[#8b7355]">手机</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {PHONE_PRESETS.map((p) => {
+                    const active = device === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setDevice(p.id)}
+                        className="text-left p-3 rounded-lg border transition-all"
+                        style={{
+                          borderColor: active ? 'rgba(198,123,92,0.5)' : 'rgba(139,115,85,0.12)',
+                          background: active ? 'rgba(198,123,92,0.06)' : 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[12px] font-semibold text-[#2d2422]">{p.label}</span>
+                          {active && <Check className="w-3.5 h-3.5 text-[#c67b5c]" />}
+                        </div>
+                        <div className="text-[10px] text-[#c67b5c] font-mono mb-1">{p.specLine}</div>
+                        <div className="text-[10px] text-[#8b7355] leading-relaxed">{p.desc}</div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </section>

@@ -3,6 +3,8 @@ import path from 'path'
 import { Agent, ProxyAgent, fetch as undiciFetch } from 'undici'
 import { config, getUploadPath } from './config'
 import { db } from './db'
+import { getActiveAiModel } from './system-config'
+import { getDevicePreset } from './device-presets'
 import type { ModelConfig, SceneConfig } from './types'
 
 // 下载 AI 返回的图片 URL 时使用的 dispatcher：
@@ -126,7 +128,7 @@ export class AIService {
     }
 
     const response = await this.requestChatCompletion({
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         { role: 'system', content: 'You are a senior fashion stylist. Analyze garment images and provide concise descriptions.' },
@@ -330,7 +332,7 @@ export class AIService {
     userApiKey?: string
   ): Promise<string> {
     const universalAntiFakeFace = this.getUniversalAntiFakeFaceClause()
-    const imageUserPrompt = appendNanoBananaRealismHint(`${prompt}\n\n${universalAntiFakeFace}`, config.aiModel)
+    const imageUserPrompt = appendNanoBananaRealismHint(`${prompt}\n\n${universalAntiFakeFace}`, getActiveAiModel())
     const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
 
     // 替换模式：模特参考图(新人物锚点) → 服装图 → 场景参考图(姿势+背景)
@@ -509,7 +511,7 @@ Return only the generated image in base64 without markdown or explanation.`
     }
 
     const genPayload: Record<string, unknown> = {
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         {
@@ -543,13 +545,19 @@ Return only the generated image in base64 without markdown or explanation.`
    * 分析纯背景图，返回「模特在这张图里站在哪 / 以什么姿势」的视觉布局建议。
    * 用于 background 模式：先读背景 → 文字蓝图 → 再合成最终图。
    */
-  async analyzeBackgroundForPlacement(backgroundUrl: string, userApiKey?: string, options?: { framing?: 'auto' | 'half' | 'full' }): Promise<string> {
+  async analyzeBackgroundForPlacement(backgroundUrl: string, userApiKey?: string, options?: { framing?: 'auto' | 'half' | 'full'; device?: string }): Promise<string> {
     const framing = options?.framing || 'auto'
     const framingHint = framing === 'full'
       ? '\n\n【用户指定取景：全身照】请在 <posePrompt> 中明确描述"全身站立姿势"，让模特脚到头全部可见；在 <positionPrompt> 中指出画面中头顶和脚底大致的位置，确保出图能完整展示全身。'
       : framing === 'half'
       ? '\n\n【用户指定取景：半身照】请在 <posePrompt> 中描述半身（腰部以上/胸以上）的姿势与手部动作；在 <positionPrompt> 中指出头顶与腰部的画面位置，确保出图以半身为主。'
       : ''
+
+    const devicePreset = getDevicePreset(options?.device)
+    const deviceHint = devicePreset.placementHint
+      ? `\n\n【拍摄器材限制】${devicePreset.placementHint}\n请让 <posePrompt> 与 <positionPrompt> 契合该器材：焦距 / 光圈 / 最佳拍摄距离会直接影响取景范围、景深感和模特在画面中的占比；如果与上方"用户指定取景"冲突，以用户指定取景为准。`
+      : ''
+
     const instruction = `你是一个专业的场景分析与模特摆姿专家。请分析用户提供的场景图片（空白场景，无人物），重点关注：
 
 1. 场景类型与风格（室内/室外、装修风格、氛围）
@@ -575,7 +583,7 @@ Return only the generated image in base64 without markdown or explanation.`
 - 与光线的互动（面向光源/背光/侧光）
 </positionPrompt>
 
-请用中文输出，描述要具体且符合场景氛围。${framingHint}`
+请用中文输出，描述要具体且符合场景氛围。${framingHint}${deviceHint}`
     const raw = await this.analyzeImage(backgroundUrl, instruction, userApiKey)
     return this.normalizeQuickWorkspaceBlueprint(raw)
   }
@@ -630,12 +638,22 @@ Return only the generated image in base64 without markdown or explanation.`
       extraPrompt?: string
       aspectRatio?: '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
       framing?: 'auto' | 'half' | 'full'
+      device?: string
     },
     userApiKey?: string
   ): Promise<string> {
     const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, placementBlueprint, extraPrompt } = input
     const aspectRatio = input.aspectRatio || '3:4'
     const framing = input.framing || 'auto'
+    const devicePreset = getDevicePreset(input.device)
+    const deviceBlock = devicePreset.promptFragment
+      ? [
+          '',
+          '【拍摄器材与出片风格（严格遵守，这决定了最终照片是真实相机/手机拍出来的感觉）】',
+          devicePreset.promptFragment,
+          '注意：器材定义的焦距会影响"模特与镜头距离"和"画面中身体占比"；光圈决定"背景虚化程度"；成像风格决定"色彩/颗粒/锐度/HDR 强度"。以上三者必须在最终图中表现出来，禁止输出其他器材的成像感。',
+        ].join('\n')
+      : ''
 
     const aspectHintMap: Record<string, string> = {
       '3:4': '输出图像比例必须为 3:4（竖向人像比例）',
@@ -662,6 +680,7 @@ Return only the generated image in base64 without markdown or explanation.`
           '',
           `【输出图片比例】${aspectHint}。不要输出其他比例，不要额外填黑边或拉伸。`,
           `【${framingHintZh}】`,
+          deviceBlock,
           '',
           '【图片顺序与角色】',
           '  - 图[1] 模特参考图：仅用作模特的脸型、五官、发色发型、肤色等身份特征，严禁复制该图的身体比例、姿势、构图、相机角度、光照和背景。',
@@ -705,6 +724,7 @@ Return only the generated image in base64 without markdown or explanation.`
           '',
           `【输出图片比例】${aspectHint}。`,
           `【${framingHintZh}】`,
+          deviceBlock,
           '',
           '你的任务：生成"把用户的衣服、并结合模特参考图的脸部特征，穿到参考模特身上，并把参考模特的特征替换成上传模特的特征"的图片。要求：',
           '- 衣服细节必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁）——这是最重要的。',
@@ -724,7 +744,7 @@ Return only the generated image in base64 without markdown or explanation.`
           '请直接生成换装后的图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
 
-    const imageUserPrompt = appendNanoBananaRealismHint(`${userPrompt}\n\n${universalAntiFakeFace}`, config.aiModel)
+    const imageUserPrompt = appendNanoBananaRealismHint(`${userPrompt}\n\n${universalAntiFakeFace}`, getActiveAiModel())
     const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
 
     content.push({
@@ -751,7 +771,7 @@ Return only the generated image in base64 without markdown or explanation.`
       : '你是专业的虚拟试衣助手。本次任务是"换装合成"：使用模特参考图的脸部特征（脸型、五官、肤色）作为新模特的脸，但发型和发色必须换成与原参考图不同的样式；模特年龄控制在 30 岁以下并保持年轻感；脸型可做轻微调整以避免侵权。衣服必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁），这是最重要的；下装可做轻微版型/长度/褶皱调整；未覆盖部分必须补全合适的下装和鞋子，严禁没穿裤子或没穿鞋子。配饰（首饰、包、帽子、鞋等）需要与参考图不同。姿态与构图基本保持；背景要有明显调整：若参考图是具体场景则替换家具/摆件/植被/云彩等物品并调整光影色调，若参考图是纯色棚拍背景则只调整光影色调、不新增物品；整体仍属于同一类型场景。必须过滤掉参考图中的所有文字、水印、logo，生成图中不得出现任何文字。模特需按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与参考图一致，禁止巨人、娃娃头或悬空。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
 
     const genPayload: Record<string, unknown> = {
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -805,7 +825,7 @@ Return only the generated image in base64 without markdown or explanation.`
     ].filter(Boolean).join(' ')
 
     const response = await this.requestChatCompletion({
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         {
@@ -877,7 +897,7 @@ Return only the generated image in base64 without markdown or explanation.`
     }
 
     const response = await this.requestChatCompletion({
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         {
@@ -1023,7 +1043,7 @@ CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no ac
     }
 
     const response = await this.requestChatCompletion({
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         {
@@ -1226,7 +1246,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
       ]
 
       const response = await this.requestChatCompletion({
-        model: config.aiModel,
+        model: getActiveAiModel(),
         stream: false,
         messages: [
           {
@@ -1289,7 +1309,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
       ]
 
       const response = await this.requestChatCompletion({
-        model: config.aiModel,
+        model: getActiveAiModel(),
         stream: false,
         messages: [
           {
@@ -1410,7 +1430,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
         ]
 
         const response = await this.requestChatCompletion({
-          model: config.aiModel,
+          model: getActiveAiModel(),
           stream: false,
           messages: [
             {
@@ -1482,7 +1502,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
       ]
 
       const response = await this.requestChatCompletion({
-        model: config.aiModel,
+        model: getActiveAiModel(),
         stream: false,
         messages: [
           {
@@ -1549,7 +1569,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
 
     try {
       const response = await this.requestChatCompletion({
-        model: config.aiModel,
+        model: getActiveAiModel(),
         stream: false,
         imageSize: '4k',
         messages: upscaleMessages,
@@ -1599,7 +1619,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
 
   private async analyzeImage(imageUrl: string, instruction: string, userApiKey?: string): Promise<string> {
     const response = await this.requestChatCompletion({
-      model: config.aiModel,
+      model: getActiveAiModel(),
       stream: false,
       messages: [
         {

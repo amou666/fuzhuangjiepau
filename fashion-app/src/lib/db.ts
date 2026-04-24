@@ -106,6 +106,12 @@ db.exec(`
     updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS SystemConfig (
+    id TEXT PRIMARY KEY DEFAULT 'global',
+    aiModel TEXT NOT NULL DEFAULT '',
+    updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS Template (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

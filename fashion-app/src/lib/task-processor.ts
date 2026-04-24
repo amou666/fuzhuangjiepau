@@ -49,10 +49,11 @@ export async function processGenerationTask(taskId: string) {
 
       const quickFraming: 'auto' | 'half' | 'full' = sceneConfig.quickFraming === 'full' || sceneConfig.quickFraming === 'half' ? sceneConfig.quickFraming : 'auto'
       const quickAspect = sceneConfig.aspectRatio || '3:4'
+      const quickDevice: string = typeof sceneConfig.quickDevice === 'string' ? sceneConfig.quickDevice : 'auto'
 
       db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('DESCRIBING_SCENE', taskId)
       const placementBlueprint = quickMode === 'background'
-        ? await ai.analyzeBackgroundForPlacement(sceneImageUrl, userApiKey, { framing: quickFraming })
+        ? await ai.analyzeBackgroundForPlacement(sceneImageUrl, userApiKey, { framing: quickFraming, device: quickDevice })
         : await ai.analyzePersonInScene(sceneImageUrl, userApiKey)
 
       db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('GENERATING', taskId)
@@ -66,6 +67,7 @@ export async function processGenerationTask(taskId: string) {
         extraPrompt: sceneConfig.prompt || undefined,
         aspectRatio: quickAspect,
         framing: quickFraming,
+        device: quickDevice,
       }, userApiKey)
 
       db.prepare(

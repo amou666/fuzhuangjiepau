@@ -122,6 +122,8 @@ export interface SceneConfig {
   quickMode?: 'background' | 'fusion'
   /** 快速工作台取景偏好：'auto' | 'half' | 'full' */
   quickFraming?: 'auto' | 'half' | 'full'
+  /** 快速工作台拍摄设备预设 id（见 lib/device-presets.ts） */
+  quickDevice?: string
 }
 
 export type QuickWorkspaceMode = 'background' | 'fusion'
@@ -136,6 +138,8 @@ export interface QuickWorkspacePayload {
   mode: QuickWorkspaceMode
   aspectRatio?: QuickWorkspaceAspectRatio
   framing?: QuickWorkspaceFraming
+  /** 拍摄设备预设 id，见 lib/device-presets.ts */
+  device?: string
   extraPrompt?: string
 }
 

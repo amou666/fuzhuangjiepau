@@ -16,6 +16,7 @@ export const workspaceApi = {
     mode: QuickWorkspaceMode;
     aspectRatio?: QuickWorkspaceAspectRatio;
     framing?: QuickWorkspaceFraming;
+    device?: string;
     extraPrompt?: string;
   }) => {
     const response = await apiClient.post<{ task: GenerationTask }>('/quick-workspace', payload);

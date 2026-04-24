@@ -4,6 +4,7 @@ import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { safeJsonParse } from '@/lib/utils/json'
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
+import { isValidDeviceId } from '@/lib/device-presets'
 
 const VALID_ASPECT: QuickWorkspaceAspectRatio[] = ['3:4', '1:1', '4:3', '16:9', '9:16']
 const VALID_FRAMING: QuickWorkspaceFraming[] = ['auto', 'half', 'full']
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       mode,
       aspectRatio,
       framing,
+      device,
       extraPrompt,
     } = body as {
       clothingUrl?: string
@@ -35,6 +37,7 @@ export async function POST(request: NextRequest) {
       mode?: QuickWorkspaceMode
       aspectRatio?: QuickWorkspaceAspectRatio
       framing?: QuickWorkspaceFraming
+      device?: string
       extraPrompt?: string
     }
 
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
     const quickMode: QuickWorkspaceMode = mode === 'fusion' ? 'fusion' : 'background'
     const finalAspect: QuickWorkspaceAspectRatio = aspectRatio && VALID_ASPECT.includes(aspectRatio) ? aspectRatio : '3:4'
     const finalFraming: QuickWorkspaceFraming = framing && VALID_FRAMING.includes(framing) ? framing : 'auto'
+    const finalDevice: string = isValidDeviceId(device) ? device : 'auto'
 
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
     if (!user || user.credits < QUICK_CREDIT_COST) {
@@ -66,6 +70,7 @@ export async function POST(request: NextRequest) {
       quickMode,
       aspectRatio: finalAspect,
       quickFraming: finalFraming,
+      quickDevice: finalDevice,
     }
 
     const taskId = uuidv4()

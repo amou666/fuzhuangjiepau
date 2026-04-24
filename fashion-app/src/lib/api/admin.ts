@@ -59,6 +59,20 @@ export const adminApi = {
     return response.data;
   },
 
+  getSystemConfig: async () => {
+    const response = await apiClient.get<{
+      systemConfig: { aiModel: string; defaultAiModel: string }
+    }>('/admin/system-config');
+    return response.data.systemConfig;
+  },
+  updateSystemConfig: async (payload: { aiModel: string }) => {
+    const response = await apiClient.put<{
+      success: boolean;
+      systemConfig: { aiModel: string; defaultAiModel: string };
+    }>('/admin/system-config', payload);
+    return response.data.systemConfig;
+  },
+
   getWatermark: async () => {
     const response = await apiClient.get<{ watermark: { enabled: boolean; text: string; position: string; opacity: number; fontSize: number } }>('/admin/watermark');
     return response.data.watermark;

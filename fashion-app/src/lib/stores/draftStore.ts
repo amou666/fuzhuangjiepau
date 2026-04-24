@@ -41,6 +41,8 @@ export interface QuickWorkspaceDraft {
   sceneImageUrl: string;
   aspectRatio: QuickWorkspaceAspectRatio;
   framing: QuickWorkspaceFraming;
+  /** 拍摄设备预设 id；'auto' 表示不指定；可选，未设置时回退 'auto' */
+  device?: string;
   extraPrompt: string;
 }
 
