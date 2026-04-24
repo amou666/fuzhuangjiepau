@@ -1,9 +1,8 @@
 /**
  * 快速工作台 · 拍摄模式（shooting modes）
  *
- * 4 种模式（+自动）：
- *   - 自动：不注入摄影后缀，由 AI 自行决定
- *   - 手机通用（phone）：手机自拍/朋友拍的随意抓拍感
+ * 4 种模式：
+ *   - 手机通用（phone）：手机自拍/朋友拍的随意抓拍感（默认）
  *   - 单反远景（dslr-wide）：24mm 环境纪录，模特小占比
  *   - 单反中景（dslr-medium）：50mm，浅景深主体突出
  *   - 单反近景（dslr-close）：85mm，肖像级浅景深
@@ -14,13 +13,12 @@
  */
 
 export type QuickWorkspaceDeviceId =
-  | 'auto'
   | 'phone'
   | 'dslr-wide'
   | 'dslr-medium'
   | 'dslr-close'
 
-export type QuickWorkspaceDeviceKind = 'auto' | 'phone' | 'dslr'
+export type QuickWorkspaceDeviceKind = 'phone' | 'dslr'
 
 export type QuickWorkspaceFramingBias = 'auto' | 'half' | 'full'
 
@@ -37,16 +35,6 @@ export interface DevicePreset {
   framingBias: QuickWorkspaceFramingBias
   /** 最终图像合成 prompt 注入的摄影语言后缀（直接英文） */
   promptFragment: string
-}
-
-const AUTO: DevicePreset = {
-  id: 'auto',
-  kind: 'auto',
-  label: '自动',
-  specLine: '不指定拍摄模式',
-  desc: '由 AI 根据场景自主决定拍摄方式，不强制焦距、景深与构图节奏。',
-  framingBias: 'auto',
-  promptFragment: '',
 }
 
 const PRESETS: DevicePreset[] = [
@@ -128,7 +116,7 @@ const PRESETS: DevicePreset[] = [
   },
 ]
 
-const ALL_DEVICES: DevicePreset[] = [AUTO, ...PRESETS]
+const ALL_DEVICES: DevicePreset[] = [...PRESETS]
 
 const PRESET_MAP: Record<string, DevicePreset> = ALL_DEVICES.reduce(
   (acc, p) => {
@@ -151,7 +139,7 @@ export function isValidDeviceId(value: unknown): value is QuickWorkspaceDeviceId
 
 export function getDevicePreset(id: QuickWorkspaceDeviceId | string | undefined | null): DevicePreset {
   if (id && isValidDeviceId(id)) return PRESET_MAP[id]
-  return AUTO
+  return PRESETS[0] // 默认回退到手机通用
 }
 
 /**

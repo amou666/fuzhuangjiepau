@@ -38,8 +38,13 @@ export function LazyImage({ src, alt, onClick, className }: LazyImageProps) {
     <div ref={ref} className="relative w-full h-full" style={{ minHeight: '60px' }}>
       {(!inView || !loaded) && (
         <div
-          className="w-full bg-gradient-to-r from-slate-200/80 via-slate-50/90 to-slate-200/80 animate-[shimmer_1.4s_ease-in-out_infinite]"
-          style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.8), rgba(248,250,252,0.9), rgba(203,213,225,0.8))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite', borderRadius: 'inherit', minHeight: '60px' }}
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.8), rgba(248,250,252,0.9), rgba(203,213,225,0.8))',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.4s ease-in-out infinite',
+            borderRadius: 'inherit',
+          }}
         />
       )}
       {inView && (

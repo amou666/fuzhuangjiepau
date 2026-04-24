@@ -49,7 +49,7 @@ export async function processGenerationTask(taskId: string) {
 
       const quickFraming: 'auto' | 'half' | 'full' = sceneConfig.quickFraming === 'full' || sceneConfig.quickFraming === 'half' ? sceneConfig.quickFraming : 'auto'
       const quickAspect = sceneConfig.aspectRatio || '3:4'
-      const quickDevice: string = typeof sceneConfig.quickDevice === 'string' ? sceneConfig.quickDevice : 'auto'
+      const quickDevice: string = typeof sceneConfig.quickDevice === 'string' && sceneConfig.quickDevice !== 'auto' ? sceneConfig.quickDevice : 'phone'
 
       // 简化 prompt 后不再需要前置布局分析，直接进入合成，节省一次 AI 请求 + 延迟
       db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('GENERATING', taskId)

@@ -20,8 +20,11 @@ export default function HomePage() {
   }, [user, hydrated, router])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a2e', color: '#fff' }}>
-      <div>加载中...</div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#faf7f4', color: '#9b8e82' }}>
+      <div className="flex items-center gap-3">
+        <div className="h-5 w-5 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(198,123,92,0.2)', borderTopColor: '#c67b5c' }} />
+        <span className="text-sm">加载中...</span>
+      </div>
     </div>
   )
 }

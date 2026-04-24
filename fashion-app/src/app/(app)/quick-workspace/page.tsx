@@ -57,7 +57,7 @@ export default function QuickWorkspacePage() {
   const [aspectRatio, setAspectRatio] = useState<QuickWorkspaceAspectRatio>(quickDraft?.aspectRatio || '3:4')
   const [framing, setFraming] = useState<QuickWorkspaceFraming>(quickDraft?.framing || 'auto')
   const [device, setDevice] = useState<string>(
-    quickDraft?.device && isValidDeviceId(quickDraft.device) ? quickDraft.device : 'auto'
+    quickDraft?.device && isValidDeviceId(quickDraft.device) ? quickDraft.device : 'phone'
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -221,7 +221,7 @@ export default function QuickWorkspacePage() {
     setExtraPrompt('')
     setAspectRatio('3:4')
     setFraming('auto')
-    setDevice('auto')
+    setDevice('phone')
     setMode('background')
     setError('')
   }, [clearTask, clearQuickDraft])
@@ -392,25 +392,6 @@ export default function QuickWorkspacePage() {
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                   <div className="text-[11px] font-semibold text-[#8b7355]">拍摄模式</div>
                   <div className="text-[10px] text-[#b0a59a]">不同模式对应不同焦距、景深、光线氛围与构图节奏</div>
-                </div>
-
-                {/* 自动 */}
-                <div className="mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setDevice('auto')}
-                    className="w-full text-left px-3 py-2 rounded-lg border transition-all"
-                    style={{
-                      borderColor: device === 'auto' ? 'rgba(198,123,92,0.5)' : 'rgba(139,115,85,0.12)',
-                      background: device === 'auto' ? 'rgba(198,123,92,0.06)' : 'rgba(139,115,85,0.02)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-[#c67b5c]" />
-                      <span className="text-[12px] font-semibold text-[#2d2422]">自动</span>
-                      <span className="text-[10px] text-[#8b7355]">不指定拍摄模式，由 AI 自主决定</span>
-                    </div>
-                  </button>
                 </div>
 
                 {/* 单反 */}
@@ -641,7 +622,7 @@ export default function QuickWorkspacePage() {
                   <span className="mr-2">模式：{mode === 'background' ? '背景图' : '融合'}</span>
                   <span className="mr-2">比例：{aspectRatio}</span>
                   <span className="mr-2">构图：{framing === 'auto' ? '自动' : framing === 'half' ? '半身' : '全身'}</span>
-                  <span>设备：{device === 'auto' ? '自动' : device}</span>
+                  <span>设备：{device}</span>
                 </div>
               </div>
             )}

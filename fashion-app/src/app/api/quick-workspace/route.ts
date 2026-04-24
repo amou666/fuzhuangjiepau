@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const quickMode: QuickWorkspaceMode = mode === 'fusion' ? 'fusion' : 'background'
     const finalAspect: QuickWorkspaceAspectRatio = aspectRatio && VALID_ASPECT.includes(aspectRatio) ? aspectRatio : '3:4'
     const finalFraming: QuickWorkspaceFraming = framing && VALID_FRAMING.includes(framing) ? framing : 'auto'
-    const finalDevice: string = isValidDeviceId(device) ? device : 'auto'
+    const finalDevice: string = isValidDeviceId(device) ? device : 'phone'
 
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
     if (!user || user.credits < QUICK_CREDIT_COST) {

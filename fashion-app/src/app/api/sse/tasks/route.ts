@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic'
 // 跟踪每个 SSE 连接已推送过的任务状态，避免重复推送
 const sentStates = new Map<string, Map<string, string>>() // connId -> taskId -> lastStatus
 
+// SSE 连接超时（30 分钟，避免频繁重连导致通知堆积）
+const SSE_TIMEOUT_MS = 30 * 60 * 1000
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token = searchParams.get('token')
@@ -31,16 +34,32 @@ export async function GET(request: NextRequest) {
       // 发送初始连接确认
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`))
 
+      // 首次连接时，把最近已完成的任务 ID 全部记入 sentStates，
+      // 这样 SSE 重连后不会对已完成的旧任务重新推送 DONE 通知
+      const recentCompleted = db.prepare(`
+        SELECT id, status FROM GenerationTask
+        WHERE userId = ? AND status IN ('COMPLETED', 'FAILED')
+        ORDER BY updatedAt DESC
+        LIMIT 20
+      `).all(userId) as Array<{ id: string; status: string }>
+
+      const connMap = sentStates.get(connId)!
+      for (const task of recentCompleted) {
+        // 标记为已发送，防止重连时重复推送
+        const key = task.status === 'COMPLETED' ? 'DONE:' : 'FAILED:'
+        connMap.set(task.id, key)
+      }
+
       // 轮询检查用户任务状态
       const interval = setInterval(() => {
         try {
           const connMap = sentStates.get(connId)
           if (!connMap) return
 
-          // 查找用户所有任务（包括已完成的，因为可能是新完成的）
+          // 只查找最近 2 分钟内有更新的任务，避免对旧任务重复推送
           const tasks = db.prepare(`
             SELECT id, status, resultUrl, upscaledUrl, errorMsg FROM GenerationTask
-            WHERE userId = ?
+            WHERE userId = ? AND updatedAt >= datetime('now', '-2 minutes')
             ORDER BY updatedAt DESC
             LIMIT 20
           `).all(userId) as Array<{ id: string; status: string; resultUrl: string | null; upscaledUrl: string | null; errorMsg: string | null }>
@@ -82,14 +101,14 @@ export async function GET(request: NextRequest) {
         } catch (err) {
           console.error('[SSE Stream Error]', err)
         }
-      }, 3000)
+      }, 2000)
 
-      // 5分钟后自动关闭
+      // 30 分钟后自动关闭
       setTimeout(() => {
         clearInterval(interval)
         sentStates.delete(connId)
         try { controller.close() } catch {}
-      }, 5 * 60 * 1000)
+      }, SSE_TIMEOUT_MS)
 
       // 清理
       request.signal.addEventListener('abort', () => {

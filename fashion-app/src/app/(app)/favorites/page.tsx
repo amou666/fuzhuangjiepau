@@ -86,6 +86,19 @@ function getFavoriteImageUrl(fav: Favorite): string {
   return url
 }
 
+/** 获取完整配置的所有图片（用于多图展示） */
+function getFullConfigImages(fav: Favorite): { url: string; label: string }[] {
+  const d = fav.data as Record<string, any>
+  const images: { url: string; label: string }[] = []
+  if (d.clothingUrl) images.push({ url: d.clothingUrl, label: '服装' })
+  if (d.clothingBackUrl) images.push({ url: d.clothingBackUrl, label: '反面' })
+  if (d.modelImageUrl) images.push({ url: d.modelImageUrl, label: '模特' })
+  if (d.sceneImageUrl) images.push({ url: d.sceneImageUrl, label: '场景' })
+  // 如果没有子图则用 previewUrl
+  if (images.length === 0 && fav.previewUrl) images.push({ url: fav.previewUrl, label: '' })
+  return images
+}
+
 export default function FavoritesPage() {
   const router = useRouter()
   const setQuickWorkspaceDraft = useDraftStore((s) => s.setQuickWorkspaceDraft)
@@ -172,7 +185,7 @@ export default function FavoritesPage() {
       sceneImageUrl: existing?.sceneImageUrl ?? '',
       aspectRatio: existing?.aspectRatio ?? '3:4' as const,
       framing: existing?.framing ?? 'auto' as const,
-      device: existing?.device ?? 'auto',
+      device: existing?.device ?? 'phone',
       extraPrompt: existing?.extraPrompt ?? '',
     }
 
@@ -352,6 +365,7 @@ export default function FavoritesPage() {
             const TypeIcon = fav.type === 'clothing' ? Shirt : fav.type === 'model' ? UserCircle : fav.type === 'scene' ? MapPin : Layers
             const iconColor = fav.type === 'clothing' ? '#b08060' : fav.type === 'model' ? '#c67b5c' : fav.type === 'scene' ? '#7d9b76' : '#8b7355'
             const bgColor = fav.type === 'clothing' ? 'rgba(176,128,96,0.06)' : fav.type === 'model' ? 'rgba(198,123,92,0.06)' : fav.type === 'scene' ? 'rgba(125,155,118,0.06)' : 'rgba(139,115,85,0.06)'
+            const fullImages = fav.type === 'full' ? getFullConfigImages(fav) : []
             return (
               <div
                 key={fav.id}
@@ -359,7 +373,21 @@ export default function FavoritesPage() {
               >
                 {/* 竖向长方形预览图 */}
                 <div className="relative w-full aspect-[3/4] overflow-hidden" style={{ background: bgColor }}>
-                  {img ? (
+                  {fav.type === 'full' && fullImages.length > 1 ? (
+                    /* 完整配置：多图网格展示 */
+                    <div className="w-full h-full grid gap-0.5" style={{ gridTemplateColumns: fullImages.length <= 2 ? '1fr' : '1fr 1fr', gridTemplateRows: fullImages.length <= 2 ? '1fr 1fr' : '1fr 1fr' }}>
+                      {fullImages.slice(0, 4).map((fi, idx) => (
+                        <div key={idx} className="relative overflow-hidden" style={{ background: bgColor }}>
+                          <img src={fi.url} alt={fi.label} className="w-full h-full object-cover" loading="lazy" />
+                          {fi.label && (
+                            <span className="absolute bottom-1 left-1 px-1 py-0.5 rounded text-[8px] font-semibold text-white" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                              {fi.label}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : img ? (
                     <img src={img} alt={fav.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

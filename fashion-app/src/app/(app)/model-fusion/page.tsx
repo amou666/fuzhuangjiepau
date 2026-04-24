@@ -26,13 +26,17 @@ const STRATEGIES: { key: FusionStrategy; label: string; desc: string; icon: Reac
 const selectStyle: React.CSSProperties = {
   background: 'rgba(139,115,85,0.03)',
   border: '1px solid rgba(139,115,85,0.1)',
-  borderRadius: '12px',
-  padding: '10px 36px 10px 14px',
+  borderRadius: '10px',
+  padding: '8px 28px 8px 10px',
   fontSize: '13px',
   color: '#2d2422',
   width: '100%',
   outline: 'none',
   transition: 'all 0.2s',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
 }
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
@@ -123,7 +127,16 @@ export default function ModelFusionPage() {
       setFusionResult({ resultUrl: data.resultUrl, modelUrls: urls })
       updateCredits(await workspaceApi.getBalance())
       clearFusionDraft()
-      addNotification({ type: 'success', message: '模特合成完成！' })
+      // 自动保存到素材库
+      try {
+        await workspaceApi.createFavorite({
+          type: 'model',
+          name: `模特融合 ${new Date().toLocaleDateString('zh-CN')}`,
+          data: { source: 'model-fusion', strategy, modelUrls: urls, weights: activeWeights } as unknown as Record<string, unknown>,
+          previewUrl: data.resultUrl,
+        })
+      } catch { /* 静默失败，不影响主流程 */ }
+      addNotification({ type: 'success', message: '模特合成完成！已同步到素材库' })
     } catch (err) {
       setError(getErrorMessage(err, '模特合成失败'))
     } finally {
@@ -151,7 +164,16 @@ export default function ModelFusionPage() {
       setResultUrls(data.resultUrls)
       setFusionResult({ resultUrl: data.resultUrls[0], modelUrls: [] })
       updateCredits(await workspaceApi.getBalance())
-      addNotification({ type: 'success', message: '模特生成完成！' })
+      // 自动保存到素材库
+      try {
+        await workspaceApi.createFavorite({
+          type: 'model',
+          name: `模特生成 ${new Date().toLocaleDateString('zh-CN')}`,
+          data: { source: 'model-fusion', config: genConfig } as unknown as Record<string, unknown>,
+          previewUrl: data.resultUrls[0],
+        })
+      } catch { /* 静默失败，不影响主流程 */ }
+      addNotification({ type: 'success', message: '模特生成完成！已同步到素材库' })
     } catch (err) {
       setError(getErrorMessage(err, '参数生成模特失败'))
     } finally {
@@ -259,12 +281,12 @@ export default function ModelFusionPage() {
       {tab === 'generate' && (
         <>
           {/* 基础属性 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-            <div className="mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">基础属性</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">决定模特的整体气质方向</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-3">
               <SelectField label="风格类别" value={genConfig.category} options={categoryOptions} onChange={v => updateGenConfig({ category: v })} hint="决定整体气质和造型风格" />
               <SelectField label="性别" value={genConfig.gender} options={genderOptions} onChange={v => updateGenConfig({ gender: v })} />
               <SelectField label="年龄" value={genConfig.age} options={ageOptions} onChange={v => updateGenConfig({ age: v })} />
@@ -273,12 +295,12 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 身体特征 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-            <div className="mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">身体特征</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">肤色、体型、身高等身体属性</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-3">
               <SelectField label="肤色" value={genConfig.skinTone} options={skinOptions} onChange={v => updateGenConfig({ skinTone: v })} />
               <SelectField label="体型" value={genConfig.bodyType} options={bodyOptions} onChange={v => updateGenConfig({ bodyType: v })} />
               <SelectField label="身高" value={genConfig.height ?? ''} options={heightOptions} onChange={v => updateGenConfig({ height: v })} />
@@ -286,12 +308,12 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 面部与发型 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-            <div className="mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部与发型</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">脸型、发型、发色、妆容等精细控制</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-3">
               <SelectField label="脸型" value={genConfig.faceShape ?? ''} options={faceShapeOptions} onChange={v => updateGenConfig({ faceShape: v })} />
               <SelectField label="发型" value={genConfig.hairStyle ?? ''} options={hairStyleOptions} onChange={v => updateGenConfig({ hairStyle: v })} />
               <SelectField label="发色" value={genConfig.hairColor ?? ''} options={hairColorOptions} onChange={v => updateGenConfig({ hairColor: v })} />
@@ -301,7 +323,7 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 补充提示词（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
             <div className="mb-4">
               <h3 className="text-[15px] font-bold text-[#2d2422]">补充提示词 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
@@ -319,8 +341,8 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 参考图（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-            <div className="mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="mb-4 sm:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部参考图 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">上传一张人脸照片，AI 会参考该面部特征来生成模特，使结果更贴近你想要的长相</p>
             </div>
@@ -564,7 +586,7 @@ export default function ModelFusionPage() {
   )
 }
 
-// ─── 通用 Select 组件 ───
+// ─── 通用 Select 组件（移动端使用自定义下拉，桌面端使用原生 select） ───
 function SelectField({ label, value, options, onChange, hint }: {
   label: string
   value: string
@@ -572,13 +594,54 @@ function SelectField({ label, value, options, onChange, hint }: {
   onChange: (v: string) => void
   hint?: string
 }) {
+  const [open, setOpen] = useState(false)
+  const selectedOption = options.find(opt => opt.value === value)
+  const displayLabel = selectedOption?.label || value || '请选择'
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase">{label}</label>
-      <select style={selectStyle} value={value} onChange={e => onChange(e.target.value)}>
+    <div className="flex flex-col gap-1 min-w-0">
+      <label className="text-[11px] font-semibold text-[#b0a59a] tracking-[0.1em] uppercase truncate">{label}</label>
+      {/* 移动端：自定义下拉 */}
+      <div className="md:hidden relative">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left rounded-[10px] border bg-[rgba(139,115,85,0.03)] border-[rgba(139,115,85,0.1)] outline-none transition-all"
+          style={{ padding: '8px 28px 8px 10px', fontSize: '13px', color: '#2d2422' }}
+        >
+          <span className="block truncate">{displayLabel}</span>
+          <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#b0a59a] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-[200]" onClick={() => setOpen(false)} />
+            <div className="absolute left-0 right-0 top-full mt-1 z-[201] max-h-[240px] overflow-y-auto rounded-xl bg-white border border-[rgba(139,115,85,0.12)] shadow-lg py-1">
+              {options.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className="w-full px-3 py-2 text-left text-[13px] transition-colors truncate"
+                  style={{
+                    color: opt.value === value ? '#c67b5c' : '#2d2422',
+                    background: opt.value === value ? 'rgba(198,123,92,0.06)' : 'transparent',
+                    fontWeight: opt.value === value ? 600 : 400,
+                  }}
+                  onClick={() => { onChange(opt.value); setOpen(false) }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {/* 桌面端：原生 select */}
+      <select className="hidden md:block" style={selectStyle} value={value} onChange={e => onChange(e.target.value)}>
         {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
-      {hint && <span className="text-[11px] text-[#c9bfb5] leading-relaxed">{hint}</span>}
+      {hint && <span className="text-[10px] text-[#c9bfb5] leading-relaxed">{hint}</span>}
     </div>
   )
 }

@@ -490,9 +490,29 @@ export default function HistoryPage() {
         ) : null}
 
         {loading ? (
-          <div className="fashion-glass rounded-2xl p-12 text-center">
-            <Loader2 className="w-7 h-7 text-[#c67b5c] animate-spin mx-auto mb-4" />
-            <p className="text-[13px] text-[#9b8e82]">加载中...</p>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="fashion-glass rounded-2xl p-5" style={{ animation: `fade-up 0.4s ease-out ${i * 0.06}s both` }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-20 h-6 rounded-full" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  <div className="w-16 h-5 rounded-full" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  <div className="w-24 h-4 rounded-full ml-auto" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                </div>
+                <div className="w-3/4 h-4 rounded mb-3" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                <div className="flex gap-3 mb-3">
+                  <div className="w-[110px] h-[80px] rounded-xl shrink-0" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  <div className="flex-1 flex gap-2">
+                    <div className="w-16 h-[80px] rounded-[10px]" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                    <div className="w-16 h-[80px] rounded-[10px]" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="aspect-[3/4] rounded-xl" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  <div className="aspect-[3/4] rounded-xl" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                  <div className="aspect-[3/4] rounded-xl" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : records.length === 0 ? (
           <div className="fashion-glass rounded-2xl p-12 text-center">
@@ -508,7 +528,7 @@ export default function HistoryPage() {
               ? 'grid-cols-1 md:grid-cols-2 2xl:grid-cols-3'
               : 'grid-cols-1 xl:grid-cols-2'
           }`}>
-            {records.map((record) => {
+            {records.map((record, index) => {
               const typeConf = TYPE_CONFIG[record.type] || TYPE_CONFIG['workspace']
               const TypeIcon = typeConf.icon
               const resultImages = getResultImages(record)
@@ -518,7 +538,10 @@ export default function HistoryPage() {
               const isSelected = selectedIds.has(record.id);
 
               return (
-                <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm relative" style={isSelected ? { outline: '2px solid rgba(198,123,92,0.4)', outlineOffset: '-1px' } : undefined}>
+                <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm relative" style={{
+                  animation: `fade-up 0.4s ease-out ${index * 0.06}s both`,
+                  ...(isSelected ? { outline: '2px solid rgba(198,123,92,0.4)', outlineOffset: '-1px' } : {}),
+                }}>
                   {/* Mobile: 删除按钮浮于卡片右上角 */}
                   <button
                     type="button"
@@ -574,44 +597,37 @@ export default function HistoryPage() {
                     <p className="text-[12px] text-[#9b8e82] mb-3 leading-relaxed">{record.clothingDescription}</p>
                   )}
 
-                  {/* 信息行：左侧竖排 ID/积分/完成时间，右侧并排参考图片 */}
+                  {/* 信息行：ID/积分/完成时间横向排列 */}
                   {!collapsed && (
-                    <div className="flex gap-3 mb-3">
-                      <div className="flex flex-col gap-2 p-2.5 bg-[rgba(139,115,85,0.03)] rounded-xl shrink-0 self-start min-w-[110px]">
-                        <div>
-                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                            <Hash className="w-2.5 h-2.5" /> ID
-                          </div>
-                          <div className="inline-block px-1.5 py-[1px] bg-[rgba(139,115,85,0.05)] rounded font-mono text-[10px] text-[#8b7355]">{record.id.slice(0, 8)}</div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                            <Coins className="w-2.5 h-2.5" /> 积分
-                          </div>
-                          <div className="text-[12px] text-[#2d2422] font-medium">{record.creditCost}</div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                            <CalendarCheck className="w-2.5 h-2.5" /> 完成
-                          </div>
-                          <div className="text-[10px] text-[#8b7355] leading-tight">{formatDateTime(record.finishedAt)}</div>
-                        </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 p-2 bg-[rgba(139,115,85,0.03)] rounded-xl">
+                      <div className="flex items-center gap-1">
+                        <Hash className="w-3 h-3 text-[#b0a59a]" />
+                        <span className="inline-block px-1.5 py-[1px] bg-[rgba(139,115,85,0.05)] rounded font-mono text-[10px] text-[#8b7355]">{record.id.slice(0, 8)}</span>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <Coins className="w-3 h-3 text-[#b0a59a]" />
+                        <span className="text-[11px] text-[#2d2422] font-medium">{record.creditCost} 积分</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CalendarCheck className="w-3 h-3 text-[#b0a59a]" />
+                        <span className="text-[11px] text-[#8b7355]">{formatDateTime(record.finishedAt)}</span>
+                      </div>
+                    </div>
+                  )}
 
-                      {refImages.length > 0 && (
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3" /> 参考图片
+                  {/* 参考图片 */}
+                  {!collapsed && refImages.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3" /> 参考图片
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {refImages.map((img, idx) => (
+                          <div key={idx} className="relative w-16 h-[86px] sm:w-[72px] sm:h-[96px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(img.url)}>
+                            <LazyImage src={img.url} alt={img.label} onClick={() => setPreviewImage(img.url)} />
                           </div>
-                          <div className="flex gap-2 flex-wrap">
-                            {refImages.map((img, idx) => (
-                              <div key={idx} className="relative w-16 h-[86px] sm:w-[72px] sm:h-[96px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(img.url)}>
-                                <LazyImage src={img.url} alt={img.label} onClick={() => setPreviewImage(img.url)} />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        ))}
+                      </div>
                     </div>
                   )}
 

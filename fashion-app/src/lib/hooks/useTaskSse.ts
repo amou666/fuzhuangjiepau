@@ -18,9 +18,10 @@ interface TaskSseEvent {
  * 只需在顶层布局 (AppLayout) 挂载一次
  *
  * 防重复通知策略：
- * - SSE 重连时后端可能重新推送已完成任务的状态
- * - notifiedTaskIds 集合确保同一 taskId 的 DONE/FAILED 只弹一次通知
- * - notificationStore 限制同时只显示 1 条通知
+ * - SSE 重连时后端会把最近已完成的任务 ID 标记为已发送
+ * - notifiedTaskIds 集合（持久化到 sessionStorage）确保同一 taskId 只弹一次
+ * - notificationStore 限制同时最多显示 3 条通知
+ * - 页面回到前台时自动重连，避免离线期间通知堆积
  */
 export const useTaskSse = () => {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -133,11 +134,24 @@ export const useTaskSse = () => {
 
     connectSse();
 
+    // 页面回到前台时立即重连，避免长时间离线后通知堆积
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !cancelled) {
+        clearReconnectTimer();
+        // 关闭旧连接并立即重连
+        esRef.current?.close();
+        esRef.current = null;
+        void connectSse();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       cancelled = true;
       clearReconnectTimer();
       esRef.current?.close();
       esRef.current = null;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [accessToken, addNotification, setCurrentTask, updateCredits]);
 };

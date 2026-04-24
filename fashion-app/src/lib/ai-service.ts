@@ -190,7 +190,7 @@ export class AIService {
     if (sceneConfig.sceneSource === 'upload' && sceneConfig.imageUrl) {
       const desc = await this.analyzeImage(
         sceneConfig.imageUrl,
-        'Describe the background scene AND lighting conditions in detail for photorealistic fashion photography. You MUST include: (1) location type and architecture; (2) PRIMARY LIGHT SOURCE direction (e.g., light from upper left, backlit, overhead, window light from right); (3) light color temperature (warm golden/cool blue/neutral white); (4) shadow characteristics (soft diffused/hard edged, direction and length); (5) ambient light reflections and bounce light from surrounding surfaces (color spills from walls, floor, sky); (6) atmosphere and color palette. This lighting information is CRITICAL for placing a person into this scene with photorealistic light coherence. Ignore any foreground people. Return 2-3 sentences.',
+        'Describe the background scene AND lighting conditions in detail for photorealistic fashion photography. You MUST include: (1) location type and architecture; (2) PRIMARY LIGHT SOURCE direction (e.g., light from upper left, backlit, overhead, window light from right); (3) light color temperature (warm golden/cool blue/neutral white); (4) shadow characteristics (soft diffused/hard edged, direction and length); (5) ambient light reflections and bounce light from surrounding surfaces (color spills from walls, floor, sky); (6) atmosphere and color palette; (7) BEST PLACEMENT ZONE — identify 1-2 natural positions where a person could realistically stand or pose in this scene (e.g., center of walkway, beside the window, on the steps, near the column). Describe the spatial layout: what is foreground, where open space exists, what surfaces a person could stand on. This placement and lighting information is CRITICAL for placing a person into this scene with photorealistic light coherence and spatial logic. Ignore any foreground people. Return 2-4 sentences.',
         userApiKey
       )
       return desc + extraPrompt
@@ -254,6 +254,7 @@ export class AIService {
         'CRITICAL CLOTHING RULE: The garment MUST be identical to [2] — same design, color, fabric texture, patterns, fit.',
         accessoryGeneral + accessoryBatch,
         'CRITICAL POSE RULE: The body position MUST match [3] — same posture, gesture, angle, stance.',
+        'CRITICAL PLACEMENT RULE: Place the model at a SCENE-APPROPRIATE position. Analyze the scene\'s spatial layout — the model must stand on a walkable surface (floor, path, steps, ground), NOT floating, NOT embedded in walls, NOT on unstable surfaces. Feet must rest on a logical ground plane consistent with the scene.',
         'CRITICAL DELETION: Completely remove the original person from [3]. Keep only background + pose blueprint.',
         `Maintain natural skin texture (pores, no wax), realistic textile folds, accurate garment details, real-camera street-snap quality${grainPart ? `, ${grainPart}` : ''}. ${exposureGuidance} Avoid CGI polish and beauty-filter faces.`,
         'Return only the final image as base64 data without markdown.',
@@ -490,8 +491,9 @@ STRICT RULES:
 1. FACE: The output model's face MUST match Image 1 exactly. Copy the face shape, eye shape, nose, mouth, hair, skin tone from Image 1. Do NOT use the face from the scene reference.
 2. CLOTHING: The output model MUST wear the exact garment from the clothing reference(s). Preserve all details.
 3. POSE: The output model's body position MUST match the pose in the scene reference.
-4. BACKGROUND: Preserve the exact background, lighting, and atmosphere from the scene reference.
-5. DELETION: The original person in the scene reference is GONE. Do not blend their features.
+4. PLACEMENT: The model MUST stand at a scene-appropriate position — on a walkable surface (floor, path, ground, steps), with feet resting naturally. Do NOT place the model floating, embedded in walls, or on illogical surfaces.
+5. BACKGROUND: Preserve the exact background, lighting, and atmosphere from the scene reference.
+6. DELETION: The original person in the scene reference is GONE. Do not blend their features.
 
 LIGHTING COHERENCE: The new model must be lit by the scene's lighting — matching highlight positions, shadow angles, color temperature, and ambient reflections.
 
@@ -499,7 +501,7 @@ PHOTOREAL OUTPUT: Final image must look like a real composite photo — not 3D, 
 
 Return only the generated image in base64 without markdown or explanation.`
     } else if (references.sceneConfig.sceneSource === 'upload') {
-      systemPrompt = 'You are an expert fashion image generation model optimized for PHOTOREAL street-style output. You may receive up to 3 images: (1) MODEL FACE reference (if provided) — you MUST use this person\'s face, hair and skin tone for the generated model. (2) CLOTHING reference — the garment the model must wear. (3) SCENE reference — use ONLY the background and atmosphere from this image. CRITICAL LIGHTING RULES: (1) Analyze the scene reference lighting — light source direction, color temperature, shadow direction, ambient bounce light color. (2) The generated person MUST be lit by the EXACT SAME lighting as the scene: matching highlight positions on skin and hair, consistent diffuse reflection on clothing, correct subsurface scattering on skin (warm translucency in backlit, cool shadows in overcast), ambient occlusion at ground contact, and shadows cast by the person must match scene light direction. (3) NO separate or additional lighting on the person. They exist within the scene light, not in front of it. (4) If a model face image is provided, the generated person\'s face MUST match it, NOT any person in the scene reference. The scene reference provides background and lighting ONLY, ignore any people in it. OUTPUT MUST look like a real photograph: visible skin texture and pores, fine peach-fuzz, tiny tonal unevenness, natural under-eye and smile-line texture, slight facial asymmetry; no plastic/wax skin, no beauty-app smoothing, no pore erasing, no HDR glow, no illustration or 3D render look. Return only the generated image in base64 without markdown or explanation.'
+      systemPrompt = 'You are an expert fashion image generation model optimized for PHOTOREAL street-style output. You may receive up to 3 images: (1) MODEL FACE reference (if provided) — you MUST use this person\'s face, hair and skin tone for the generated model. (2) CLOTHING reference — the garment the model must wear. (3) SCENE reference — use ONLY the background and atmosphere from this image. SCENE-APPROPRIATE PLACEMENT (CRITICAL): You MUST analyze the scene\'s spatial layout and place the person at the most natural, logical position in that environment. Examples: if the scene has a walkway/path, place the person ON the walkway; if it has steps, the person can stand on the steps; if it has a window, the person can lean beside it. NEVER place the person in an illogical position (e.g., floating in mid-air, embedded in a wall, standing on an unstable surface, or in a place where no real person could stand). The person\'s feet MUST rest on a walkable surface consistent with the scene\'s ground plane. CRITICAL LIGHTING RULES: (1) Analyze the scene reference lighting — light source direction, color temperature, shadow direction, ambient bounce light color. (2) The generated person MUST be lit by the EXACT SAME lighting as the scene: matching highlight positions on skin and hair, consistent diffuse reflection on clothing, correct subsurface scattering on skin (warm translucency in backlit, cool shadows in overcast), ambient occlusion at ground contact, and shadows cast by the person must match scene light direction. (3) NO separate or additional lighting on the person. They exist within the scene light, not in front of it. (4) If a model face image is provided, the generated person\'s face MUST match it, NOT any person in the scene reference. The scene reference provides background and lighting ONLY, ignore any people in it. OUTPUT MUST look like a real photograph: visible skin texture and pores, fine peach-fuzz, tiny tonal unevenness, natural under-eye and smile-line texture, slight facial asymmetry; no plastic/wax skin, no beauty-app smoothing, no pore erasing, no HDR glow, no illustration or 3D render look. Return only the generated image in base64 without markdown or explanation.'
     } else {
       systemPrompt = 'You are an expert fashion photographer\'s image generator: output must be indistinguishable from a real camera photo of street fashion. When a model reference image is provided, extract ONLY facial features, hair, and skin tone. The pose, expression, lighting, and aspect ratio MUST come from the text prompt, not from the reference images. IMPORTANT: Ignore the dimensions and aspect ratio of all reference images. Generate the output image with the exact aspect ratio specified in the prompt. CRITICAL REALISM: natural ambient light only (no fake studio rim), visible skin pores and micro-imperfections, soft peach-fuzz, subtle under-eye and nasolabial texture, slight face asymmetry, muted natural color grading, subtle sensor noise OK — reject plastic skin, airbrushed faces, poreless beauty-filter finish, CGI sheen, oversharpening, and illustration style. Return only the generated image in base64 without markdown or explanation.'
     }
@@ -597,11 +599,13 @@ Return only the generated image in base64 without markdown or explanation.`
     const userPrompt = mode === 'background'
       ? [
           `图[1] 是模特，图[2] 是衣服正面${clothingBackUrl ? '，图[3] 是衣服反面' : ''}，图[${sceneIdx}] 是场景图。`,
-          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，置身于图[${sceneIdx}] 的场景里。`,
+          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，置身于图[${sceneIdx}] 的场景中。`,
           '',
           '- 衣服颜色、面料、纹理、图案、版型必须与原图完全一致；除非衣服原图自带，不得新增任何配饰。',
           '- 模特脸型、五官、发色、肤色保持与图[1] 一致。',
-          `- 画面明显是图[${sceneIdx}] 的同一地点（保留至少 2 个可辨识元素），允许重新取景和微调相机角度。`,
+          '- 【场景位置】分析图[' + sceneIdx + '] 的空间布局，将模特放在场景中最合理、最自然的位置（如走道中央、窗边、建筑入口、楼梯上、柱子旁等）。不得将模特放在不合逻辑的位置（如墙面正中间、半空中、障碍物上、无立足之处）。',
+          '- 画面明显是图[' + sceneIdx + '] 的同一地点（保留至少 2 个可辨识元素），允许重新取景和微调相机角度。',
+          '- 模特的双脚必须踩在场景中可站立的表面上，身体重心自然，与场景透视和地平线一致。',
           '- 如果衣服只是上衣，必须补全协调的下装与鞋子，不得赤裸或赤脚。',
           '- 按真实成人比例渲染（约 7.5 头身），双脚踏实地面，禁止巨人感、娃娃头、悬空。',
           `- 输出比例：${aspectHint}，不要输出其他比例、不要加黑边或拉伸。`,
@@ -612,15 +616,21 @@ Return only the generated image in base64 without markdown or explanation.`
           '请直接输出最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
       : [
-          `图[1] 是模特，图[2] 是衣服正面${clothingBackUrl ? '，图[3] 是衣服反面' : ''}，图[${sceneIdx}] 是参考图（含原人物与场景）。`,
-          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，替换图[${sceneIdx}] 中的原人物；并对环境进行轻微改变（光影角度、色调饱和度、局部陈设调整），避免与原图雷同以规避侵权。`,
+          `让图[1] 的模特穿上${clothingRef} 的衣服，替换图[${sceneIdx}] 中的人物。保留原图的姿态和场景，对背景做微调（光影、色调、摆件小改），对配饰换不同款式。`,
           '',
-          '- 衣服细节必须与图[2]（及反面）完全一致——颜色、款式、图案、材质、纹理、剪裁不得走样。',
-          '- 模特身份锁定图[1]；发型可改、脸型微调，年龄保持 30 岁以下。',
-          `- 保持图[${sceneIdx}] 的基础姿态、构图与取景，仅局部替换陈设/植被/云彩等元素或调整光影色调；不得换成完全不相关的场景；纯色棚拍背景则只调光影色调、不加物品。`,
-          '- 过滤掉参考图中的所有文字、水印、logo，结果中不得出现任何文字。',
-          '- 按真实成人比例渲染（约 7.5 头身），透视与地平线与参考图一致。',
-          `- 输出比例：${aspectHint}。`,
+          `图[1] 模特 — 脸必须和这张图一致`,
+          `图[2] 衣服正面 — 必须完全一致`,
+          clothingBackUrl ? `图[3] 衣服反面 — 必须完全一致` : '',
+          `图[${sceneIdx}] 参考图 — 替换其中的人物，保留姿态和场景`,
+          '',
+          '- 脸 = 图[1]',
+          '- 衣服 = 图[2]' + (clothingBackUrl ? ' + 图[3]（反面）' : ''),
+          '- 姿态和场景 = 图[' + sceneIdx + ']，删除原人物',
+          '- 背景微调：光影方向/色温可变，摆件可换，整体氛围保持',
+          '- 下装：如果参考图人物穿着下装，新人物的下装款式和颜色可以做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样',
+          '- 配饰：换不同款式，但类型对应（有包→有包，有帽→有帽）',
+          '- 真实成人比例（7.5头身），双脚着地',
+          `- 输出比例：${aspectHint}`,
           `- ${framingHintZh}`,
           deviceBlock,
           extraPrompt ? `- 用户补充：${extraPrompt}` : '',
@@ -628,31 +638,76 @@ Return only the generated image in base64 without markdown or explanation.`
           '请直接输出换装后的图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
 
-    const imageUserPrompt = `${userPrompt}\n\n${universalAntiFakeFace}`
-    const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
+    const imageUserPrompt = mode === 'background'
+      ? `${userPrompt}\n\n${universalAntiFakeFace}`
+      : userPrompt
 
-    content.push({
-      type: 'image_url',
-      image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
-    })
-    content.push({
-      type: 'image_url',
-      image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
-    })
-    if (clothingBackUrl) {
+    const content: ChatMessageContentPart[] = []
+
+    if (mode === 'background') {
+      // 背景图模式：文字在前，图片在后（保持原逻辑）
+      content.push({ type: 'text', text: imageUserPrompt })
       content.push({
         type: 'image_url',
-        image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
+        image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
       })
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
+      })
+      if (clothingBackUrl) {
+        content.push({
+          type: 'image_url',
+          image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
+        })
+      }
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
+      })
+    } else {
+      // 融合模式：图片在前，文字指令在后（让AI先看图再读规则）
+      content.push({
+        type: 'text',
+        text: `[图[1] 模特]`,
+      })
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
+      })
+      content.push({
+        type: 'text',
+        text: `[图[2] 衣服正面]`,
+      })
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
+      })
+      if (clothingBackUrl) {
+        content.push({
+          type: 'text',
+          text: `[图[3] 衣服反面]`,
+        })
+        content.push({
+          type: 'image_url',
+          image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
+        })
+      }
+      content.push({
+        type: 'text',
+        text: `[图[${sceneIdx}] 参考图]`,
+      })
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
+      })
+      // 文字指令放最后
+      content.push({ type: 'text', text: imageUserPrompt })
     }
-    content.push({
-      type: 'image_url',
-      image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
-    })
 
     const systemPrompt = mode === 'background'
-      ? '你是专业的虚拟试衣助手，也是顶级时尚摄影师。严格按照用户给出的"姿势与位置描述"把指定模特（仅用其脸、发型、肤色）穿着指定衣服放入场景地点中。可以重新取景与调整机位，但必须保留场景地点的标志性元素（至少 2 处可辨识元素），让观众看得出是同一个地方。模特必须按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与场景一致，禁止巨人、娃娃头或悬空。严格还原衣服的颜色、面料、纹理、图案、版型；模特参考图仅用于面部身份，禁止复制其身体比例、姿势、构图、相机角度、光照或背景。如果衣服仅是上衣，必须搭配协调的下装和鞋子，严禁生成没穿裤子或没穿鞋子的模特。光照、色温、阴影方向与场景一致。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
-      : '你是专业的虚拟试衣助手。本次任务是"换装合成"：使用模特参考图的脸部特征（脸型、五官、肤色）作为新模特的脸，但发型和发色必须换成与原参考图不同的样式；模特年龄控制在 30 岁以下并保持年轻感；脸型可做轻微调整以避免侵权。衣服必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁），这是最重要的；下装可做轻微版型/长度/褶皱调整；未覆盖部分必须补全合适的下装和鞋子，严禁没穿裤子或没穿鞋子。配饰（首饰、包、帽子、鞋等）需要与参考图不同。姿态与构图基本保持；背景要有明显调整：若参考图是具体场景则替换家具/摆件/植被/云彩等物品并调整光影色调，若参考图是纯色棚拍背景则只调整光影色调、不新增物品；整体仍属于同一类型场景。必须过滤掉参考图中的所有文字、水印、logo，生成图中不得出现任何文字。模特需按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与参考图一致，禁止巨人、娃娃头或悬空。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
+      ? '你是专业的虚拟试衣助手，也是顶级时尚摄影师。严格按照用户给出的"姿势与位置描述"把指定模特（仅用其脸、发型、肤色）穿着指定衣服放入场景地点中。可以重新取景与调整机位，但必须保留场景地点的标志性元素（至少 2 处可辨识元素），让观众看得出是同一个地方。【场景合理位置】这是核心要求——你必须分析场景图的空间布局，将模特放在该场景中最自然、最合理的位置：如果场景有走道，人就站在走道上；有台阶，人可以站在台阶上；有窗边，人可以倚靠窗边。绝对禁止将人放在不合逻辑的位置（如墙壁正中、半空中、无法站立的障碍物上、建筑外立面悬空）。模特必须按真实成人比例（约 7.5 头身）渲染，双脚踩在场景中可站立的表面，身体重心自然，透视与地平线与场景一致，禁止巨人、娃娃头或悬空。严格还原衣服的颜色、面料、纹理、图案、版型；模特参考图仅用于面部身份，禁止复制其身体比例、姿势、构图、相机角度、光照或背景。如果衣服仅是上衣，必须搭配协调的下装和鞋子，严禁生成没穿裤子或没穿鞋子的模特。光照、色温、阴影方向与场景一致。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
+      : '你是专业的虚拟试衣助手。任务：用图[1]模特的脸，穿上图[2]的衣服，替换参考图中的人物。规则：1.脸=图[1]；2.衣服=图[2]（及反面图[3]）；3.姿态和场景=参考图，删除原人物；4.背景微调（光影、色调、摆件小改），不改变场景类型；5.下装可做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样；6.配饰换不同款式但类型对应；7.真实成人比例，双脚着地；8.真实相机质感，禁止CGI/美颜/蜡像。直接返回base64图片。'
 
     const genPayload: Record<string, unknown> = {
       model: getActiveGenerationModel(),
@@ -835,7 +890,7 @@ Return only the generated image in base64 without markdown or explanation.`
     return [toStoredFilePath(`uploads/results/${fileName}`)]
   }
 
-  // 6b. 模特融合 - 将多张模特面部特征融合生成新模特
+  // 6b. 模特融合 - 将多张模特参考图融合生成新模特
   async fuseModelFaces(
     taskId: string,
     modelUrls: string[],
@@ -843,105 +898,56 @@ Return only the generated image in base64 without markdown or explanation.`
     opts?: { weights?: number[]; strategy?: 'balanced' | 'feature-pick' | 'dominant' }
   ): Promise<string> {
     const strategy = opts?.strategy ?? 'balanced'
-
-    // Step 1: 逐张分析面部特征（结构化，按属性拆解）
-    const structuredFeatures: { label: string; features: string; clothing: string }[] = []
     const labels = ['A', 'B', 'C']
-    for (let i = 0; i < modelUrls.length; i++) {
-      const desc = await this.analyzeImage(
-        modelUrls[i],
-        `Analyze this person's face and clothing SEPARATELY. Return EXACTLY 2 lines:
-FACE|face shape, eye shape+color, eyebrow shape, nose shape, lip shape+fullness, jawline, cheekbone, skin tone (Fitzpatrick level), hair style+color+length
-CLOTHING|garment type, color, fabric, pattern, neckline, sleeves, accessories
 
-Example:
-FACE|oval face, double-lid almond eyes dark brown, straight medium eyebrows, straight narrow nose, full natural lips, soft jawline, moderate cheekbones, Fitzpatrick III warm beige, straight black hair shoulder-length
-CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no accessories`,
-        userApiKey
-      )
-      const faceLine = desc.split('\n').find(l => l.startsWith('FACE|'))
-      const clothLine = desc.split('\n').find(l => l.startsWith('CLOTHING|'))
-      structuredFeatures.push({
-        label: labels[i],
-        features: faceLine?.replace('FACE|', '').trim() || desc,
-        clothing: clothLine?.replace('CLOTHING|', '').trim() || '',
-      })
-    }
-
-    // Step 2: 构建权重描述
+    // 构建权重
     const rawWeights = opts?.weights ?? modelUrls.map(() => 1)
     const totalWeight = rawWeights.reduce((a, b) => a + b, 0)
     const normalizedWeights = rawWeights.map(w => Math.round((w / totalWeight) * 100))
-    const weightDesc = structuredFeatures.map((f, i) =>
-      `Person ${f.label} (weight ${normalizedWeights[i]}%): ${f.features}`
-    ).join('\n')
 
-    // Step 3: 根据策略构建融合指令
+    // 构建融合指令
     let fusionInstruction: string
     if (modelUrls.length === 1) {
-      fusionInstruction = `Recreate this person faithfully: ${structuredFeatures[0].features}. Preserve their exact appearance.`
-    } else if (strategy === 'feature-pick') {
       fusionInstruction = [
-        `Create a NEW face by picking the most attractive individual feature from each person:`,
-        weightDesc,
-        `For EACH facial feature (eyes, nose, lips, jawline, skin tone, hair), select the best version from whichever person has it, weighted by the percentages above.`,
-        `The final face should be a coherent, natural-looking combination — not a copy of any single person.`,
+        `参考图 A 的模特，生成一张全新的肖像照。`,
+        `面部要求：脸型、五官、肤色、发型必须与图 A 一致，不得变形或走样。`,
+        `变化要求：这是一张新照片，不是原图翻版——姿势可以有自然变化，背景换一种影棚色调，灯光方向微调。`,
       ].join('\n')
     } else if (strategy === 'dominant') {
       const dominantIdx = normalizedWeights.indexOf(Math.max(...normalizedWeights))
       fusionInstruction = [
-        `Create a face PRIMARILY based on Person ${structuredFeatures[dominantIdx].label} (${normalizedWeights[dominantIdx]}% weight):`,
-        `${structuredFeatures[dominantIdx].features}`,
-        `Then subtly incorporate features from the other person(s):`,
-        ...structuredFeatures.filter((_, i) => i !== dominantIdx).map((f, i) =>
-          `Person ${f.label} (${normalizedWeights[structuredFeatures.indexOf(f)]}%): ${f.features}`
-        ),
+        `以图 ${labels[dominantIdx]} 为主（权重 ${normalizedWeights[dominantIdx]}%），融合所有参考图的模特，生成一个全新的人物。`,
+        `面部要求：整体以图 ${labels[dominantIdx]} 为主，其他参考图的特征做轻微点缀。`,
+        `变化要求：姿势自然，背景用干净的影棚色调，灯光柔和。不是任何一张参考图的翻版。`,
+      ].join('\n')
+    } else if (strategy === 'feature-pick') {
+      fusionInstruction = [
+        `从所有参考图中挑选最优秀的五官特征，融合成一个全新的人物。`,
+        `融合规则：眼睛选最好看的、鼻子选最挺的、脸型选最协调的，以此类推。权重参考：${labels.slice(0, modelUrls.length).map((l, i) => `图${l} ${normalizedWeights[i]}%`).join('、')}。`,
+        `变化要求：姿势自然，背景用干净的影棚色调，灯光柔和。不是任何一张参考图的翻版。`,
       ].join('\n')
     } else {
       fusionInstruction = [
-        `Create a NEW face by blending ALL ${modelUrls.length} faces with EQUAL influence. No single person should dominate.`,
-        `Each person's contribution:`,
-        weightDesc,
-        `CRITICAL BLENDING RULES:`,
-        `- Skin tone: average the tones (e.g., if one is fair and one is medium, result should be light-medium)`,
-        `- Eye shape: blend the shapes proportionally by weight`,
-        `- Nose, lips, jawline: create an intermediate form weighted by the percentages above`,
-        `- Hair: if significantly different, lean toward the higher-weighted person but incorporate elements from others`,
-        `- The result must look like a GENUINELY NEW person, not recognizably any single input`,
+        `将所有参考图的模特按权重融合成一个全新的人物。`,
+        `融合规则：按权重比例混合五官特征。${labels.slice(0, modelUrls.length).map((l, i) => `图${l} ${normalizedWeights[i]}%`).join('、')}。`,
+        `变化要求：姿势自然，背景用干净的影棚色调，灯光柔和。不是任何一张参考图的翻版。`,
       ].join('\n')
     }
 
-    // Step 4: 服装指令 — 从权重最高的人继承
-    const clothingSourceIdx = normalizedWeights.indexOf(Math.max(...normalizedWeights))
-    const clothingDesc = structuredFeatures[clothingSourceIdx].clothing
-    const clothingInstruction = clothingDesc
-      ? `The person MUST wear: ${clothingDesc}. Preserve every detail — fabric, color, pattern, neckline, sleeves, accessories. Do NOT substitute with a generic white t-shirt or plain shirt.`
-      : `The person MUST wear the EXACT same clothing shown in reference photo ${structuredFeatures[clothingSourceIdx].label}. Do NOT substitute with a generic white t-shirt.`
-
-    const prompt = [
-      'Generate a photorealistic half-body portrait (waist up) of a new model, 3:4 portrait aspect ratio, vertical composition.',
-      fusionInstruction,
-      clothingInstruction,
-      'FRONT-FACING pose only — face fully visible from the front, no side profile or 3/4 angle. Confident natural expression.',
-      'Controlled studio lighting: balanced key + gentle fill + subtle rim, SOFTLY DIFFUSED, face clearly visible while preserving highlight detail.',
-      'SKIN MUST LOOK NATURALLY MATTE — no specular reflections on forehead/nose/cheeks/chin, no shiny/oily/glossy appearance on the face, no wet-look sheen, no blown-out hot spots.',
-      'Neutral studio backdrop. Shot on Hasselblad X2D 90mm, natural skin texture, shallow depth of field.',
-      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, shiny/oily face, specular highlights on skin, glossy forehead, wet-look facial sheen.',
-      'Return only the final image as base64.',
-    ].join('\n\n')
-
-    // Step 5: 随机打乱图片顺序以消除位置偏差
-    const indices = modelUrls.map((_, i) => i)
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]]
+    // 图片顺序：dominant 时主图置顶，其余保持原序
+    let orderedIndices = modelUrls.map((_, i) => i)
+    if (strategy === 'dominant' && modelUrls.length > 1) {
+      const dominantIdx = normalizedWeights.indexOf(Math.max(...normalizedWeights))
+      orderedIndices = [dominantIdx, ...orderedIndices.filter(i => i !== dominantIdx)]
     }
 
-    const content: ChatMessageContentPart[] = [{ type: 'text', text: prompt }]
-    for (const idx of indices) {
+    const content: ChatMessageContentPart[] = []
+
+    // 按顺序推入图片，每张前标注标签和权重
+    for (const idx of orderedIndices) {
       content.push({
         type: 'text',
-        text: `[Reference Photo ${structuredFeatures[idx].label} — weight ${normalizedWeights[idx]}%]`,
+        text: `[参考图 ${labels[idx]} — 权重 ${normalizedWeights[idx]}%]`,
       })
       content.push({
         type: 'image_url',
@@ -952,23 +958,29 @@ CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no ac
       })
     }
 
+    // 文字指令放在图片后面，让 AI 先看图再读指令
+    content.push({
+      type: 'text',
+      text: [
+        fusionInstruction,
+        '',
+        '质量要求：',
+        '- 半身肖像照，3:4 竖版构图',
+        '- 自然影棚背景（浅灰/米白/淡色调），干净不杂乱',
+        '- 柔和漫射灯光，面部清晰可见，无硬阴影',
+        '- 皮肤自然哑光质感，禁止油光/高光/反光',
+        '- 真实相机拍摄质感，禁止插画/3D/美颜/蜡像感',
+        '直接返回 base64 图片，不要 markdown 或解释。',
+      ].join('\n'),
+    })
+
     const response = await this.requestChatCompletion({
       model: getActiveGenerationModel(),
       stream: false,
       messages: [
         {
           role: 'system',
-          content: [
-            'You are an expert portrait generation model specializing in face blending.',
-            'Your job: create a GENUINELY NEW person by merging facial features from multiple reference photos.',
-            'CRITICAL RULES:',
-            '1. EQUAL BLENDING — Each reference photo contributes proportionally to its stated weight percentage. Do NOT let any single photo dominate unless weights explicitly differ.',
-            '2. FEATURE-LEVEL MIXING — Blend at the individual feature level (eyes from multiple sources, nose shape averaged, etc.), not just pick one face and slightly adjust.',
-            '3. CLOTHING PRESERVATION — The generated person MUST wear the exact clothing described. Do NOT replace with a white t-shirt or generic outfit.',
-            '4. POSITION INDEPENDENCE — The order of reference photos does NOT indicate priority. Only the stated weight percentages matter.',
-            '5. Output: front-facing, bright studio lighting, photorealistic half-body portrait, 3:4 portrait aspect ratio.',
-            'Return only the generated image in base64 without markdown or explanation.',
-          ].join('\n'),
+          content: '你是专业的肖像生成模型。任务：根据用户提供的参考照片，融合生成一个全新的人物肖像。规则：1. 直接参考照片本身来融合面部，不要凭文字描述想象；2. 融合后的面部必须看起来自然协调，是真实可信的人脸；3. 生成的照片必须是全新的，不得复制任何参考图的姿势、背景或构图；4. 皮肤必须自然哑光，禁止油光反光；5. 输出半身肖像，3:4竖版。直接返回 base64 图片。',
         },
         {
           role: 'user',
@@ -1457,14 +1469,40 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     const upscaleMessages = [
       {
         role: 'system',
-        content: '你是一个图像高清放大模型。严格保持原图构图、视角、人物姿态、服装款式与背景元素不变，仅提升清晰度与细节质感。保持原图宽高比例与画幅完全一致。只返回放大后的图片，不要返回任何文字说明。',
+        content: '你是一个专业的时尚摄影后期图像增强模型。你的任务是对输入的服装展示图进行超分辨率重建，在严格保持原图构图、人物姿态和服装款式的前提下，大幅增强画面中所有视觉元素的细节与质感。输出图片的宽高比必须与原图完全一致，禁止裁切、补边或改变画幅。只返回增强后的图片，不要返回任何文字。',
       },
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: `图片变高清，增强人物、衣服和背景的细节。\n\n要求：\n1. 把这张图片放大到约 2 倍分辨率（约 ${targetDesc}）。\n2. 严格保持与原图完全一致的宽高比、画幅与构图，禁止裁切、补边或重新构图。\n3. 在不改变内容的前提下，增强人物五官、皮肤与发丝的真实质感；强化服装的面料纹理、缝线、褶皱细节；提升背景的清晰度与材质细节。\n4. 保持原图色彩、光影与色调一致，避免过度锐化或风格漂移。`,
+            text: `请对这张服装展示图进行高清增强，目标分辨率约 ${targetDesc}。
+
+严格遵循以下增强要求：
+
+【背景增强】
+- 增强背景材质纹理：如墙面肌理、地面反光、幕布褶皱、自然景观的叶片与光影细节
+- 提升背景光影层次感，补充环境光的微妙色温变化
+- 保持背景虚化程度与原图一致，不要过度锐化虚化区域
+
+【人物增强】
+- 面部：细化五官轮廓，增强眼睛虹膜高光、睫毛根根分明、唇部纹理、皮肤毛孔与微妙的妆感
+- 发丝：提升发丝的丝缕感与光泽度，区分高光与暗部层次
+- 皮肤：增强皮肤的自然质感（细腻但不磨皮），保留原有的光影过渡
+- 手部与肢体：增强手指关节细节、指甲光泽、肢体骨骼结构感
+
+【服饰增强】
+- 面料纹理：增强织物的编织纹路、针织密度、丝绸光泽、棉麻粗糙感等材质特征
+- 缝线与裁剪：清晰呈现车缝线迹、收边工艺、省道走向
+- 褶皱与垂感：细化布料褶皱的光影过渡，强化面料的悬垂与飘逸感
+- 纽扣/拉链/配饰：增强金属反光、纽扣材质、拉链齿纹等五金细节
+- 印花/刺绣：如原图有图案，需增强图案的线条精细度与色彩饱和度
+
+【整体要求】
+1. 严格保持与原图完全一致的宽高比、画幅与构图，禁止任何裁切或重新构图
+2. 保持原图色彩、光影与色调一致，不改变整体风格
+3. 避免过度锐化导致的"刀锐"感，保持自然的视觉舒适度
+4. 所有增强必须以原图内容为基准，不得凭空添加原图中不存在的元素`,
           },
           {
             type: 'image_url',
