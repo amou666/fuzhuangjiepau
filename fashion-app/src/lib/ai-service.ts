@@ -702,7 +702,8 @@ Return only the generated image in base64 without markdown or explanation.`
       modelConfig.faceFeature ? `Additional features: ${modelConfig.faceFeature}` : '',
       'RELAXED NATURAL STANDING POSE — arms at sides or in natural position, body slightly angled, NOT a stiff front-facing portrait.',
       'The person is wearing a simple fitted white t-shirt and dark pants (neutral clothing that does NOT distract from face/body features).',
-      'Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible while preserving highlight detail, no blown highlights, no harsh shadows.',
+      'Controlled studio lighting: balanced key + gentle fill + subtle rim, SOFTLY DIFFUSED, face clearly visible while preserving highlight detail, no blown highlights, no harsh shadows.',
+      'SKIN MUST LOOK NATURALLY MATTE — no specular reflections on forehead/nose/cheeks/chin, no shiny or oily or glossy appearance on the face, no wet-look sheen, no blown-out hot spots. Subtle subsurface glow is fine; hard highlights are not.',
       'Neutral light grey studio backdrop. Shot on Hasselblad X2D 90mm, natural skin texture with visible pores, soft natural highlights, realistic color rendition.',
       'IMPORTANT: This image will be used as a MODEL REFERENCE for compositing into a scene. The face must be clear and well-lit, AND the body posture should be natural and relaxed (standing, not sitting). The clothing should be simple and neutral.',
       'Return only the final image as base64.',
@@ -714,7 +715,7 @@ Return only the generated image in base64 without markdown or explanation.`
       messages: [
         {
           role: 'system',
-          content: 'You are an expert portrait generation model. Generate a clear, well-lit, natural standing portrait for use as a model reference. The face must be clearly visible and photorealistic, with a relaxed natural body posture (not stiff front-facing). The subject should wear simple neutral clothing. Return only the generated image in base64 without markdown or explanation.',
+          content: 'You are an expert portrait generation model. Generate a clear, well-lit, natural standing portrait for use as a model reference. The face must be clearly visible and photorealistic, with a relaxed natural body posture (not stiff front-facing). The subject should wear simple neutral clothing. CRITICAL: the face MUST look naturally matte — no specular reflections, no shiny hot-spots, no oily or glossy skin, no wet-look sheen. Return only the generated image in base64 without markdown or explanation.',
         },
         {
           role: 'user',
@@ -755,12 +756,13 @@ Return only the generated image in base64 without markdown or explanation.`
         : 'Create a completely unique, natural-looking person. The face should be highly detailed and photorealistic — NOT a generic stock photo face.',
       'IMPORTANT GUIDELINES:',
       '- Front-facing pose (face fully visible), confident natural expression unless otherwise specified',
-      '- Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible',
+      '- Controlled studio lighting: balanced key + gentle fill + subtle rim, SOFTLY DIFFUSED, face clearly visible',
+      '- SKIN MUST LOOK NATURALLY MATTE — absolutely no specular reflections or shiny hot-spots on forehead, nose, cheeks, chin or temples; no glossy/oily/greasy/wet appearance on face; no blown-out highlights on skin',
       '- Neutral light grey studio backdrop, clean and simple',
       '- Shot on Hasselblad X2D 90mm, natural skin texture with visible pores, shallow depth of field',
       '- The model should wear simple, minimal clothing (plain white t-shirt or simple neutral top) — clothing is NOT the focus, the MODEL is',
       '- Each portrait should show the SAME person but from a slightly different angle or with a slightly different expression (if generating multiple)',
-      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, excessive retouching.',
+      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, excessive retouching, shiny/oily face, specular highlights on skin, glossy forehead, wet-look facial sheen.',
       'Return only the final image(s) as base64.',
     ].join('\n\n')
 
@@ -789,9 +791,10 @@ Return only the generated image in base64 without markdown or explanation.`
           content: [
             'You are an expert portrait generation model for fashion e-commerce.',
             'Your job: generate a photorealistic model portrait based on the detailed specification provided.',
-            'The result must be: front-facing, bright studio lighting, photorealistic half-body portrait, 3:4 portrait aspect ratio.',
+            'The result must be: front-facing, SOFTLY DIFFUSED studio lighting (not harsh), photorealistic half-body portrait, 3:4 portrait aspect ratio.',
             'The model should wear SIMPLE MINIMAL clothing (plain t-shirt) — the focus is on the model\'s face and body, not clothing.',
-            'Generate highly detailed, natural-looking faces with realistic skin texture, unique facial features, and natural asymmetry.',
+            'Generate highly detailed, natural-looking faces with realistic skin texture and natural asymmetry.',
+            'CRITICAL SKIN RENDERING: the face MUST look naturally matte — no specular reflections, no shiny hot-spots, no glossy/oily/greasy appearance anywhere on the face. Slight subsurface scattering is OK; wet-look sheen and blown highlights are NOT.',
             'Return only the generated image in base64 without markdown or explanation.',
           ].join('\n'),
         },
@@ -898,9 +901,10 @@ CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no ac
       fusionInstruction,
       clothingInstruction,
       'FRONT-FACING pose only — face fully visible from the front, no side profile or 3/4 angle. Confident natural expression.',
-      'Controlled studio lighting: balanced key + gentle fill + subtle rim, face clearly visible while preserving highlight detail.',
+      'Controlled studio lighting: balanced key + gentle fill + subtle rim, SOFTLY DIFFUSED, face clearly visible while preserving highlight detail.',
+      'SKIN MUST LOOK NATURALLY MATTE — no specular reflections on forehead/nose/cheeks/chin, no shiny/oily/glossy appearance on the face, no wet-look sheen, no blown-out hot spots.',
       'Neutral studio backdrop. Shot on Hasselblad X2D 90mm, natural skin texture, shallow depth of field.',
-      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts.',
+      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, shiny/oily face, specular highlights on skin, glossy forehead, wet-look facial sheen.',
       'Return only the final image as base64.',
     ].join('\n\n')
 
