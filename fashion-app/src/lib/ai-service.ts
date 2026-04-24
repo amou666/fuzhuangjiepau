@@ -739,7 +739,7 @@ Return only the generated image in base64 without markdown or explanation.`
     taskId: string,
     modelConfig: ModelConfig,
     userApiKey?: string,
-    opts?: { count?: number; referenceUrl?: string }
+    opts?: { count?: number; referenceUrl?: string; extraPrompt?: string }
   ): Promise<string[]> {
     const categoryStyle = getModelCategoryStyleParagraph(modelConfig.category)
     const corePhysical = buildModelCorePhysical(modelConfig)
@@ -748,23 +748,41 @@ Return only the generated image in base64 without markdown or explanation.`
 
     const modelDescription = `Casting direction: ${categoryStyle} Subject details: ${corePhysical}${poseExpr}`.trim()
 
+    const userExtraPrompt = (opts?.extraPrompt || '').trim()
+
     const prompt = [
       `Generate ${generateCount} photorealistic half-body portrait(s) (waist up) of a NEW model, 3:4 portrait aspect ratio, vertical composition.`,
       `Model specification:\n${modelDescription}`,
       opts?.referenceUrl
         ? 'A reference photo is attached. The generated model should closely match the FACE in the reference — same facial bone structure, eye shape, nose, lips, jawline, hair style/color. Adapt the body and styling as specified above.'
         : 'Create a completely unique, natural-looking person. The face should be highly detailed and photorealistic — NOT a generic stock photo face.',
-      'IMPORTANT GUIDELINES:',
+      userExtraPrompt
+        ? `ADDITIONAL USER INSTRUCTIONS (must be respected, but do not break realism rules below):\n${userExtraPrompt}`
+        : '',
+      'PHOTOREALISM DIRECTIVES — treat these as HARD CONSTRAINTS, NOT suggestions:',
+      '- This is a REAL PHOTOGRAPH taken with a real camera of a real human, not a 3D render, not a digital painting, not an illustration',
+      '- Skin shows natural micro-variation: visible pores at close inspection, fine peach-fuzz, subtle unevenness in tone, faint natural redness around cheeks/nose tip/earlobes, tiny realistic imperfections (a small mole, light freckle, faint under-eye shadow, barely-visible fine lines near the eyes). Do NOT create "flawless" or "airbrushed" skin.',
+      '- Hair has natural flyaways and strand-level detail, individual strands catch light differently, roots visible; not a helmet-like smooth mass',
+      '- Face is subtly ASYMMETRIC like real humans — absolutely NOT mirror-perfect symmetry',
+      '- Eyes show realistic catchlights from the softbox/window light, with visible iris texture and natural moisture, NOT glass-ball glossy CGI eyes',
+      '- Lips have natural texture with vertical fine lines, slight color variation, NOT plastic lip-gloss sheen',
+      '- SKIN MUST LOOK NATURALLY MATTE to semi-matte — absolutely no specular reflections or shiny hot-spots on forehead, nose, cheeks, chin or temples; no glossy/oily/greasy/wet appearance on face; no blown-out highlights on skin',
+      'TECHNICAL PHOTOGRAPHY SPEC (anchors realism):',
       '- Front-facing pose (face fully visible), confident natural expression unless otherwise specified',
-      '- Controlled studio lighting: balanced key + gentle fill + subtle rim, SOFTLY DIFFUSED, face clearly visible',
-      '- SKIN MUST LOOK NATURALLY MATTE — absolutely no specular reflections or shiny hot-spots on forehead, nose, cheeks, chin or temples; no glossy/oily/greasy/wet appearance on face; no blown-out highlights on skin',
-      '- Neutral light grey studio backdrop, clean and simple',
-      '- Shot on Hasselblad X2D 90mm, natural skin texture with visible pores, shallow depth of field',
+      '- Shot on Hasselblad X2D 100C with 90mm lens, f/2.8, ISO 200, 1/200s — natural skin texture, shallow depth of field with smooth bokeh, mild film-grain, candid unretouched feel',
+      '- Controlled studio lighting: single large softbox as key + gentle bounce fill + subtle rim, SOFTLY DIFFUSED, face clearly visible',
+      '- Neutral light grey seamless studio backdrop, clean and simple',
       '- The model should wear simple, minimal clothing (plain white t-shirt or simple neutral top) — clothing is NOT the focus, the MODEL is',
       '- Each portrait should show the SAME person but from a slightly different angle or with a slightly different expression (if generating multiple)',
-      'Avoid: side profile, illustration, over-sharpened, waxy skin, dark shadows, AI artifacts, excessive retouching, shiny/oily face, specular highlights on skin, glossy forehead, wet-look facial sheen.',
+      'STRICTLY AVOID (these scream "AI-generated"):',
+      '- waxy / plastic / rubbery / doll-like / porcelain skin; airbrushed "beauty-filter" look; perfectly even foundation; digital "anime/anime-realistic" vibe',
+      '- over-sharpened faces, over-smoothed skin, HDR-looking faces, excessive contrast on skin',
+      '- mirror-symmetric faces, overly-defined CGI jawlines, generic "AI influencer" aesthetic',
+      '- glossy/oily/wet-looking face, shiny forehead/nose, specular highlights on skin, greasy sheen',
+      '- illustration, 3D render, CGI, painting, anime, cartoon, side profile',
+      '- AI artifacts: deformed ears, wrong fingers, melting jewelry, extra limbs, weird teeth, uncanny eyes',
       'Return only the final image(s) as base64.',
-    ].join('\n\n')
+    ].filter(Boolean).join('\n\n')
 
     const content: ChatMessageContentPart[] = [{ type: 'text', text: prompt }]
 
@@ -789,12 +807,16 @@ Return only the generated image in base64 without markdown or explanation.`
         {
           role: 'system',
           content: [
-            'You are an expert portrait generation model for fashion e-commerce.',
-            'Your job: generate a photorealistic model portrait based on the detailed specification provided.',
-            'The result must be: front-facing, SOFTLY DIFFUSED studio lighting (not harsh), photorealistic half-body portrait, 3:4 portrait aspect ratio.',
-            'The model should wear SIMPLE MINIMAL clothing (plain t-shirt) — the focus is on the model\'s face and body, not clothing.',
-            'Generate highly detailed, natural-looking faces with realistic skin texture and natural asymmetry.',
-            'CRITICAL SKIN RENDERING: the face MUST look naturally matte — no specular reflections, no shiny hot-spots, no glossy/oily/greasy appearance anywhere on the face. Slight subsurface scattering is OK; wet-look sheen and blown highlights are NOT.',
+            'You are a professional fashion photographer producing real editorial photographs, NOT an AI image generator. The output must be indistinguishable from a real DSLR/medium-format photo of a real human model.',
+            'Core output: front-facing, SOFTLY DIFFUSED studio lighting (not harsh), photorealistic half-body portrait, 3:4 portrait aspect ratio.',
+            'The model wears SIMPLE MINIMAL clothing (plain t-shirt) — the focus is on the model\'s face and body, not clothing.',
+            'ABSOLUTE REALISM REQUIREMENTS (these override any style hints):',
+            '• Real human skin texture — visible pores, tiny natural imperfections, subtle asymmetry, fine peach-fuzz. NO airbrushing, NO beauty-filter smoothness, NO waxy/plastic/porcelain look, NO doll-like symmetry.',
+            '• Natural hair with flyaway strands and individual strand separation, NOT a smooth helmet.',
+            '• Realistic eyes with natural catchlights and iris micro-detail; NOT glassy CGI eyes.',
+            '• Skin MUST look naturally matte to semi-matte — no specular reflections, no shiny hot-spots, no glossy/oily/greasy/wet appearance. Slight subsurface scattering is OK; wet-look sheen and blown highlights are NOT.',
+            '• Photography anchors: Hasselblad / Phase One medium format feel, 85-100mm lens, f/2.5-f/4, subtle film grain, mild chromatic depth.',
+            'FORBIDDEN: 3D render, CGI, anime, painting, illustration, stock-photo "perfect" face, "AI influencer" aesthetic, over-sharpened edges, HDR face, plastic symmetry, glossy lip-gloss sheen.',
             'Return only the generated image in base64 without markdown or explanation.',
           ].join('\n'),
         },
@@ -1435,14 +1457,14 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     const upscaleMessages = [
       {
         role: 'system',
-        content: 'You are an image upscaling model. Keep composition identical. Keep exact original aspect ratio. Return only the upscaled image as base64 without any text or explanation.',
+        content: '你是一个图像高清放大模型。严格保持原图构图、视角、人物姿态、服装款式与背景元素不变，仅提升清晰度与细节质感。保持原图宽高比例与画幅完全一致。只返回放大后的图片，不要返回任何文字说明。',
       },
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: `Upscale this image to about 2x resolution (${targetDesc}). Keep EXACT same aspect ratio, framing, colors and details. Do not crop, pad, or recompose.`,
+            text: `图片变高清，增强人物、衣服和背景的细节。\n\n要求：\n1. 把这张图片放大到约 2 倍分辨率（约 ${targetDesc}）。\n2. 严格保持与原图完全一致的宽高比、画幅与构图，禁止裁切、补边或重新构图。\n3. 在不改变内容的前提下，增强人物五官、皮肤与发丝的真实质感；强化服装的面料纹理、缝线、褶皱细节；提升背景的清晰度与材质细节。\n4. 保持原图色彩、光影与色调一致，避免过度锐化或风格漂移。`,
           },
           {
             type: 'image_url',

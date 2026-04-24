@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Sparkles, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check, Camera, Smartphone } from 'lucide-react'
+import { Loader2, Sparkles, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check, Camera, Smartphone, Layers } from 'lucide-react'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useTaskStore } from '@/lib/stores/taskStore'
@@ -11,6 +11,8 @@ import { useDraftStore } from '@/lib/stores/draftStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import type { FavoriteType, QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
 import { CAMERA_PRESETS, PHONE_PRESETS, isValidDeviceId } from '@/lib/device-presets'
+import { TutorialButton } from '@/lib/components/common/TutorialModal'
+import { TUTORIALS } from '@/lib/tutorials'
 
 const ASPECT_OPTIONS: { value: QuickWorkspaceAspectRatio; label: string }[] = [
   { value: '3:4', label: '3:4（竖向人像）' },
@@ -63,6 +65,8 @@ export default function QuickWorkspacePage() {
   const [favDialog, setFavDialog] = useState<null | { type: FavoriteType; imageUrl: string; backUrl?: string; defaultName: string }>(null)
   const [favName, setFavName] = useState('')
   const [favSaving, setFavSaving] = useState(false)
+
+  const canSaveFullConfig = !!clothingUrl && !!modelImageUrl && !!sceneImageUrl
 
   const isFirstPersistRef = useRef(true)
   useEffect(() => {
@@ -151,6 +155,12 @@ export default function QuickWorkspacePage() {
       if (!sceneImageUrl) return
       setFavDialog({ type, imageUrl: sceneImageUrl, defaultName: `场景 · ${tsLabel}` })
       setFavName(`场景 · ${tsLabel}`)
+    } else if (type === 'full') {
+      const preview = modelImageUrl || sceneImageUrl || clothingUrl
+      if (!preview) return
+      const defaultName = `完整配置 · ${tsLabel}`
+      setFavDialog({ type, imageUrl: preview, defaultName })
+      setFavName(defaultName)
     }
   }, [clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl])
 
@@ -166,9 +176,24 @@ export default function QuickWorkspacePage() {
     if (!name) return
     setFavSaving(true)
     try {
-      const data: Record<string, unknown> = { imageUrl: favDialog.imageUrl }
-      if (favDialog.type === 'clothing' && favDialog.backUrl) {
-        data.clothingBackUrl = favDialog.backUrl
+      let data: Record<string, unknown>
+      if (favDialog.type === 'full') {
+        data = {
+          mode,
+          clothingUrl,
+          clothingBackUrl: clothingBackUrl || undefined,
+          modelImageUrl,
+          sceneImageUrl,
+          aspectRatio,
+          framing,
+          device,
+          extraPrompt: extraPrompt.trim() || undefined,
+        }
+      } else {
+        data = { imageUrl: favDialog.imageUrl }
+        if (favDialog.type === 'clothing' && favDialog.backUrl) {
+          data.clothingBackUrl = favDialog.backUrl
+        }
       }
       await workspaceApi.createFavorite({
         type: favDialog.type,
@@ -184,7 +209,7 @@ export default function QuickWorkspacePage() {
     } finally {
       setFavSaving(false)
     }
-  }, [favDialog, favName, addNotification])
+  }, [favDialog, favName, mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, aspectRatio, framing, device, extraPrompt, addNotification])
 
   const handleClearAll = useCallback(() => {
     clearTask()
@@ -207,15 +232,30 @@ export default function QuickWorkspacePage() {
   const failed = status === 'FAILED'
 
   return (
-    <div className="w-full min-h-full" style={{ background: 'linear-gradient(180deg, #faf7f3 0%, #f5efe8 100%)' }}>
-      <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-8">
-        <header className="mb-8">
+    <div className="w-full min-h-full">
+      <div className="max-w-[1400px] mx-auto md:px-10 md:py-8">
+        {/* Mobile header */}
+        <div className="md:hidden flex items-center gap-2.5 mb-5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
+          >
+            <Wand2 className="w-4 h-4 text-white" />
+          </div>
+          <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">快速工作台</h1>
+          <TutorialButton id="quick-workspace" steps={TUTORIALS['quick-workspace']} />
+        </div>
+        {/* Desktop header */}
+        <header className="hidden md:block mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(198,123,92,0.08)] border border-[rgba(198,123,92,0.18)] mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#c67b5c]" />
             <span className="text-[11px] font-semibold text-[#c67b5c]">Quick Workspace</span>
           </div>
-          <h1 className="text-[28px] font-bold text-[#2d2422] mb-1">快速工作台</h1>
-          <p className="text-[13px] text-[#8b7355]">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[28px] font-bold text-[#2d2422]">快速工作台</h1>
+            <div className="ml-auto"><TutorialButton id="quick-workspace" steps={TUTORIALS['quick-workspace']} /></div>
+          </div>
+          <p className="text-[13px] text-[#8b7355] mt-1">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-6">
@@ -451,16 +491,31 @@ export default function QuickWorkspacePage() {
               <div className="px-4 py-3 rounded-xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-[12px] text-[#c47070]">{error}</div>
             )}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 h-12 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {submitting || isPolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 {submitting ? '提交中...' : isPolling ? 'AI 合成中...' : '一键生成'}
+              </button>
+              <button
+                type="button"
+                onClick={() => openFavDialog('full')}
+                disabled={!canSaveFullConfig}
+                title={canSaveFullConfig ? '把当前服装 + 模特 + 场景 + 参数整套打包到素材库' : '请先上传 服装 / 模特 / 场景 三张图'}
+                className="h-12 px-4 rounded-xl border text-[12px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                style={{
+                  borderColor: canSaveFullConfig ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.15)',
+                  color: canSaveFullConfig ? '#c67b5c' : '#b0a59a',
+                  background: canSaveFullConfig ? 'rgba(198,123,92,0.06)' : 'rgba(139,115,85,0.02)',
+                }}
+              >
+                <Layers className="w-4 h-4" />
+                收藏完整配置
               </button>
               {(resultUrl || failed) && (
                 <button
@@ -546,9 +601,9 @@ export default function QuickWorkspacePage() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-[#c67b5c]" />
+                {favDialog.type === 'full' ? <Layers className="w-4 h-4 text-[#c67b5c]" /> : <Star className="w-4 h-4 text-[#c67b5c]" />}
                 <h3 className="text-[14px] font-semibold text-[#2d2422]">
-                  收藏{favDialog.type === 'clothing' ? '服装' : favDialog.type === 'model' ? '模特' : '场景'}到素材库
+                  {favDialog.type === 'full' ? '收藏完整配置到素材库' : `收藏${favDialog.type === 'clothing' ? '服装' : favDialog.type === 'model' ? '模特' : '场景'}到素材库`}
                 </h3>
               </div>
               <button
@@ -561,10 +616,42 @@ export default function QuickWorkspacePage() {
               </button>
             </div>
 
-            <div className="flex gap-3 mb-4">
-              <div className="w-20 h-20 rounded-xl overflow-hidden border border-[rgba(139,115,85,0.12)] flex-shrink-0 bg-[rgba(139,115,85,0.03)]">
-                <img src={favDialog.imageUrl} alt="" className="w-full h-full object-cover" />
+            {favDialog.type === 'full' && (
+              <div className="mb-3 p-3 rounded-xl bg-[rgba(198,123,92,0.05)] border border-[rgba(198,123,92,0.12)]">
+                <div className="text-[11px] font-semibold text-[#8b7355] mb-1.5">本次打包内容</div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {[
+                    { label: '服装', url: clothingUrl },
+                    { label: '模特', url: modelImageUrl },
+                    { label: '场景', url: sceneImageUrl },
+                  ].map((it) => (
+                    <div key={it.label} className="flex flex-col items-center gap-1">
+                      <div className="w-full aspect-square rounded-lg overflow-hidden border border-[rgba(139,115,85,0.12)] bg-[rgba(139,115,85,0.03)]">
+                        {it.url ? (
+                          <img src={it.url} alt={it.label} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-[#c9bfb5]">无</div>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#8b7355]">{it.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[10px] text-[#8b7355] leading-relaxed">
+                  <span className="mr-2">模式：{mode === 'background' ? '背景图' : '融合'}</span>
+                  <span className="mr-2">比例：{aspectRatio}</span>
+                  <span className="mr-2">构图：{framing === 'auto' ? '自动' : framing === 'half' ? '半身' : '全身'}</span>
+                  <span>设备：{device === 'auto' ? '自动' : device}</span>
+                </div>
               </div>
+            )}
+
+            <div className="flex gap-3 mb-4">
+              {favDialog.type !== 'full' && (
+                <div className="w-20 h-20 rounded-xl overflow-hidden border border-[rgba(139,115,85,0.12)] flex-shrink-0 bg-[rgba(139,115,85,0.03)]">
+                  <img src={favDialog.imageUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <label className="block text-[11px] font-medium text-[#8b7355] mb-1.5">名称</label>
                 <input

@@ -81,7 +81,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="fixed md:absolute top-14 md:top-full right-2 md:right-0 left-2 md:left-auto mt-0 md:mt-2 md:w-[340px] max-h-[440px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[rgba(139,115,85,0.1)] shadow-xl z-[200] overflow-hidden flex flex-col">
+        <div className="fixed md:absolute top-14 md:top-full right-2 md:right-auto left-2 md:left-full mt-0 md:mt-2 md:ml-2 md:w-[340px] max-h-[440px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[rgba(139,115,85,0.1)] shadow-xl z-[200] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(139,115,85,0.06)]">
             <h3 className="text-[14px] font-bold text-[#2d2422]">通知中心</h3>
             <div className="flex items-center gap-1.5">

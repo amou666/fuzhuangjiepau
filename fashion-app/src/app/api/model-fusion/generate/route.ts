@@ -14,14 +14,17 @@ export async function POST(request: NextRequest) {
     const { payload } = auth
 
     const body = await request.json()
-    const { modelConfig, referenceUrl }: {
+    const { modelConfig, referenceUrl, extraPrompt }: {
       modelConfig: ModelConfig
       referenceUrl?: string
+      extraPrompt?: string
     } = body
 
     if (!modelConfig) {
       return NextResponse.json({ message: '缺少模特配置参数' }, { status: 400 })
     }
+
+    const trimmedExtraPrompt = typeof extraPrompt === 'string' ? extraPrompt.trim().slice(0, 800) : ''
 
     const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
     if (!user || user.credits < 1) {
@@ -56,6 +59,7 @@ export async function POST(request: NextRequest) {
     try {
       const resultUrls = await ai.generateModelPortrait(taskId, modelConfig, apiKey, {
         referenceUrl,
+        extraPrompt: trimmedExtraPrompt || undefined,
       })
 
       db.prepare(

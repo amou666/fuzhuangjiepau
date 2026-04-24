@@ -268,7 +268,14 @@ export default function RedesignPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex justify-end md:hidden -mb-4">
+      <div className="md:hidden flex items-center gap-2.5 -mb-4">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
+        >
+          <Sparkles className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">AI 改款</h1>
         <TutorialButton id="redesign" steps={TUTORIALS.redesign} />
       </div>
       {/* 页头 */}
@@ -587,7 +594,7 @@ export default function RedesignPage() {
           <div
             className="relative bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.2)] cursor-default"
             style={{
-              padding: '10px 10px 48px 10px',
+              padding: '14px 14px 56px 14px',
               transform: 'rotate(-1.5deg)',
               ...(previewSize ? { width: `${previewSize.width}px`, height: `${previewSize.height}px` } : {}),
             }}
@@ -603,10 +610,12 @@ export default function RedesignPage() {
                 const naturalW = img.naturalWidth
                 const naturalH = img.naturalHeight
                 if (!naturalW || !naturalH) return
-                const maxW = window.innerWidth * 0.92 - 20
-                const maxH = window.innerHeight * 0.85 - 58
+                const padX = 28
+                const padY = 70
+                const maxW = window.innerWidth * 0.92 - padX
+                const maxH = window.innerHeight * 0.85 - padY
                 const scale = Math.min(maxW / naturalW, maxH / naturalH, 1)
-                setPreviewSize({ width: Math.round(naturalW * scale), height: Math.round(naturalH * scale) })
+                setPreviewSize({ width: Math.round(naturalW * scale) + padX, height: Math.round(naturalH * scale) + padY })
               }}
             />
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">

@@ -162,7 +162,14 @@ export default function StatsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end md:hidden -mb-2">
+      <div className="md:hidden flex items-center gap-2.5 -mb-2">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
+        >
+          <BarChart3 className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">数据统计</h1>
         <TutorialButton id="stats" steps={TUTORIALS.stats} />
       </div>
       {/* Header */}

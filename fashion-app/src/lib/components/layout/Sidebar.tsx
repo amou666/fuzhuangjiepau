@@ -191,13 +191,21 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         }}
       >
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
-          >
-            <Sparkles className="w-4 h-4 text-white" />
+          <img
+            src="/logo.png"
+            alt="Amou"
+            className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+            style={{ boxShadow: '0 1px 6px rgba(139,115,85,0.12)' }}
+          />
+          <div className="leading-none">
+            <span
+              className="block text-[17px] font-bold text-[#2d2422]"
+              style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Snell Roundhand", "Apple Chancery", cursive', letterSpacing: '0.01em' }}
+            >
+              Amou
+            </span>
+            <span className="block mt-0.5 text-[9px] font-medium text-[#9b8e82] tracking-[0.18em]">服装工作室</span>
           </div>
-          <span className="font-bold text-[#2d2422] tracking-tight">Amou AI</span>
         </div>
         <div className="flex items-center gap-1">
           {variant === 'app' && <NotificationBell />}
@@ -236,19 +244,21 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[rgba(139,115,85,0.06)]">
           <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
-                boxShadow: '0 2px 12px rgba(198,123,92,0.2)',
-              }}
-            >
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Amou"
+              className="w-10 h-10 rounded-xl object-cover shrink-0"
+              style={{ boxShadow: '0 2px 12px rgba(139,115,85,0.15)' }}
+            />
             {!collapsed && (
-              <div>
-                <span className="text-[15px] font-bold text-[#2d2422] tracking-tight block leading-tight">Amou AI</span>
-                <span className="text-[9px] text-[#b0a59a] tracking-[0.2em] uppercase">工作台</span>
+              <div className="min-w-0 leading-none">
+                <span
+                  className="text-[20px] font-bold text-[#2d2422] block"
+                  style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Snell Roundhand", "Apple Chancery", cursive', letterSpacing: '0.01em' }}
+                >
+                  Amou
+                </span>
+                <span className="block mt-1 text-[10px] font-medium text-[#9b8e82] tracking-[0.18em]">服装工作室</span>
               </div>
             )}
           </div>

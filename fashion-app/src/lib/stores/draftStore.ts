@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types';
 
 // ─── Redesign Draft ──────────────────────────────────────────
@@ -47,6 +46,10 @@ export interface QuickWorkspaceDraft {
 }
 
 // ─── Store ───────────────────────────────────────────────────
+// 仅在内存中保存，不做 localStorage 持久化：
+//   • 浏览器内 SPA 路由切换 → 模块单例依然存活 → 已上传图片保留
+//   • 刷新 / 关闭重开标签页 → JS 运行时重启 → 草稿自动清空
+// 如需跨刷新保留设置，请考虑单独存入 localStorage（当前需求不需要）。
 interface DraftState {
   // Redesign
   redesignDraft: RedesignDraft | null;
@@ -70,48 +73,34 @@ interface DraftState {
   clearQuickWorkspaceDraft: () => void;
 }
 
-export const useDraftStore = create<DraftState>()(
-  persist(
-    (set) => ({
-      // Redesign
-      redesignDraft: null,
-      redesignResult: null,
-      setRedesignDraft: (draft) => set({ redesignDraft: draft }),
-      clearRedesignDraft: () => set({ redesignDraft: null }),
-      setRedesignResult: (result) => set({ redesignResult: result }),
-      clearRedesignResult: () => set({ redesignResult: null }),
+export const useDraftStore = create<DraftState>()((set) => ({
+  // Redesign
+  redesignDraft: null,
+  redesignResult: null,
+  setRedesignDraft: (draft) => set({ redesignDraft: draft }),
+  clearRedesignDraft: () => set({ redesignDraft: null }),
+  setRedesignResult: (result) => set({ redesignResult: result }),
+  clearRedesignResult: () => set({ redesignResult: null }),
 
-      // Model Fusion
-      fusionDraft: null,
-      fusionResult: null,
-      setFusionDraft: (draft) => set({ fusionDraft: draft }),
-      clearFusionDraft: () => set({ fusionDraft: null }),
-      setFusionResult: (result) => set({ fusionResult: result }),
-      clearFusionResult: () => set({ fusionResult: null }),
+  // Model Fusion
+  fusionDraft: null,
+  fusionResult: null,
+  setFusionDraft: (draft) => set({ fusionDraft: draft }),
+  clearFusionDraft: () => set({ fusionDraft: null }),
+  setFusionResult: (result) => set({ fusionResult: result }),
+  clearFusionResult: () => set({ fusionResult: null }),
 
-      // Quick Workspace
-      quickWorkspaceDraft: null,
-      setQuickWorkspaceDraft: (draft) => set({ quickWorkspaceDraft: draft }),
-      clearQuickWorkspaceDraft: () => set({ quickWorkspaceDraft: null }),
-    }),
-    {
-      name: 'fashion-ai-draft',
-      storage: createJSONStorage(() => {
-        if (typeof window === 'undefined') {
-          const memoryStore = new Map<string, string>();
-          return {
-            getItem: (name: string) => memoryStore.get(name) ?? null,
-            setItem: (name: string, value: string) => { memoryStore.set(name, value); },
-            removeItem: (name: string) => { memoryStore.delete(name); },
-          };
-        }
-        return localStorage;
-      }),
-      partialize: (state) => ({
-        redesignDraft: state.redesignDraft,
-        fusionDraft: state.fusionDraft,
-        quickWorkspaceDraft: state.quickWorkspaceDraft,
-      }),
-    },
-  ),
-);
+  // Quick Workspace
+  quickWorkspaceDraft: null,
+  setQuickWorkspaceDraft: (draft) => set({ quickWorkspaceDraft: draft }),
+  clearQuickWorkspaceDraft: () => set({ quickWorkspaceDraft: null }),
+}));
+
+// 清理历史遗留的 localStorage 草稿（旧版本曾把图片 URL 持久化到 localStorage）
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem('fashion-ai-draft');
+  } catch {
+    // 忽略 storage 不可用情况（隐私模式等）
+  }
+}

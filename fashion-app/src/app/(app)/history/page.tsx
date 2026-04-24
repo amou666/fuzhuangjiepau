@@ -7,7 +7,7 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import type { GenerationTask } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown, ListChecks, ChevronDown, Minimize2 } from 'lucide-react';
 import { ComparePanel } from '@/lib/components/history/ComparePanel';
 import { TutorialButton } from '@/lib/components/common/TutorialModal';
 import { TUTORIALS } from '@/lib/tutorials';
@@ -16,6 +16,131 @@ const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ c
   'workspace': { label: '工作台', icon: Sparkles, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
   'model-fusion': { label: '模特合成', icon: Drama, color: 'text-[#8b7355]', bg: 'bg-[rgba(139,115,85,0.08)]' },
   'redesign': { label: 'AI改款', icon: Wand2, color: 'text-[#b0654a]', bg: 'bg-[rgba(176,101,74,0.08)]' },
+}
+
+function CollapseToggle({
+  collapsed,
+  onToggle,
+  compact,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+  compact?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={collapsed ? '展开记录详情' : '折叠记录详情'}
+      title={collapsed ? '展开记录详情' : '折叠记录详情'}
+      className="inline-flex items-center gap-1 rounded-xl border transition-all whitespace-nowrap"
+      style={{
+        height: compact ? 32 : 36,
+        padding: compact ? '0 10px' : '0 12px',
+        background: collapsed ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.04)',
+        borderColor: collapsed ? 'rgba(198,123,92,0.3)' : 'rgba(139,115,85,0.1)',
+        color: collapsed ? '#c67b5c' : '#8b7355',
+      }}
+    >
+      {collapsed
+        ? <Maximize2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+        : <Minimize2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />}
+      <span className={`${compact ? 'text-[11px]' : 'text-[12px]'} font-medium`}>{collapsed ? '展开' : '折叠'}</span>
+    </button>
+  )
+}
+
+function BatchMenu({
+  allSelected,
+  selectedCount,
+  batchDownloading,
+  onToggleAll,
+  onDownload,
+  onCompare,
+  compact,
+}: {
+  allSelected: boolean
+  selectedCount: number
+  batchDownloading: boolean
+  onToggleAll: () => void
+  onDownload: () => void
+  onCompare: () => void
+  compact?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="批量操作"
+        className="relative inline-flex items-center gap-1 rounded-xl border transition-all whitespace-nowrap"
+        style={{
+          height: compact ? 32 : 36,
+          padding: compact ? '0 10px' : '0 12px',
+          background: open ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.04)',
+          borderColor: open ? 'rgba(198,123,92,0.3)' : 'rgba(139,115,85,0.1)',
+          color: '#8b7355',
+        }}
+      >
+        <ListChecks className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+        <span className={`${compact ? 'text-[11px]' : 'text-[12px]'} font-medium`}>批量</span>
+        <ChevronDown className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} transition-transform ${open ? 'rotate-180' : ''}`} />
+        {selectedCount > 0 && (
+          <span
+            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: '0 1px 4px rgba(198,123,92,0.35)' }}
+          >
+            {selectedCount}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[180px] bg-white rounded-xl shadow-xl border border-[rgba(139,115,85,0.12)] overflow-hidden py-1">
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors"
+            onClick={onToggleAll}
+          >
+            {allSelected ? <CheckSquare className="w-3.5 h-3.5 text-[#c67b5c]" /> : <Square className="w-3.5 h-3.5 text-[#8b7355]" />}
+            {allSelected ? '取消全选' : '全选已完成'}
+          </button>
+          <div className="h-px bg-[rgba(139,115,85,0.08)] mx-2" />
+          <button
+            type="button"
+            disabled={selectedCount === 0 || batchDownloading}
+            className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            onClick={() => { onDownload(); setOpen(false) }}
+          >
+            {batchDownloading
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c67b5c]" />
+              : <PackageCheck className="w-3.5 h-3.5 text-[#c67b5c]" />}
+            {batchDownloading ? '打包中...' : `打包下载${selectedCount > 0 ? ` (${selectedCount})` : ''}`}
+          </button>
+          <button
+            type="button"
+            disabled={selectedCount < 2}
+            className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            onClick={() => { onCompare(); setOpen(false) }}
+          >
+            <GitCompareArrows className="w-3.5 h-3.5 text-[#8b7355]" />
+            对比{selectedCount >= 2 ? ` (${selectedCount})` : ''}
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface WatermarkCfg { enabled: boolean; text: string; position: string; opacity: number; fontSize: number }
@@ -66,6 +191,15 @@ export default function HistoryPage() {
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [feedbacks, setFeedbacks] = useState<Record<string, number>>({});
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try { return window.localStorage.getItem('fashion-history-collapsed') === '1' } catch { return false }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { window.localStorage.setItem('fashion-history-collapsed', collapsed ? '1' : '0') } catch { /* ignore */ }
+  }, [collapsed]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -298,8 +432,29 @@ export default function HistoryPage() {
   return (
     <>
       <div className="flex flex-col gap-5">
-        <div className="flex justify-end md:hidden -mb-1">
+        <div className="md:hidden flex items-center gap-2 -mb-1">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
+          >
+            <Clock className="w-4 h-4 text-white" />
+          </div>
+          <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">历史记录</h1>
           <TutorialButton id="history" steps={TUTORIALS.history} />
+          {records.length > 0 && (
+            <CollapseToggle compact collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+          )}
+          {records.length > 0 && (
+            <BatchMenu
+              compact
+              allSelected={records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
+              selectedCount={selectedIds.size}
+              batchDownloading={batchDownloading}
+              onToggleAll={toggleSelectAll}
+              onDownload={handleBatchDownload}
+              onCompare={() => setShowCompare(true)}
+            />
+          )}
         </div>
         <div className="hidden md:block mb-1">
           <div className="flex items-center gap-3 mb-1">
@@ -310,61 +465,25 @@ export default function HistoryPage() {
               <Clock className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">历史记录</h1>
-            <div className="ml-auto"><TutorialButton id="history" steps={TUTORIALS.history} /></div>
+            <div className="ml-auto flex items-center gap-2">
+              <TutorialButton id="history" steps={TUTORIALS.history} />
+              {records.length > 0 && (
+                <CollapseToggle collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+              )}
+              {records.length > 0 && (
+                <BatchMenu
+                  allSelected={records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
+                  selectedCount={selectedIds.size}
+                  batchDownloading={batchDownloading}
+                  onToggleAll={toggleSelectAll}
+                  onDownload={handleBatchDownload}
+                  onCompare={() => setShowCompare(true)}
+                />
+              )}
+            </div>
           </div>
           <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">查看你的所有生图任务、状态与结果图片</p>
         </div>
-
-        {/* Batch Download Toolbar */}
-        {records.length > 0 && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#8b7355] bg-[rgba(139,115,85,0.04)] border border-[rgba(139,115,85,0.1)] hover:bg-[rgba(139,115,85,0.08)] transition-all"
-              onClick={toggleSelectAll}
-            >
-              {records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0
-                ? <><CheckSquare className="w-3.5 h-3.5" /> 取消全选</>
-                : <><Square className="w-3.5 h-3.5" /> 全选已完成</>
-              }
-            </button>
-            {selectedIds.size > 0 && (
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-50"
-                style={{
-                  background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
-                  boxShadow: '0 2px 10px rgba(198,123,92,0.2)',
-                }}
-                onClick={handleBatchDownload}
-                disabled={batchDownloading}
-              >
-                {batchDownloading
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 打包中...</>
-                  : <><PackageCheck className="w-3.5 h-3.5" /> 打包下载 ({selectedIds.size})</>
-                }
-              </button>
-            )}
-            {selectedIds.size >= 2 && (
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[12px] font-semibold text-white transition-all"
-                style={{
-                  background: 'linear-gradient(135deg, #8b7355, #b0a59a)',
-                  boxShadow: '0 2px 10px rgba(139,115,85,0.2)',
-                }}
-                onClick={() => setShowCompare(true)}
-              >
-                <GitCompareArrows className="w-3.5 h-3.5" /> 对比 ({selectedIds.size})
-              </button>
-            )}
-            {selectedIds.size > 0 && (
-              <span className="text-[11px] text-[#b0a59a]">
-                已选 {selectedIds.size} 项
-              </span>
-            )}
-          </div>
-        )}
 
         {error ? (
           <div className="bg-[#fef2f0] text-[#c47070] px-5 py-3.5 rounded-2xl text-sm font-medium border border-[#f0d5d0]">{error}</div>
@@ -384,7 +503,11 @@ export default function HistoryPage() {
             <p className="text-[13px] text-[#c9bfb5]">去工作台、模特合成或 AI 改款创建第一张图吧</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
+          <div className={`grid items-start gap-4 md:gap-5 ${
+            collapsed
+              ? 'grid-cols-1 md:grid-cols-2 2xl:grid-cols-3'
+              : 'grid-cols-1 xl:grid-cols-2'
+          }`}>
             {records.map((record) => {
               const typeConf = TYPE_CONFIG[record.type] || TYPE_CONFIG['workspace']
               const TypeIcon = typeConf.icon
@@ -396,7 +519,16 @@ export default function HistoryPage() {
 
               return (
                 <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm relative" style={isSelected ? { outline: '2px solid rgba(198,123,92,0.4)', outlineOffset: '-1px' } : undefined}>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  {/* Mobile: 删除按钮浮于卡片右上角 */}
+                  <button
+                    type="button"
+                    aria-label="删除记录"
+                    className="md:hidden absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm text-[#c47070] flex items-center justify-center shadow-sm active:scale-90 transition-all"
+                    onClick={() => handleDelete(record.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pr-10 md:pr-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Checkbox */}
                       {isCompleted && (
@@ -428,8 +560,9 @@ export default function HistoryPage() {
                       </span>
                       <span className="text-[#b0a59a] text-[11px]">{formatDateTime(record.createdAt)}</span>
                     </div>
+                    {/* Desktop: 文字 + 图标 删除按钮 */}
                     <button
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#c47070] bg-[rgba(196,112,112,0.04)] border border-[rgba(196,112,112,0.1)] hover:bg-[rgba(196,112,112,0.08)] active:bg-[rgba(196,112,112,0.12)] transition-all"
+                      className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#c47070] bg-[rgba(196,112,112,0.04)] border border-[rgba(196,112,112,0.1)] hover:bg-[rgba(196,112,112,0.08)] active:bg-[rgba(196,112,112,0.12)] transition-all"
                       onClick={() => handleDelete(record.id)}
                     >
                       <Trash2 className="w-3 h-3" /> 删除
@@ -437,92 +570,97 @@ export default function HistoryPage() {
                   </div>
 
                   {/* 描述行 */}
-                  {record.clothingDescription && (
+                  {!collapsed && record.clothingDescription && (
                     <p className="text-[12px] text-[#9b8e82] mb-3 leading-relaxed">{record.clothingDescription}</p>
                   )}
 
-                  <div className="grid grid-cols-3 gap-2 p-3 bg-[rgba(139,115,85,0.03)] rounded-xl mb-3">
-                    <div>
-                      <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Hash className="w-3 h-3" /> ID
-                      </div>
-                      <div className="inline-block px-2 py-0.5 bg-[rgba(139,115,85,0.04)] rounded-md font-mono text-[11px] text-[#8b7355]">{record.id.slice(0, 8)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Coins className="w-3 h-3" /> 积分
-                      </div>
-                      <div className="text-[13px] text-[#2d2422] font-medium">{record.creditCost}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <CalendarCheck className="w-3 h-3" /> 完成
-                      </div>
-                      <div className="text-[11px] text-[#8b7355]">{formatDateTime(record.finishedAt)}</div>
-                    </div>
-                  </div>
-
-                  {(refImages.length > 0 || resultImages.length > 0) && (
-                    <div className="flex flex-col gap-4">
-                      {refImages.length > 0 && (
+                  {/* 信息行：左侧竖排 ID/积分/完成时间，右侧并排参考图片 */}
+                  {!collapsed && (
+                    <div className="flex gap-3 mb-3">
+                      <div className="flex flex-col gap-2 p-2.5 bg-[rgba(139,115,85,0.03)] rounded-xl shrink-0 self-start min-w-[110px]">
                         <div>
+                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            <Hash className="w-2.5 h-2.5" /> ID
+                          </div>
+                          <div className="inline-block px-1.5 py-[1px] bg-[rgba(139,115,85,0.05)] rounded font-mono text-[10px] text-[#8b7355]">{record.id.slice(0, 8)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            <Coins className="w-2.5 h-2.5" /> 积分
+                          </div>
+                          <div className="text-[12px] text-[#2d2422] font-medium">{record.creditCost}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            <CalendarCheck className="w-2.5 h-2.5" /> 完成
+                          </div>
+                          <div className="text-[10px] text-[#8b7355] leading-tight">{formatDateTime(record.finishedAt)}</div>
+                        </div>
+                      </div>
+
+                      {refImages.length > 0 && (
+                        <div className="flex-1 min-w-0">
                           <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
                             <ImageIcon className="w-3 h-3" /> 参考图片
                           </div>
                           <div className="flex gap-2 flex-wrap">
                             {refImages.map((img, idx) => (
-                              <div key={idx} className="relative w-16 h-[86px] sm:w-20 sm:h-[107px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(img.url)}>
+                              <div key={idx} className="relative w-16 h-[86px] sm:w-[72px] sm:h-[96px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(img.url)}>
                                 <LazyImage src={img.url} alt={img.label} onClick={() => setPreviewImage(img.url)} />
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      {resultImages.length > 0 && (
-                        <div>
-                          <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <Maximize2 className="w-3 h-3" /> 生成结果
-                            {resultImages.length > 1 && (
-                              <span className="text-[#c67b5c] ml-1">({resultImages.length}张)</span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {resultImages.map((url, idx) => (
-                              <div key={idx} className="relative aspect-[3/4] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity group" onClick={() => setPreviewImage(url)}>
-                                <LazyImage src={url} alt={`结果 ${idx + 1}`} onClick={() => setPreviewImage(url)} />
-                                {resultImages.length > 1 && (
-                                  <div className="absolute bottom-1 left-1 bg-black/50 text-white px-1.5 py-0.5 rounded text-[9px] font-semibold">{idx + 1}</div>
-                                )}
-                                {!upscalingTaskIds.has(record.id) && (
-                                  <button
-                                    className="absolute top-1 right-1 bg-[#c67b5c]/90 hover:bg-[#b0654a] text-white px-2 py-0.5 rounded-md text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-10"
-                                    onClick={(e) => { e.stopPropagation(); setUpscaleModal({ taskId: record.id, imageUrl: url }); }}
-                                  >
-                                    <Sparkles className="w-2.5 h-2.5" /> 变高清
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            {record.upscaledUrl && (
-                              <div className="relative aspect-[3/4] rounded-[10px] overflow-hidden border-2 border-green-400 cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(record.upscaledUrl!)}>
-                                <div className="absolute top-1 left-1 bg-green-500 text-white px-1.5 py-0.5 rounded text-[9px] font-bold z-10">{record.upscaleFactor}x</div>
-                                <LazyImage src={record.upscaledUrl} alt={`放大 ${record.upscaleFactor}x 结果`} onClick={() => setPreviewImage(record.upscaledUrl!)} />
-                              </div>
-                            )}
-                            {!record.upscaledUrl && upscalingTaskIds.has(record.id) && (
-                              <div className="flex items-center justify-center bg-[rgba(139,115,85,0.04)] rounded-xl aspect-[3/4] flex-col gap-2">
-                                <Loader2 className="w-5 h-5 text-[#c67b5c] animate-spin" />
-                                <div className="text-[12px] text-[#9b8e82]">放大中...</div>
-                              </div>
-                            )}
-                          </div>
+                    </div>
+                  )}
+
+                  {/* 生成结果：占满宽度，使用容器查询根据卡片宽度自适应列数 */}
+                  {resultImages.length > 0 && (
+                    <div className="@container">
+                      {!collapsed && (
+                        <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <Maximize2 className="w-3 h-3" /> 生成结果
+                          {resultImages.length > 1 && (
+                            <span className="text-[#c67b5c] ml-1">({resultImages.length}张)</span>
+                          )}
                         </div>
                       )}
+                      <div className="grid grid-cols-2 @md:grid-cols-3 @4xl:grid-cols-4 gap-3">
+                        {resultImages.map((url, idx) => (
+                          <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity group" onClick={() => setPreviewImage(url)}>
+                            <LazyImage src={url} alt={`结果 ${idx + 1}`} onClick={() => setPreviewImage(url)} />
+                            {resultImages.length > 1 && (
+                              <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">{idx + 1}</div>
+                            )}
+                            {!upscalingTaskIds.has(record.id) && (
+                              <button
+                                className="absolute top-1.5 right-1.5 bg-[#c67b5c]/90 hover:bg-[#b0654a] text-white px-2 py-1 rounded-md text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-10"
+                                onClick={(e) => { e.stopPropagation(); setUpscaleModal({ taskId: record.id, imageUrl: url }); }}
+                              >
+                                <Sparkles className="w-3 h-3" /> 变高清
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {record.upscaledUrl && (
+                          <div className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-green-400 cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(record.upscaledUrl!)}>
+                            <div className="absolute top-1.5 left-1.5 bg-green-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold z-10">{record.upscaleFactor}x</div>
+                            <LazyImage src={record.upscaledUrl} alt={`放大 ${record.upscaleFactor}x 结果`} onClick={() => setPreviewImage(record.upscaledUrl!)} />
+                          </div>
+                        )}
+                        {!record.upscaledUrl && upscalingTaskIds.has(record.id) && (
+                          <div className="flex items-center justify-center bg-[rgba(139,115,85,0.04)] rounded-xl aspect-[3/4] flex-col gap-2">
+                            <Loader2 className="w-5 h-5 text-[#c67b5c] animate-spin" />
+                            <div className="text-[12px] text-[#9b8e82]">放大中...</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Rating */}
-                  {isCompleted && resultImages.length > 0 && (
+                  {!collapsed && isCompleted && resultImages.length > 0 && (
                     <div className="mt-3 flex items-center gap-2">
                       <span className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider">评价：</span>
                       {[1, 2, 3, 4, 5].map((star) => {
@@ -566,7 +704,7 @@ export default function HistoryPage() {
           <div
             className="relative bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.2)] cursor-default"
             style={{
-              padding: '10px 10px 48px 10px',
+              padding: '14px 14px 56px 14px',
               transform: 'rotate(-1.5deg)',
               ...(previewSize ? {
                 width: `${previewSize.width}px`,
@@ -585,12 +723,14 @@ export default function HistoryPage() {
                 const naturalW = img.naturalWidth
                 const naturalH = img.naturalHeight
                 if (!naturalW || !naturalH) return
-                const maxW = window.innerWidth * 0.92 - 20
-                const maxH = window.innerHeight * 0.85 - 58
+                const padX = 28 // 14px * 2
+                const padY = 70 // 14px top + 56px bottom
+                const maxW = window.innerWidth * 0.92 - padX
+                const maxH = window.innerHeight * 0.85 - padY
                 const scale = Math.min(maxW / naturalW, maxH / naturalH, 1)
                 setPreviewSize({
-                  width: Math.round(naturalW * scale),
-                  height: Math.round(naturalH * scale),
+                  width: Math.round(naturalW * scale) + padX,
+                  height: Math.round(naturalH * scale) + padY,
                 })
               }}
             />

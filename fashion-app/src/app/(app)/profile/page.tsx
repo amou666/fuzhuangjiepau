@@ -45,7 +45,14 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex justify-end md:hidden -mb-1">
+      <div className="md:hidden flex items-center gap-2.5 -mb-1">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #8b7355 0%, #b0a59a 100%)' }}
+        >
+          <UserCircle className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">个人中心</h1>
         <TutorialButton id="profile" steps={TUTORIALS.profile} />
       </div>
       <div className="hidden md:block mb-1">

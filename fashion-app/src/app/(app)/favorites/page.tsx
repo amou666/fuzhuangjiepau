@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useDraftStore } from '@/lib/stores/draftStore'
 import type { Favorite, FavoriteType } from '@/lib/types'
 import { getErrorMessage } from '@/lib/utils/api'
 import { formatDateTime } from '@/lib/utils/format'
-import { Star, Trash2, Loader2, UserCircle, MapPin, Layers, ArrowRight, Shirt } from 'lucide-react'
+import { Star, Trash2, Loader2, UserCircle, MapPin, Layers, ArrowRight, Shirt, Plus, Upload, X, Check } from 'lucide-react'
 import { TutorialButton } from '@/lib/components/common/TutorialModal'
 import { TUTORIALS } from '@/lib/tutorials'
+import { ImageUploader } from '@/lib/components/common/ImageUploader'
 
 const TYPE_TABS: { key: FavoriteType | 'all'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'all', label: '全部', icon: Star },
@@ -25,6 +26,14 @@ const TYPE_LABELS: Record<string, string> = {
   scene: '场景',
   full: '完整',
 }
+
+type UploadType = Extract<FavoriteType, 'clothing' | 'model' | 'scene'>
+
+const UPLOAD_TYPES: { key: UploadType; label: string; icon: React.ComponentType<{ className?: string }>; desc: string; accent: string; bg: string }[] = [
+  { key: 'clothing', label: '服装', icon: Shirt, desc: '衣服正面/反面图片', accent: '#b08060', bg: 'rgba(176,128,96,0.08)' },
+  { key: 'model', label: '模特', icon: UserCircle, desc: '模特参考照片', accent: '#c67b5c', bg: 'rgba(198,123,92,0.08)' },
+  { key: 'scene', label: '场景', icon: MapPin, desc: '拍摄背景 / 场景图', accent: '#7d9b76', bg: 'rgba(125,155,118,0.08)' },
+]
 
 function getConfigSummary(fav: Favorite): string {
   const d = fav.data as Record<string, any>
@@ -56,6 +65,17 @@ function getConfigSummary(fav: Favorite): string {
     if (parts.length === 0 && d.imageUrl) return '上传场景图'
     return parts.join(' · ') || '场景配置'
   }
+  if (fav.type === 'full') {
+    const parts: string[] = []
+    const imgCount = [d.clothingUrl, d.modelImageUrl, d.sceneImageUrl].filter((v) => typeof v === 'string' && v).length
+    if (imgCount > 0) parts.push(`${imgCount} 图`)
+    if (d.mode === 'background') parts.push('背景图')
+    else if (d.mode === 'fusion') parts.push('融合')
+    if (typeof d.aspectRatio === 'string') parts.push(d.aspectRatio)
+    if (d.framing === 'half') parts.push('半身')
+    else if (d.framing === 'full') parts.push('全身')
+    return parts.join(' · ') || '完整配置'
+  }
   return '完整配置'
 }
 
@@ -75,6 +95,13 @@ export default function FavoritesPage() {
   const [activeTab, setActiveTab] = useState<FavoriteType | 'all'>('all')
   const [applyMsg, setApplyMsg] = useState('')
 
+  // ─── 上传对话框状态 ───
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [uploadType, setUploadType] = useState<UploadType>('clothing')
+  const [uploadImageUrl, setUploadImageUrl] = useState('')
+  const [uploadName, setUploadName] = useState('')
+  const [uploadSaving, setUploadSaving] = useState(false)
+
   useEffect(() => {
     setLoading(true)
     workspaceApi.getFavorites()
@@ -93,6 +120,48 @@ export default function FavoritesPage() {
     }
   }
 
+  const openUploadDialog = useCallback((preset?: UploadType) => {
+    setUploadType(preset ?? (activeTab === 'clothing' || activeTab === 'model' || activeTab === 'scene' ? activeTab : 'clothing'))
+    setUploadImageUrl('')
+    setUploadName('')
+    setUploadOpen(true)
+  }, [activeTab])
+
+  const closeUploadDialog = useCallback(() => {
+    if (uploadSaving) return
+    setUploadOpen(false)
+  }, [uploadSaving])
+
+  const handleUploadSave = useCallback(async () => {
+    if (!uploadImageUrl) {
+      setApplyMsg('请先上传一张图片')
+      setTimeout(() => setApplyMsg(''), 2000)
+      return
+    }
+    const defaultName = `${UPLOAD_TYPES.find(t => t.key === uploadType)?.label ?? '素材'} · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+    const name = uploadName.trim() || defaultName
+    setUploadSaving(true)
+    try {
+      const favorite = await workspaceApi.createFavorite({
+        type: uploadType,
+        name,
+        data: { imageUrl: uploadImageUrl },
+        previewUrl: uploadImageUrl,
+      })
+      setFavorites((prev) => [favorite, ...prev])
+      setApplyMsg(`已添加到素材库：${name}`)
+      setTimeout(() => setApplyMsg(''), 2000)
+      setUploadOpen(false)
+      setUploadImageUrl('')
+      setUploadName('')
+    } catch (err) {
+      setApplyMsg(getErrorMessage(err, '保存失败'))
+      setTimeout(() => setApplyMsg(''), 2500)
+    } finally {
+      setUploadSaving(false)
+    }
+  }, [uploadImageUrl, uploadName, uploadType])
+
   const handleApply = (fav: Favorite) => {
     const existing = useDraftStore.getState().quickWorkspaceDraft
     const base = {
@@ -103,6 +172,7 @@ export default function FavoritesPage() {
       sceneImageUrl: existing?.sceneImageUrl ?? '',
       aspectRatio: existing?.aspectRatio ?? '3:4' as const,
       framing: existing?.framing ?? 'auto' as const,
+      device: existing?.device ?? 'auto',
       extraPrompt: existing?.extraPrompt ?? '',
     }
 
@@ -135,8 +205,16 @@ export default function FavoritesPage() {
       }
       setQuickWorkspaceDraft({ ...base, sceneImageUrl: img })
     } else {
+      const validMode = d.mode === 'background' || d.mode === 'fusion' ? d.mode : base.mode
+      const validAspect = ['3:4', '1:1', '4:3', '16:9', '9:16'].includes(d.aspectRatio) ? d.aspectRatio : base.aspectRatio
+      const validFraming = ['auto', 'half', 'full'].includes(d.framing) ? d.framing : base.framing
       setQuickWorkspaceDraft({
         ...base,
+        mode: validMode,
+        aspectRatio: validAspect,
+        framing: validFraming,
+        device: typeof d.device === 'string' && d.device.trim() ? d.device : base.device,
+        extraPrompt: typeof d.extraPrompt === 'string' ? d.extraPrompt : base.extraPrompt,
         ...(typeof d.clothingUrl === 'string' ? { clothingUrl: d.clothingUrl } : {}),
         ...(typeof d.clothingBackUrl === 'string' ? { clothingBackUrl: d.clothingBackUrl } : {}),
         ...(typeof d.modelImageUrl === 'string' ? { modelImageUrl: d.modelImageUrl } : {}),
@@ -158,7 +236,7 @@ export default function FavoritesPage() {
           {applyMsg}
         </div>
       )}
-      <div className="md:hidden flex items-center gap-2.5 -mb-1">
+      <div className="md:hidden flex items-center gap-2 -mb-1">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #d4a06a 0%, #c67b5c 100%)' }}
@@ -167,6 +245,19 @@ export default function FavoritesPage() {
         </div>
         <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">素材库</h1>
         <TutorialButton id="favorites" steps={TUTORIALS.favorites} />
+        <button
+          type="button"
+          onClick={() => openUploadDialog()}
+          className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[12px] font-semibold text-white flex-shrink-0 transition-all active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+            boxShadow: '0 2px 8px rgba(198,123,92,0.25)',
+          }}
+          aria-label="上传素材"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>上传</span>
+        </button>
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">
@@ -177,12 +268,26 @@ export default function FavoritesPage() {
             <Star className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">素材库</h1>
-          <div className="ml-auto"><TutorialButton id="favorites" steps={TUTORIALS.favorites} /></div>
+          <div className="ml-auto flex items-center gap-2">
+            <TutorialButton id="favorites" steps={TUTORIALS.favorites} />
+            <button
+              type="button"
+              onClick={() => openUploadDialog()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold text-white transition-all active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+                boxShadow: '0 2px 12px rgba(198,123,92,0.3)',
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              上传素材
+            </button>
+          </div>
         </div>
         <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">管理你收藏的服装、模特、场景等素材，在快速工作台一键复用</p>
       </div>
 
-      {/* Tabs — 移动端横向滚动、桌面端常规排列 */}
+      {/* Tabs */}
       <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto no-scrollbar">
         <div className="flex gap-2 w-max md:w-auto">
           {TYPE_TABS.map(({ key, label, icon: Icon }) => (
@@ -229,69 +334,185 @@ export default function FavoritesPage() {
             <Star className="w-7 h-7 text-[#d4a06a]" style={{ opacity: 0.5 }} />
           </div>
           <h3 className="text-[15px] font-semibold text-[#b0a59a] mb-1">暂无收藏</h3>
-          <p className="text-[13px] text-[#c9bfb5]">在「快速工作台」上传服装/模特/场景后，点击每块旁的「收藏」按钮保存到素材库</p>
+          <p className="text-[13px] text-[#c9bfb5] mb-4">点击右上角「上传素材」添加，或在快速工作台 / 模特工厂生成后收藏</p>
+          <button
+            type="button"
+            onClick={() => openUploadDialog()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all"
+            style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: '0 2px 12px rgba(198,123,92,0.3)' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            上传第一个素材
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((fav) => (
-            <div
-              key={fav.id}
-              className="fashion-glass rounded-2xl p-4 shadow-sm group"
-            >
-              <div className="flex items-start gap-3">
-                {(() => {
-                  const img = getFavoriteImageUrl(fav)
-                  const TypeIcon = fav.type === 'clothing' ? Shirt : fav.type === 'model' ? UserCircle : fav.type === 'scene' ? MapPin : Layers
-                  const iconColor = fav.type === 'clothing' ? '#b08060' : fav.type === 'model' ? '#c67b5c' : fav.type === 'scene' ? '#7d9b76' : '#8b7355'
-                  const bgColor = fav.type === 'clothing' ? 'rgba(176,128,96,0.06)' : fav.type === 'model' ? 'rgba(198,123,92,0.06)' : fav.type === 'scene' ? 'rgba(125,155,118,0.06)' : 'rgba(139,115,85,0.06)'
-                  return img ? (
-                    <div className="w-14 h-14 rounded-xl overflow-hidden border border-[rgba(139,115,85,0.08)] flex-shrink-0">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+          {filtered.map((fav) => {
+            const img = getFavoriteImageUrl(fav)
+            const TypeIcon = fav.type === 'clothing' ? Shirt : fav.type === 'model' ? UserCircle : fav.type === 'scene' ? MapPin : Layers
+            const iconColor = fav.type === 'clothing' ? '#b08060' : fav.type === 'model' ? '#c67b5c' : fav.type === 'scene' ? '#7d9b76' : '#8b7355'
+            const bgColor = fav.type === 'clothing' ? 'rgba(176,128,96,0.06)' : fav.type === 'model' ? 'rgba(198,123,92,0.06)' : fav.type === 'scene' ? 'rgba(125,155,118,0.06)' : 'rgba(139,115,85,0.06)'
+            return (
+              <div
+                key={fav.id}
+                className="fashion-glass rounded-2xl shadow-sm group overflow-hidden flex flex-col"
+              >
+                {/* 竖向长方形预览图 */}
+                <div className="relative w-full aspect-[3/4] overflow-hidden" style={{ background: bgColor }}>
+                  {img ? (
+                    <img src={img} alt={fav.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   ) : (
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bgColor }}>
-                      <TypeIcon className="w-6 h-6" style={{ color: iconColor }} />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <TypeIcon className="w-10 h-10" style={{ color: iconColor, opacity: 0.6 }} />
                     </div>
-                  )
-                })()}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="inline-flex px-2 py-0.5 rounded text-[10px] font-semibold"
-                      style={
-                        fav.type === 'clothing' ? { background: 'rgba(176,128,96,0.1)', color: '#8b6540' }
-                        : fav.type === 'model' ? { background: 'rgba(198,123,92,0.08)', color: '#c67b5c' }
-                        : fav.type === 'scene' ? { background: 'rgba(125,155,118,0.08)', color: '#5a7a53' }
-                        : { background: 'rgba(139,115,85,0.08)', color: '#8b7355' }
-                      }
-                    >
-                      {TYPE_LABELS[fav.type] || fav.type}
-                    </span>
-                    <span className="text-[10px] text-[#c9bfb5]">{formatDateTime(fav.createdAt)}</span>
-                  </div>
-                  <div className="text-[13px] font-semibold text-[#2d2422] truncate">{fav.name}</div>
-                  <div className="text-[11px] text-[#b0a59a] truncate mt-0.5">{getConfigSummary(fav)}</div>
-                </div>
-                <div className="flex gap-1 flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                  )}
+                  {/* 类型标签 */}
+                  <span
+                    className="absolute top-2 left-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold backdrop-blur-sm"
+                    style={
+                      fav.type === 'clothing' ? { background: 'rgba(176,128,96,0.85)', color: '#fff' }
+                      : fav.type === 'model' ? { background: 'rgba(198,123,92,0.85)', color: '#fff' }
+                      : fav.type === 'scene' ? { background: 'rgba(125,155,118,0.85)', color: '#fff' }
+                      : { background: 'rgba(139,115,85,0.85)', color: '#fff' }
+                    }
+                  >
+                    {TYPE_LABELS[fav.type] || fav.type}
+                  </span>
+                  {/* 删除按钮 — 移动端常显，桌面端 hover 显 */}
                   <button
                     type="button"
-                    className="p-2 md:p-1.5 rounded-lg text-[#c9bfb5] hover:text-[#c47070] active:text-[#c47070] hover:bg-[rgba(196,112,112,0.06)] active:bg-[rgba(196,112,112,0.1)] transition-all"
+                    className="absolute top-2 right-2 w-8 h-8 md:w-7 md:h-7 rounded-full bg-white/85 backdrop-blur-sm text-[#8b7355] hover:text-[#c47070] active:text-[#c47070] flex items-center justify-center shadow-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all active:scale-90"
                     aria-label="删除收藏"
-                    onClick={() => handleDelete(fav.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleDelete(fav.id)
+                    }}
                   >
-                    <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                {/* 信息区 */}
+                <div className="p-2.5 md:p-3 flex flex-col gap-1.5 flex-1">
+                  <div className="text-[12px] md:text-[13px] font-semibold text-[#2d2422] line-clamp-1">{fav.name}</div>
+                  <div className="text-[10px] md:text-[11px] text-[#b0a59a] line-clamp-1">{getConfigSummary(fav)}</div>
+                  <div className="text-[10px] text-[#c9bfb5]">{formatDateTime(fav.createdAt)}</div>
+                  <button
+                    type="button"
+                    className="mt-1 w-full inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-[#c67b5c] bg-[rgba(198,123,92,0.06)] border border-[rgba(198,123,92,0.12)] hover:bg-[rgba(198,123,92,0.1)] active:scale-95 transition-all"
+                    onClick={() => handleApply(fav)}
+                  >
+                    <ArrowRight className="w-3 h-3" /> 应用
                   </button>
                 </div>
               </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ═══════════════ 上传素材对话框 ═══════════════ */}
+      {uploadOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          onClick={closeUploadDialog}
+        >
+          <div
+            className="w-full max-w-[460px] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-white/60 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-[#c67b5c]" />
+                <h3 className="text-[14px] font-semibold text-[#2d2422]">上传素材到素材库</h3>
+              </div>
               <button
                 type="button"
-                className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-semibold text-[#c67b5c] bg-[rgba(198,123,92,0.04)] border border-[rgba(198,123,92,0.1)] hover:bg-[rgba(198,123,92,0.08)] transition-all"
-                onClick={() => handleApply(fav)}
+                onClick={closeUploadDialog}
+                disabled={uploadSaving}
+                className="text-[#b0a59a] hover:text-[#6f5f55] transition-colors disabled:opacity-40"
+                aria-label="关闭"
               >
-                <ArrowRight className="w-3 h-3" /> 应用到快速工作台
+                <X className="w-4 h-4" />
               </button>
             </div>
-          ))}
+
+            {/* 类型选择 */}
+            <div className="mb-4">
+              <div className="text-[11px] font-medium text-[#8b7355] mb-2">素材类型</div>
+              <div className="grid grid-cols-3 gap-2">
+                {UPLOAD_TYPES.map((t) => {
+                  const Icon = t.icon
+                  const active = uploadType === t.key
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setUploadType(t.key)}
+                      disabled={uploadSaving}
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all disabled:opacity-60"
+                      style={{
+                        borderColor: active ? t.accent : 'rgba(139,115,85,0.12)',
+                        background: active ? t.bg : 'transparent',
+                      }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: active ? t.accent : '#b0a59a' }} />
+                      <span className="text-[12px] font-semibold" style={{ color: active ? t.accent : '#8b7355' }}>{t.label}</span>
+                      <span className="text-[10px] text-[#b0a59a] leading-tight text-center">{t.desc}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 图片上传 */}
+            <div className="mb-4">
+              <div className="text-[11px] font-medium text-[#8b7355] mb-2">图片</div>
+              <ImageUploader label="素材图" value={uploadImageUrl} onChange={setUploadImageUrl} />
+            </div>
+
+            {/* 名称输入 */}
+            <div className="mb-5">
+              <label className="block text-[11px] font-medium text-[#8b7355] mb-1.5">
+                名称 <span className="text-[#c9bfb5]">（选填，留空自动命名）</span>
+              </label>
+              <input
+                type="text"
+                value={uploadName}
+                onChange={(e) => setUploadName(e.target.value.slice(0, 40))}
+                placeholder={`${UPLOAD_TYPES.find(t => t.key === uploadType)?.label ?? ''} · 起个好记的名字`}
+                disabled={uploadSaving}
+                maxLength={40}
+                className="w-full h-10 px-3 rounded-lg border border-[rgba(139,115,85,0.15)] bg-white text-[13px] text-[#2d2422] outline-none focus:border-[rgba(198,123,92,0.4)] focus:ring-2 focus:ring-[rgba(198,123,92,0.08)] disabled:opacity-60"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !uploadSaving && uploadImageUrl) {
+                    void handleUploadSave()
+                  }
+                }}
+              />
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={closeUploadDialog}
+                disabled={uploadSaving}
+                className="flex-1 h-10 rounded-lg border border-[rgba(139,115,85,0.15)] text-[13px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)] transition-all disabled:opacity-60"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => { void handleUploadSave() }}
+                disabled={uploadSaving || !uploadImageUrl}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg text-[13px] font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
+              >
+                {uploadSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {uploadSaving ? '保存中...' : '保存到素材库'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

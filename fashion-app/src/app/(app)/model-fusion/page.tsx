@@ -84,6 +84,7 @@ export default function ModelFusionPage() {
   // ─── 参数生成模式状态 ───
   const [genConfig, setGenConfig] = useState<ModelConfig>(DEFAULT_MODEL_CONFIG)
   const [referenceUrl, setReferenceUrl] = useState('')
+  const [genExtraPrompt, setGenExtraPrompt] = useState('')
 
   useEffect(() => {
     setFusionDraft({ model1, model2, model3 })
@@ -139,7 +140,8 @@ export default function ModelFusionPage() {
     try {
       const data = await workspaceApi.generateModelPortrait(
         genConfig as unknown as Record<string, unknown>,
-        referenceUrl || undefined
+        referenceUrl || undefined,
+        genExtraPrompt.trim() || undefined
       )
       if (!data.resultUrls?.length) {
         setError('AI 未返回生成结果，请重试')
@@ -195,8 +197,12 @@ export default function ModelFusionPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Mobile tutorial */}
-      <div className="flex justify-end md:hidden -mb-2">
+      {/* Mobile header */}
+      <div className="md:hidden flex items-center gap-2.5 -mb-2">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center flex-shrink-0">
+          <Users className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">模特工厂</h1>
         <TutorialButton id="model-fusion" steps={TUTORIALS['model-fusion']} />
       </div>
 
@@ -291,6 +297,24 @@ export default function ModelFusionPage() {
               <SelectField label="发色" value={genConfig.hairColor ?? ''} options={hairColorOptions} onChange={v => updateGenConfig({ hairColor: v })} />
               <SelectField label="妆造 / 面部细节" value={genConfig.faceFeature} options={faceFeatureOptions} onChange={v => updateGenConfig({ faceFeature: v })} hint="妆容风格、雀斑酒窝等特征" />
               <SelectField label="表情" value={genConfig.expression || ''} options={expressionOptions} onChange={v => updateGenConfig({ expression: v })} />
+            </div>
+          </div>
+
+          {/* 补充提示词（可选） */}
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-[15px] font-bold text-[#2d2422]">补充提示词 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
+              <p className="text-[12px] text-[#9b8e82] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
+            </div>
+            <textarea
+              value={genExtraPrompt}
+              onChange={e => setGenExtraPrompt(e.target.value.slice(0, 500))}
+              placeholder="例：戴一副极细银框眼镜；耳朵戴一只小珍珠耳钉；表情自然带一丝浅笑。"
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl text-[13px] text-[#2d2422] bg-[rgba(139,115,85,0.03)] border border-[rgba(139,115,85,0.1)] outline-none focus:border-[rgba(198,123,92,0.4)] focus:bg-white transition-all resize-none placeholder:text-[#c9bfb5]"
+            />
+            <div className="mt-1.5 text-right text-[11px] text-[#b0a59a] tabular-nums">
+              {genExtraPrompt.length} / 500
             </div>
           </div>
 
@@ -491,7 +515,7 @@ export default function ModelFusionPage() {
           <div
             className="relative bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.2)] cursor-default"
             style={{
-              padding: '10px 10px 48px 10px',
+              padding: '14px 14px 56px 14px',
               transform: 'rotate(-1.5deg)',
               ...(previewSize ? { width: `${previewSize.width}px`, height: `${previewSize.height}px` } : {}),
             }}
@@ -507,10 +531,12 @@ export default function ModelFusionPage() {
                 const naturalW = img.naturalWidth
                 const naturalH = img.naturalHeight
                 if (!naturalW || !naturalH) return
-                const maxW = window.innerWidth * 0.92 - 20
-                const maxH = window.innerHeight * 0.85 - 58
+                const padX = 28
+                const padY = 70
+                const maxW = window.innerWidth * 0.92 - padX
+                const maxH = window.innerHeight * 0.85 - padY
                 const scale = Math.min(maxW / naturalW, maxH / naturalH, 1)
-                setPreviewSize({ width: Math.round(naturalW * scale), height: Math.round(naturalH * scale) })
+                setPreviewSize({ width: Math.round(naturalW * scale) + padX, height: Math.round(naturalH * scale) + padY })
               }}
             />
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">

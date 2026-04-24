@@ -108,10 +108,11 @@ export const workspaceApi = {
     });
     return response.data;
   },
-  generateModelPortrait: async (modelConfig: Record<string, unknown>, referenceUrl?: string) => {
+  generateModelPortrait: async (modelConfig: Record<string, unknown>, referenceUrl?: string, extraPrompt?: string) => {
     const response = await apiClient.post<{ resultUrls: string[]; taskId: string; credits: number }>('/model-fusion/generate', {
       modelConfig,
       referenceUrl,
+      extraPrompt,
     });
     return response.data;
   },
