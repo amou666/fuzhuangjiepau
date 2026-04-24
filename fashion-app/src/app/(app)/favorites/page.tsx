@@ -158,7 +158,14 @@ export default function FavoritesPage() {
           {applyMsg}
         </div>
       )}
-      <div className="flex justify-end md:hidden -mb-1">
+      <div className="md:hidden flex items-center gap-2.5 -mb-1">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #d4a06a 0%, #c67b5c 100%)' }}
+        >
+          <Star className="w-4 h-4 text-white" />
+        </div>
+        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">素材库</h1>
         <TutorialButton id="favorites" steps={TUTORIALS.favorites} />
       </div>
       <div className="hidden md:block mb-1">
@@ -175,34 +182,36 @@ export default function FavoritesPage() {
         <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">管理你收藏的服装、模特、场景等素材，在快速工作台一键复用</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        {TYPE_TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-medium transition-all border cursor-pointer"
-            style={activeTab === key ? {
-              background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
-              color: '#fff',
-              borderColor: 'transparent',
-              boxShadow: '0 2px 10px rgba(198,123,92,0.2)',
-            } : {
-              background: 'rgba(139,115,85,0.03)',
-              color: '#8b7355',
-              borderColor: 'rgba(139,115,85,0.08)',
-            }}
-            onClick={() => setActiveTab(key)}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            {label}
-            {key !== 'all' && (
-              <span className="text-[10px] opacity-70">
-                ({favorites.filter((f) => f.type === key).length})
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Tabs — 移动端横向滚动、桌面端常规排列 */}
+      <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 w-max md:w-auto">
+          {TYPE_TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all border cursor-pointer whitespace-nowrap flex-shrink-0"
+              style={activeTab === key ? {
+                background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+                color: '#fff',
+                borderColor: 'transparent',
+                boxShadow: '0 2px 10px rgba(198,123,92,0.2)',
+              } : {
+                background: 'rgba(139,115,85,0.03)',
+                color: '#8b7355',
+                borderColor: 'rgba(139,115,85,0.08)',
+              }}
+              onClick={() => setActiveTab(key)}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+              {key !== 'all' && (
+                <span className="text-[10px] opacity-70">
+                  ({favorites.filter((f) => f.type === key).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -263,21 +272,14 @@ export default function FavoritesPage() {
                   <div className="text-[13px] font-semibold text-[#2d2422] truncate">{fav.name}</div>
                   <div className="text-[11px] text-[#b0a59a] truncate mt-0.5">{getConfigSummary(fav)}</div>
                 </div>
-                <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="flex gap-1 flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                   <button
                     type="button"
-                    className="p-1.5 rounded-lg text-[#c67b5c] hover:bg-[rgba(198,123,92,0.08)] transition-all"
-                    title="应用到快速工作台"
-                    onClick={() => handleApply(fav)}
-                  >
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-1.5 rounded-lg text-[#c9bfb5] hover:text-[#c47070] hover:bg-[rgba(196,112,112,0.06)] transition-all"
+                    className="p-2 md:p-1.5 rounded-lg text-[#c9bfb5] hover:text-[#c47070] active:text-[#c47070] hover:bg-[rgba(196,112,112,0.06)] active:bg-[rgba(196,112,112,0.1)] transition-all"
+                    aria-label="删除收藏"
                     onClick={() => handleDelete(fav.id)}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                   </button>
                 </div>
               </div>

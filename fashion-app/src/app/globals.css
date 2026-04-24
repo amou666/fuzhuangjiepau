@@ -171,3 +171,12 @@ select {
     0 1px 2px rgba(139, 115, 85, 0.04),
     0 6px 20px rgba(139, 115, 85, 0.08);
 }
+
+/* 隐藏滚动条（用于移动端横向滚动的标签/tab 条） */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
