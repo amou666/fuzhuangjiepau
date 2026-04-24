@@ -25,10 +25,13 @@ export const config = {
   aiApiUrl: process.env.AI_API_URL || 'https://api.apiyi.com/v1/chat/completions',
   aiApiBaseUrl: process.env.AI_API_URL?.replace('/chat/completions', '') || 'https://api.apiyi.com/v1',
   aiApiKey: process.env.AI_API_KEY || '',
-  aiModel: process.env.AI_MODEL || 'nano-banana-2',
-  /** 参考图分辨率：high 更利还原但易「刀锐」；nano-banana 街拍可试 auto 或 low 略柔 */
+  /** 生图模型：用于所有图像合成、改款、变色、放大等会输出图片的调用 */
+  aiModel: process.env.AI_MODEL || 'gpt-image-2-all',
+  /** 分析模型：用于图像/文字分析（服装识别、材质 DNA、脑暴方向等文本输出） */
+  analysisModel: process.env.ANALYSIS_MODEL || 'nano-banana-2',
+  /** 参考图分辨率：high 更利还原但易「刀锐」；街拍风格可试 auto 或 low 略柔 */
   aiImageDetail: (process.env.AI_IMAGE_DETAIL || 'high') as 'low' | 'high' | 'auto',
-  /** 仅部分网关支持；未配置则不发送。nano-banana 系可试 0.55–0.75 略减「过滑」 */
+  /** 仅部分网关支持；未配置则不发送。可在 0.55–0.75 之间微调以略减「过滑」 */
   aiGenerationTemperature: (() => {
     const raw = process.env.AI_GENERATION_TEMPERATURE
     if (raw === undefined || raw === '') return undefined

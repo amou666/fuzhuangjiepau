@@ -51,11 +51,7 @@ export async function processGenerationTask(taskId: string) {
       const quickAspect = sceneConfig.aspectRatio || '3:4'
       const quickDevice: string = typeof sceneConfig.quickDevice === 'string' ? sceneConfig.quickDevice : 'auto'
 
-      db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('DESCRIBING_SCENE', taskId)
-      const placementBlueprint = quickMode === 'background'
-        ? await ai.analyzeBackgroundForPlacement(sceneImageUrl, userApiKey, { framing: quickFraming, device: quickDevice })
-        : await ai.analyzePersonInScene(sceneImageUrl, userApiKey)
-
+      // 简化 prompt 后不再需要前置布局分析，直接进入合成，节省一次 AI 请求 + 延迟
       db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('GENERATING', taskId)
       const resultUrl = await ai.generateQuickWorkspaceImage(taskId, {
         mode: quickMode,
@@ -63,7 +59,6 @@ export async function processGenerationTask(taskId: string) {
         clothingBackUrl: task.clothingBackUrl || undefined,
         modelImageUrl,
         sceneImageUrl,
-        placementBlueprint,
         extraPrompt: sceneConfig.prompt || undefined,
         aspectRatio: quickAspect,
         framing: quickFraming,
@@ -71,8 +66,8 @@ export async function processGenerationTask(taskId: string) {
       }, userApiKey)
 
       db.prepare(
-        "UPDATE GenerationTask SET status = ?, resultUrl = ?, clothingDescription = ?, finishedAt = datetime('now'), updatedAt = datetime('now') WHERE id = ?"
-      ).run('COMPLETED', resultUrl, placementBlueprint, taskId)
+        "UPDATE GenerationTask SET status = ?, resultUrl = ?, finishedAt = datetime('now'), updatedAt = datetime('now') WHERE id = ?"
+      ).run('COMPLETED', resultUrl, taskId)
 
       pushTaskNotification(task.userId, 'success', taskId, 'quick-workspace')
       console.log(`✅ Quick-workspace task ${taskId} completed`)

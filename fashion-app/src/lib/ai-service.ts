@@ -3,7 +3,7 @@ import path from 'path'
 import { Agent, ProxyAgent, fetch as undiciFetch } from 'undici'
 import { config, getUploadPath } from './config'
 import { db } from './db'
-import { getActiveAiModel } from './system-config'
+import { getActiveAnalysisModel, getActiveGenerationModel } from './system-config'
 import { getDevicePreset } from './device-presets'
 import type { ModelConfig, SceneConfig } from './types'
 
@@ -30,7 +30,6 @@ import {
   getModelGenderDescriptor,
   getModelSkinTonePhrase,
 } from './model-narrative'
-import { appendNanoBananaRealismHint } from './nano-banana-realism'
 
 type ChatMessageContentPart =
   | { type: 'text'; text: string }
@@ -128,7 +127,7 @@ export class AIService {
     }
 
     const response = await this.requestChatCompletion({
-      model: getActiveAiModel(),
+      model: getActiveAnalysisModel(),
       stream: false,
       messages: [
         { role: 'system', content: 'You are a senior fashion stylist. Analyze garment images and provide concise descriptions.' },
@@ -332,7 +331,7 @@ export class AIService {
     userApiKey?: string
   ): Promise<string> {
     const universalAntiFakeFace = this.getUniversalAntiFakeFaceClause()
-    const imageUserPrompt = appendNanoBananaRealismHint(`${prompt}\n\n${universalAntiFakeFace}`, getActiveAiModel())
+    const imageUserPrompt = `${prompt}\n\n${universalAntiFakeFace}`
     const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
 
     // 替换模式：模特参考图(新人物锚点) → 服装图 → 场景参考图(姿势+背景)
@@ -511,7 +510,7 @@ Return only the generated image in base64 without markdown or explanation.`
     }
 
     const genPayload: Record<string, unknown> = {
-      model: getActiveAiModel(),
+      model: getActiveGenerationModel(),
       stream: false,
       messages: [
         {
@@ -542,89 +541,10 @@ Return only the generated image in base64 without markdown or explanation.`
 
   // ===== 快速工作台 =====
   /**
-   * 分析纯背景图，返回「模特在这张图里站在哪 / 以什么姿势」的视觉布局建议。
-   * 用于 background 模式：先读背景 → 文字蓝图 → 再合成最终图。
-   */
-  async analyzeBackgroundForPlacement(backgroundUrl: string, userApiKey?: string, options?: { framing?: 'auto' | 'half' | 'full'; device?: string }): Promise<string> {
-    const framing = options?.framing || 'auto'
-    const framingHint = framing === 'full'
-      ? '\n\n【用户指定取景：全身照】请在 <posePrompt> 中明确描述"全身站立姿势"，让模特脚到头全部可见；在 <positionPrompt> 中指出画面中头顶和脚底大致的位置，确保出图能完整展示全身。'
-      : framing === 'half'
-      ? '\n\n【用户指定取景：半身照】请在 <posePrompt> 中描述半身（腰部以上/胸以上）的姿势与手部动作；在 <positionPrompt> 中指出头顶与腰部的画面位置，确保出图以半身为主。'
-      : ''
-
-    const devicePreset = getDevicePreset(options?.device)
-    const deviceHint = devicePreset.placementHint
-      ? `\n\n【拍摄器材限制】${devicePreset.placementHint}\n请让 <posePrompt> 与 <positionPrompt> 契合该器材：焦距 / 光圈 / 最佳拍摄距离会直接影响取景范围、景深感和模特在画面中的占比；如果与上方"用户指定取景"冲突，以用户指定取景为准。`
-      : ''
-
-    const instruction = `你是一个专业的场景分析与模特摆姿专家。请分析用户提供的场景图片（空白场景，无人物），重点关注：
-
-1. 场景类型与风格（室内/室外、装修风格、氛围）
-2. 光线条件（光源方向、光线质感、阴影分布）
-3. 空间布局（前景/中景/后景区分、视觉焦点位置）
-4. 构图美学（黄金分割点、视觉引导线、留白区域）
-
-基于以上分析，输出两部分提示词（用 XML 标签包裹）：
-
-<posePrompt>
-描述模特最适合的姿势、动作、神态。包括：
-- 身体姿态（站姿/坐姿/行走/倚靠等）
-- 四肢动作（手部位置、腿部姿势）
-- 头部朝向与表情
-- 整体动态感（自然/优雅/活力等）
-</posePrompt>
-
-<positionPrompt>
-描述模特在场景中的最佳位置，包括：
-- 具体站位（画面左侧/右侧/中央等）
-- 与场景元素的关系（靠近窗户、站在沙发旁等）
-- 景深层次（前景突出/融入背景）
-- 与光线的互动（面向光源/背光/侧光）
-</positionPrompt>
-
-请用中文输出，描述要具体且符合场景氛围。${framingHint}${deviceHint}`
-    const raw = await this.analyzeImage(backgroundUrl, instruction, userApiKey)
-    return this.normalizeQuickWorkspaceBlueprint(raw)
-  }
-
-  /** 从 AI 输出中抽取 <posePrompt> / <positionPrompt>，拼成结构化蓝图。抽取失败时退回原文。 */
-  private normalizeQuickWorkspaceBlueprint(raw: string): string {
-    const text = raw?.trim?.() || ''
-    if (!text) return ''
-    const poseMatch = text.match(/<posePrompt>([\s\S]*?)<\/posePrompt>/i)
-    const posMatch = text.match(/<positionPrompt>([\s\S]*?)<\/positionPrompt>/i)
-    const pose = poseMatch?.[1]?.trim() || ''
-    const position = posMatch?.[1]?.trim() || ''
-    if (!pose && !position) return text
-    const parts: string[] = []
-    if (position) parts.push(`【模特位置】${position}`)
-    if (pose) parts.push(`【模特姿势】${pose}`)
-    return parts.join('\n')
-  }
-
-  /**
-   * 分析含人物的图：返回 (1) 原人物的位置/姿势蓝图；(2) 背景本身的简洁描述。
-   * 用于 fusion 模式：读出姿势蓝图 → 生图时让新模特穿新衣服、站到同一位置 + 同样姿势，背景保留原样。
-   */
-  async analyzePersonInScene(sceneUrl: string, userApiKey?: string): Promise<string> {
-    const instruction = [
-      'You are a senior fashion photographer & art director. This image contains a PERSON inside a scene. We will REPLACE that person with a new model wearing different clothes, while keeping THE SAME COMPOSITION, camera angle, framing and position (this is a person-swap, not a re-shoot).',
-      'Produce ONE compact English paragraph that will be used as a BLUEPRINT to redraw the shot. It MUST include:',
-      '  1. FRAME & CAMERA: framing category (full body / 3-4 length / waist-up / half body), camera height (eye-level / low / high) and focal-length feel (wide / standard / short tele).',
-      '  2. POSITION inside the frame: horizontal placement (left / center / right, with thirds if useful) and where the feet / hip line sit vertically.',
-      '  3. HUMAN SCALE: approximate head height in percent of the frame height — be concrete (a single number like "head ≈ 12% of frame height"). Also note the head-top y% and feet/ground-contact y% from the top of the frame.',
-      '  4. POSE: detailed body pose — body orientation (front / 3-4 / profile), weight leg, arm and hand positions, head tilt, gaze direction.',
-      '  5. LIGHT ON PERSON: direction of the key light, which side is highlighted vs in shadow, shadow softness, and the direction and softness of the ground-contact shadow.',
-      '  6. BACKGROUND: short description of the scene (location, surfaces, depth, atmosphere) so we know what to preserve after removing the original person.',
-      'CRITICAL: DO NOT describe the original person\'s face, hair, skin tone, age, body shape, or clothing — those will be replaced. Describe ONLY framing + position + scale + pose + light + background.',
-      'No disclaimers, no markdown, no lists — ONE paragraph only.',
-    ].join(' ')
-    return this.analyzeImage(sceneUrl, instruction, userApiKey)
-  }
-
-  /**
-   * 快速工作台一键合成：衣服（正+可选反面）+ 模特参考图 + 场景图 + 布局蓝图 → 最终图。
+   * 快速工作台一键合成：衣服（正+可选反面）+ 模特参考图 + 场景图 → 最终图。
+   *
+   * 注：早期版本会先用一次 AI 请求（analyzeBackgroundForPlacement / analyzePersonInScene）
+   * 产出"布局蓝图"再注入；简化 image2 风格的 prompt 后不再需要，直接一步出图以节省延迟与成本。
    */
   async generateQuickWorkspaceImage(
     taskId: string,
@@ -634,7 +554,6 @@ Return only the generated image in base64 without markdown or explanation.`
       clothingBackUrl?: string
       modelImageUrl: string
       sceneImageUrl: string
-      placementBlueprint: string
       extraPrompt?: string
       aspectRatio?: '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
       framing?: 'auto' | 'half' | 'full'
@@ -642,16 +561,15 @@ Return only the generated image in base64 without markdown or explanation.`
     },
     userApiKey?: string
   ): Promise<string> {
-    const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, placementBlueprint, extraPrompt } = input
+    const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt } = input
     const aspectRatio = input.aspectRatio || '3:4'
     const framing = input.framing || 'auto'
     const devicePreset = getDevicePreset(input.device)
     const deviceBlock = devicePreset.promptFragment
       ? [
-          '',
-          '【拍摄器材与出片风格（严格遵守，这决定了最终照片是真实相机/手机拍出来的感觉）】',
+          `【拍摄模式：${devicePreset.label}（严格遵守，决定最终照片的真实质感）】`,
           devicePreset.promptFragment,
-          '注意：器材定义的焦距会影响"模特与镜头距离"和"画面中身体占比"；光圈决定"背景虚化程度"；成像风格决定"色彩/颗粒/锐度/HDR 强度"。以上三者必须在最终图中表现出来，禁止输出其他器材的成像感。',
+          '按以上摄影关键词还原焦距、光圈、景深、光线氛围、颗粒感与构图节奏；禁止输出计算摄影式的过度清洁/锐化/HDR。',
         ].join('\n')
       : ''
 
@@ -665,86 +583,52 @@ Return only the generated image in base64 without markdown or explanation.`
     const aspectHint = aspectHintMap[aspectRatio] || '输出图像比例 3:4'
 
     const framingHintZh = framing === 'full'
-      ? '构图要求：全身照——模特从头到脚完整入画，头顶以上和脚以下各留一点空气，不得裁切身体任一部位。'
+      ? '构图：全身照，模特从头到脚完整入画。'
       : framing === 'half'
-      ? '构图要求：半身照——以腰部或胸部以上入画，双手至少一只可见；画面不得露出脚部。'
-      : '构图要求：根据场景氛围自动选择最合适的取景。'
+      ? '构图：半身照，腰部或胸部以上入画。'
+      : '构图：根据场景氛围自动选择最合适的取景。'
 
     const universalAntiFakeFace = this.getUniversalAntiFakeFaceClause()
 
+    // 图片顺序：① 模特 → ② 衣服正面 → ③ 衣服反面（可选）→ 最后一张 = 场景/参考图
+    const sceneIdx = clothingBackUrl ? 4 : 3
+    const clothingRef = clothingBackUrl ? '图[2] 与图[3]' : '图[2]'
+
     const userPrompt = mode === 'background'
       ? [
-          '你是专业的虚拟试衣助手。用户会提供多张图片和一段姿势描述。',
+          `图[1] 是模特，图[2] 是衣服正面${clothingBackUrl ? '，图[3] 是衣服反面' : ''}，图[${sceneIdx}] 是场景图。`,
+          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，置身于图[${sceneIdx}] 的场景里。`,
           '',
-          '你的任务：根据用户提供的姿势描述，将衣服穿到对应姿势的人物身上。',
-          '',
-          `【输出图片比例】${aspectHint}。不要输出其他比例，不要额外填黑边或拉伸。`,
-          `【${framingHintZh}】`,
+          '- 衣服颜色、面料、纹理、图案、版型必须与原图完全一致；除非衣服原图自带，不得新增任何配饰。',
+          '- 模特脸型、五官、发色、肤色保持与图[1] 一致。',
+          `- 画面明显是图[${sceneIdx}] 的同一地点（保留至少 2 个可辨识元素），允许重新取景和微调相机角度。`,
+          '- 如果衣服只是上衣，必须补全协调的下装与鞋子，不得赤裸或赤脚。',
+          '- 按真实成人比例渲染（约 7.5 头身），双脚踏实地面，禁止巨人感、娃娃头、悬空。',
+          `- 输出比例：${aspectHint}，不要输出其他比例、不要加黑边或拉伸。`,
+          `- ${framingHintZh}`,
           deviceBlock,
+          extraPrompt ? `- 用户补充：${extraPrompt}` : '',
           '',
-          '【图片顺序与角色】',
-          '  - 图[1] 模特参考图：仅用作模特的脸型、五官、发色发型、肤色等身份特征，严禁复制该图的身体比例、姿势、构图、相机角度、光照和背景。',
-          '  - 图[2] 衣服正面：模特必须穿着这件衣服，颜色、面料、纹理、图案、版型、细节都要与原图完全一致。',
-          clothingBackUrl ? '  - 图[3] 衣服反面：用于补全衣服背面的细节。' : '',
-          `  - 图[${clothingBackUrl ? 4 : 3}] 场景图：作为最终拍摄地点参考（建筑、材质、空间氛围、主光方向等）。允许重新取景/调整相机角度，但必须看得出是"同一个地方"，至少保留 2 个该场景中可辨识的元素。`,
-          '',
-          '【姿势与位置描述（请严格按照此描述渲染人物姿态和在画面中的位置）】',
-          placementBlueprint,
-          extraPrompt ? `\n【用户补充要求】${extraPrompt}` : '',
-          '',
-          '【关于下装和鞋子的重要要求】',
-          '- 如果用户只提供了上衣（如T恤、衬衫、外套等），你必须为模特搭配合适的下装（裤子/裙子/短裤等）和鞋子。',
-          '- 下装风格必须与上衣协调（如休闲上衣配休闲裤/牛仔裤，正式衬衫配西裤等）。',
-          '- 鞋子也要搭配完整（运动鞋、皮鞋、凉鞋等，根据整体风格决定）。',
-          '- 绝对不允许生成没穿裤子或没穿鞋子的模特。',
-          '- 根据模特可见的身体部分推断合适的下装和鞋子。',
-          '',
-          '【其他要求】',
-          '- 必须严格按照上方"姿势与位置描述"生成人物姿态与在画面中的站位。',
-          '- 衣服细节必须和用户提供的完全一致。',
-          '- 优先使用模特参考图的脸部与身体特征（身份锁定），不要复制模特参考图的构图。',
-          '- 背景可以根据需要适当调整取景，但必须明显是场景图中的同一地点。',
-          '- 保持提示词中描述的角度、姿势、动态感。',
-          '',
-          '【人体比例硬约束（避免比例错误或悬浮）】',
-          '- 按真实成人比例渲染（约 7.5 头身，身高约 1.7m），双脚踏实地面，地面接触阴影要自然。',
-          '- 透视与地平线必须与场景一致；禁止巨人感、娃娃头、悬空。',
-          '- 画面中人物占比要与姿势描述中的取景（全身/三分之二身/半身）匹配。',
-          '',
-          '【配饰锁定】',
-          '- 除非衣服原图里本来就有，不要新增任何手袋、首饰、手表、墨镜、帽子、腰带、围巾、手套等配饰，手里不要拿东西。',
-          '',
-          '请直接生成最终图片（base64，无需 markdown 或解释）。',
+          '请直接输出最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
       : [
-          '你是专业的虚拟试衣助手。用户会提供多张图片：',
-          '  - 图[1] 模特参考图：用于提取模特的脸部特征（脸型、五官轮廓、肤色）。',
-          '  - 图[2] 衣服正面' + (clothingBackUrl ? '；图[3] 衣服反面' : '') + '。',
-          `  - 图[${clothingBackUrl ? 4 : 3}] 参考图（含原模特与场景）：提供基础姿态、构图、场景氛围。`,
+          `图[1] 是模特，图[2] 是衣服正面${clothingBackUrl ? '，图[3] 是衣服反面' : ''}，图[${sceneIdx}] 是参考图（含原人物与场景）。`,
+          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，替换图[${sceneIdx}] 中的原人物；并对环境进行轻微改变（光影角度、色调饱和度、局部陈设调整），避免与原图雷同以规避侵权。`,
           '',
-          `【输出图片比例】${aspectHint}。`,
-          `【${framingHintZh}】`,
+          '- 衣服细节必须与图[2]（及反面）完全一致——颜色、款式、图案、材质、纹理、剪裁不得走样。',
+          '- 模特身份锁定图[1]；发型可改、脸型微调，年龄保持 30 岁以下。',
+          `- 保持图[${sceneIdx}] 的基础姿态、构图与取景，仅局部替换陈设/植被/云彩等元素或调整光影色调；不得换成完全不相关的场景；纯色棚拍背景则只调光影色调、不加物品。`,
+          '- 过滤掉参考图中的所有文字、水印、logo，结果中不得出现任何文字。',
+          '- 按真实成人比例渲染（约 7.5 头身），透视与地平线与参考图一致。',
+          `- 输出比例：${aspectHint}。`,
+          `- ${framingHintZh}`,
           deviceBlock,
+          extraPrompt ? `- 用户补充：${extraPrompt}` : '',
           '',
-          '你的任务：生成"把用户的衣服、并结合模特参考图的脸部特征，穿到参考模特身上，并把参考模特的特征替换成上传模特的特征"的图片。要求：',
-          '- 衣服细节必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁）——这是最重要的。',
-          '- 下装（裤子/裙子等）可以做轻微调整（版型微调、长度微调、褶皱纹理变化），风格保持协调；如果参考图里原本没穿鞋或没穿裤，必须补全合适的下装和鞋子。',
-          '- 模特发型必须改变（换一种不同的发型和发色），脸型微调，以避免侵权；但模特年龄必须控制在 30 岁以下，保持年轻感。',
-          '- 配饰要有变化（首饰、包包、帽子、鞋子等与原图不同）。',
-          '- 场景背景要有较明显调整（更换光影角度、调整色调饱和度、微调景深虚化）。若参考图是具体场景，场景中的物品要有多处变化：室内场景更换家具、摆件、窗帘、地毯、花瓶等；户外场景更换植被种类、调整树木花草位置、更换或移除长椅/路灯/围栏等地景元素，添加或移除天空中的云彩。若参考图是纯色背景（白底、灰底等棚拍纯色），则不要新增任何物品，只调整光影和色调。整体仍保持在同一类型场景中，不要换成完全不相关的场景。',
-          '- 保持模特的姿态和构图基本不变。',
-          '- 参考图中的所有文字、水印、logo 必须全部过滤掉，生成结果中不要出现任何文字。',
-          '',
-          '【原模特姿态与构图参考（供保持姿态一致使用）】',
-          placementBlueprint,
-          extraPrompt ? `\n【用户补充要求】${extraPrompt}` : '',
-          '',
-          '【人体比例硬约束】按真实成人比例渲染（约 7.5 头身），双脚踏实地面；透视与地平线与参考图一致；禁止巨人感、娃娃头、悬空。',
-          '',
-          '请直接生成换装后的图片（base64，无需 markdown 或解释）。',
+          '请直接输出换装后的图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
 
-    const imageUserPrompt = appendNanoBananaRealismHint(`${userPrompt}\n\n${universalAntiFakeFace}`, getActiveAiModel())
+    const imageUserPrompt = `${userPrompt}\n\n${universalAntiFakeFace}`
     const content: ChatMessageContentPart[] = [{ type: 'text', text: imageUserPrompt }]
 
     content.push({
@@ -771,7 +655,7 @@ Return only the generated image in base64 without markdown or explanation.`
       : '你是专业的虚拟试衣助手。本次任务是"换装合成"：使用模特参考图的脸部特征（脸型、五官、肤色）作为新模特的脸，但发型和发色必须换成与原参考图不同的样式；模特年龄控制在 30 岁以下并保持年轻感；脸型可做轻微调整以避免侵权。衣服必须和用户提供的完全一致（颜色、款式、图案、材质、纹理、剪裁），这是最重要的；下装可做轻微版型/长度/褶皱调整；未覆盖部分必须补全合适的下装和鞋子，严禁没穿裤子或没穿鞋子。配饰（首饰、包、帽子、鞋等）需要与参考图不同。姿态与构图基本保持；背景要有明显调整：若参考图是具体场景则替换家具/摆件/植被/云彩等物品并调整光影色调，若参考图是纯色棚拍背景则只调整光影色调、不新增物品；整体仍属于同一类型场景。必须过滤掉参考图中的所有文字、水印、logo，生成图中不得出现任何文字。模特需按真实成人比例（约 7.5 头身）渲染，双脚着地，透视与地平线与参考图一致，禁止巨人、娃娃头或悬空。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
 
     const genPayload: Record<string, unknown> = {
-      model: getActiveAiModel(),
+      model: getActiveGenerationModel(),
       stream: false,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -825,7 +709,7 @@ Return only the generated image in base64 without markdown or explanation.`
     ].filter(Boolean).join(' ')
 
     const response = await this.requestChatCompletion({
-      model: getActiveAiModel(),
+      model: getActiveGenerationModel(),
       stream: false,
       messages: [
         {
@@ -897,7 +781,7 @@ Return only the generated image in base64 without markdown or explanation.`
     }
 
     const response = await this.requestChatCompletion({
-      model: getActiveAiModel(),
+      model: getActiveGenerationModel(),
       stream: false,
       messages: [
         {
@@ -1043,7 +927,7 @@ CLOTHING|fitted black ribbed knit turtleneck, matte texture, long sleeves, no ac
     }
 
     const response = await this.requestChatCompletion({
-      model: getActiveAiModel(),
+      model: getActiveGenerationModel(),
       stream: false,
       messages: [
         {
@@ -1246,7 +1130,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
       ]
 
       const response = await this.requestChatCompletion({
-        model: getActiveAiModel(),
+        model: getActiveGenerationModel(),
         stream: false,
         messages: [
           {
@@ -1309,7 +1193,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
       ]
 
       const response = await this.requestChatCompletion({
-        model: getActiveAiModel(),
+        model: getActiveGenerationModel(),
         stream: false,
         messages: [
           {
@@ -1430,7 +1314,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
         ]
 
         const response = await this.requestChatCompletion({
-          model: getActiveAiModel(),
+          model: getActiveGenerationModel(),
           stream: false,
           messages: [
             {
@@ -1502,7 +1386,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
       ]
 
       const response = await this.requestChatCompletion({
-        model: getActiveAiModel(),
+        model: getActiveGenerationModel(),
         stream: false,
         messages: [
           {
@@ -1569,7 +1453,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
 
     try {
       const response = await this.requestChatCompletion({
-        model: getActiveAiModel(),
+        model: getActiveGenerationModel(),
         stream: false,
         imageSize: '4k',
         messages: upscaleMessages,
@@ -1619,7 +1503,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
 
   private async analyzeImage(imageUrl: string, instruction: string, userApiKey?: string): Promise<string> {
     const response = await this.requestChatCompletion({
-      model: getActiveAiModel(),
+      model: getActiveAnalysisModel(),
       stream: false,
       messages: [
         {

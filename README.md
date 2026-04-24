@@ -44,7 +44,8 @@ npm run dev
 | `JWT_REFRESH_SECRET` | JWT 刷新令牌密钥 | 启动时随机生成 |
 | `AI_API_URL` | AI API 地址 | `https://api.apiyi.com/v1` |
 | `AI_API_KEY` | AI API Key | 无 |
-| `AI_MODEL` | AI 模型名 | `nano-banana-2` |
+| `AI_MODEL` | 生图模型（图像合成、改款、模特工厂等输出图片的调用） | `gpt-image-2-all` |
+| `ANALYSIS_MODEL` | 分析模型（服装识别、材质 DNA、改款脑暴等输出文本的调用） | `nano-banana-2` |
 | `PUBLIC_API_BASE_URL` | 公开 API 基础 URL | `http://localhost:3001` |
 | `MAX_FILE_SIZE` | 最大上传文件大小 | `10485760` (10MB) |
 

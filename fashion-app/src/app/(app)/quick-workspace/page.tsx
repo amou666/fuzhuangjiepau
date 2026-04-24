@@ -250,10 +250,19 @@ export default function QuickWorkspacePage() {
               </div>
             </section>
 
+            {/* Model */}
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[12px] font-semibold text-[#8b7355]">② 选择模特</div>
+                <FavButton disabled={!modelImageUrl} onClick={() => openFavDialog('model')} />
+              </div>
+              <ImageUploader label="模特照片" value={modelImageUrl} onChange={setModelImageUrl} helperText="清晰的半身/全身照作为面部锚点" />
+            </section>
+
             {/* Clothing */}
             <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[12px] font-semibold text-[#8b7355]">② 上传衣服</div>
+                <div className="text-[12px] font-semibold text-[#8b7355]">③ 上传衣服</div>
                 <FavButton disabled={!clothingUrl} onClick={() => openFavDialog('clothing')} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -266,15 +275,6 @@ export default function QuickWorkspacePage() {
                   <ImageUploader label="衣服反面" value={clothingBackUrl} onChange={setClothingBackUrl} helperText="若有反面细节请上传" />
                 </div>
               </div>
-            </section>
-
-            {/* Model */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[12px] font-semibold text-[#8b7355]">③ 选择模特</div>
-                <FavButton disabled={!modelImageUrl} onClick={() => openFavDialog('model')} />
-              </div>
-              <ImageUploader label="模特照片" value={modelImageUrl} onChange={setModelImageUrl} helperText="清晰的半身/全身照作为面部锚点" />
             </section>
 
             {/* Scene */}
@@ -347,11 +347,11 @@ export default function QuickWorkspacePage() {
                 </div>
               </div>
 
-              {/* 拍摄设备 */}
+              {/* 拍摄模式 */}
               <div className="mt-5 pt-5 border-t border-[rgba(139,115,85,0.08)]">
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <div className="text-[11px] font-semibold text-[#8b7355]">拍摄设备</div>
-                  <div className="text-[10px] text-[#b0a59a]">焦距 / 光圈 / 景深 / 焦外 / 透视 / 成像风格 由设备决定</div>
+                  <div className="text-[11px] font-semibold text-[#8b7355]">拍摄模式</div>
+                  <div className="text-[10px] text-[#b0a59a]">不同模式对应不同焦距、景深、光线氛围与构图节奏</div>
                 </div>
 
                 {/* 自动 */}
@@ -368,17 +368,17 @@ export default function QuickWorkspacePage() {
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-3.5 h-3.5 text-[#c67b5c]" />
                       <span className="text-[12px] font-semibold text-[#2d2422]">自动</span>
-                      <span className="text-[10px] text-[#8b7355]">不指定器材，由 AI 自主决定拍摄方式</span>
+                      <span className="text-[10px] text-[#8b7355]">不指定拍摄模式，由 AI 自主决定</span>
                     </div>
                   </button>
                 </div>
 
-                {/* 相机 */}
+                {/* 单反 */}
                 <div className="mb-2 flex items-center gap-1.5">
                   <Camera className="w-3.5 h-3.5 text-[#8b7355]" />
-                  <span className="text-[11px] font-semibold text-[#8b7355]">相机</span>
+                  <span className="text-[11px] font-semibold text-[#8b7355]">单反</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
                   {CAMERA_PRESETS.map((p) => {
                     const active = device === p.id
                     return (
@@ -408,7 +408,7 @@ export default function QuickWorkspacePage() {
                   <Smartphone className="w-3.5 h-3.5 text-[#8b7355]" />
                   <span className="text-[11px] font-semibold text-[#8b7355]">手机</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   {PHONE_PRESETS.map((p) => {
                     const active = device === p.id
                     return (
@@ -497,7 +497,7 @@ export default function QuickWorkspacePage() {
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-[#c67b5c] mx-auto mb-3" />
                     <div className="text-[12px] text-[#8b7355] font-medium">
-                      {status === 'DESCRIBING_SCENE' ? 'AI 正在分析场景与姿势...' : status === 'GENERATING' ? 'AI 正在合成图像...' : '任务准备中...'}
+                      {status === 'GENERATING' ? 'AI 正在合成图像...' : '任务准备中...'}
                     </div>
                   </div>
                 )}

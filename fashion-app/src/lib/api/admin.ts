@@ -61,14 +61,24 @@ export const adminApi = {
 
   getSystemConfig: async () => {
     const response = await apiClient.get<{
-      systemConfig: { aiModel: string; defaultAiModel: string }
+      systemConfig: {
+        aiModel: string;
+        defaultAiModel: string;
+        analysisModel: string;
+        defaultAnalysisModel: string;
+      };
     }>('/admin/system-config');
     return response.data.systemConfig;
   },
-  updateSystemConfig: async (payload: { aiModel: string }) => {
+  updateSystemConfig: async (payload: { aiModel?: string; analysisModel?: string }) => {
     const response = await apiClient.put<{
       success: boolean;
-      systemConfig: { aiModel: string; defaultAiModel: string };
+      systemConfig: {
+        aiModel: string;
+        defaultAiModel: string;
+        analysisModel: string;
+        defaultAnalysisModel: string;
+      };
     }>('/admin/system-config', payload);
     return response.data.systemConfig;
   },

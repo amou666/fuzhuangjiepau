@@ -6,7 +6,7 @@ import type { Customer } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
 import { hasMinPasswordLength, isValidEmail, normalizeEmail } from '@/lib/utils/validation';
-import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles, Download, Loader2, CheckSquare, Square, Zap, Cpu, RotateCcw, Check } from 'lucide-react';
+import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles, Download, Loader2, CheckSquare, Square, Zap } from 'lucide-react';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -24,15 +24,6 @@ export default function CustomersPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // AI 模型设置
-  const [aiModel, setAiModel] = useState('');
-  const [defaultAiModel, setDefaultAiModel] = useState('');
-  const [modelLoading, setModelLoading] = useState(false);
-  const [modelSaving, setModelSaving] = useState(false);
-  const [modelSavedAt, setModelSavedAt] = useState<number | null>(null);
-
-  const MODEL_PRESETS = ['nano-banana-2', 'gpt-4o', 'gpt-4o-mini', 'gemini-2.5-flash-image'];
-
   const loadCustomers = async () => {
     try {
       setCustomers(await adminApi.getCustomers());
@@ -41,57 +32,9 @@ export default function CustomersPage() {
     }
   };
 
-  const loadSystemConfig = async () => {
-    setModelLoading(true);
-    try {
-      const sc = await adminApi.getSystemConfig();
-      setAiModel(sc.aiModel || '');
-      setDefaultAiModel(sc.defaultAiModel || '');
-    } catch (loadError) {
-      setError(getErrorMessage(loadError, '加载 AI 模型配置失败'));
-    } finally {
-      setModelLoading(false);
-    }
-  };
-
   useEffect(() => {
     void loadCustomers().finally(() => setInitialLoading(false));
-    void loadSystemConfig();
   }, []);
-
-  const handleSaveModel = async () => {
-    setModelSaving(true);
-    setError('');
-    try {
-      const sc = await adminApi.updateSystemConfig({ aiModel: aiModel.trim() });
-      setAiModel(sc.aiModel || '');
-      setDefaultAiModel(sc.defaultAiModel || '');
-      setModelSavedAt(Date.now());
-      setTimeout(() => setModelSavedAt(null), 2500);
-    } catch (err) {
-      setError(getErrorMessage(err, '保存 AI 模型失败'));
-    } finally {
-      setModelSaving(false);
-    }
-  };
-
-  const handleResetModel = async () => {
-    if (!confirm(`恢复为默认模型（${defaultAiModel || 'nano-banana-2'}）？`)) return;
-    setAiModel('');
-    setModelSaving(true);
-    setError('');
-    try {
-      const sc = await adminApi.updateSystemConfig({ aiModel: '' });
-      setAiModel(sc.aiModel || '');
-      setDefaultAiModel(sc.defaultAiModel || '');
-      setModelSavedAt(Date.now());
-      setTimeout(() => setModelSavedAt(null), 2500);
-    } catch (err) {
-      setError(getErrorMessage(err, '恢复默认模型失败'));
-    } finally {
-      setModelSaving(false);
-    }
-  };
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -231,78 +174,6 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold text-gray-900">客户管理</h1>
         </div>
         <p className="text-gray-500 text-sm ml-[52px]">创建客户、设置 API Key、启用或禁用账号。</p>
-      </div>
-
-      {/* AI 模型设置 */}
-      <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-purple-500" />
-            AI 模型设置
-          </h2>
-          <div className="flex items-center gap-2 text-[11px] text-gray-500">
-            <span>默认:</span>
-            <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600">
-              {defaultAiModel || 'nano-banana-2'}
-            </code>
-            <span>·</span>
-            <span>当前生效:</span>
-            <code className="px-1.5 py-0.5 rounded bg-purple-50 font-mono text-purple-600">
-              {(aiModel && aiModel.trim()) || defaultAiModel || 'nano-banana-2'}
-            </code>
-          </div>
-        </div>
-
-        <p className="text-[12px] text-gray-500 mb-3 leading-relaxed">
-          用于所有图像生成、识别、改款等 AI 调用。留空或点击「恢复默认」将使用环境变量 <code className="font-mono">AI_MODEL</code> 或内置默认值。修改后立即对所有后续请求生效。
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          <input
-            className="flex-1 px-3.5 py-2.5 bg-white/75 border border-black/10 rounded-[10px] text-sm text-gray-800 transition-all focus:outline-none focus:border-purple-500 focus:ring-[3px] focus:ring-purple-500/15 backdrop-blur-sm font-mono"
-            type="text"
-            value={aiModel}
-            disabled={modelLoading || modelSaving}
-            onChange={(e) => setAiModel(e.target.value)}
-            placeholder={defaultAiModel || 'nano-banana-2'}
-            spellCheck={false}
-          />
-          <button
-            onClick={handleSaveModel}
-            disabled={modelLoading || modelSaving}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white border-none rounded-xl text-sm font-semibold transition-all shadow-[0_2px_8px_rgba(168,85,247,0.3)] hover:shadow-[0_4px_16px_rgba(168,85,247,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-          >
-            {modelSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : modelSavedAt ? <Check className="w-4 h-4" /> : null}
-            {modelSavedAt ? '已保存' : '保存'}
-          </button>
-          <button
-            onClick={handleResetModel}
-            disabled={modelLoading || modelSaving}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/70 text-gray-700 border border-black/10 rounded-xl text-sm font-medium backdrop-blur-sm hover:bg-white/90 hover:border-purple-500/30 hover:text-purple-500 disabled:opacity-50"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            恢复默认
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="text-[11px] text-gray-400 self-center mr-1">常用预设:</span>
-          {MODEL_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setAiModel(preset)}
-              disabled={modelLoading || modelSaving}
-              className={`px-2 py-1 rounded-md text-[11px] font-mono border transition-all disabled:opacity-50 ${
-                aiModel === preset
-                  ? 'bg-purple-500 text-white border-purple-500'
-                  : 'bg-white/70 text-gray-600 border-black/10 hover:border-purple-500/40 hover:text-purple-500'
-              }`}
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
       </div>
 
       {error && (

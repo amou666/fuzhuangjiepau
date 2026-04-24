@@ -109,6 +109,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS SystemConfig (
     id TEXT PRIMARY KEY DEFAULT 'global',
     aiModel TEXT NOT NULL DEFAULT '',
+    analysisModel TEXT NOT NULL DEFAULT '',
     updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -163,6 +164,9 @@ try {
 } catch {}
 try {
   db.exec(`ALTER TABLE GenerationTask ADD COLUMN resultUrls TEXT DEFAULT '[]'`)
+} catch {}
+try {
+  db.exec(`ALTER TABLE SystemConfig ADD COLUMN analysisModel TEXT NOT NULL DEFAULT ''`)
 } catch {}
 // 迁移：将空字符串 apiKey 改为 NULL，避免 UNIQUE 约束冲突
 try {
