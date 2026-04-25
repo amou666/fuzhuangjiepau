@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
@@ -8,7 +9,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
-import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon } from 'lucide-react'
+import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon, Smartphone, Camera } from 'lucide-react'
 import { TutorialButton } from '@/lib/components/common/TutorialModal'
 import { TUTORIALS } from '@/lib/tutorials'
 import type { ModelConfig } from '@/lib/types'
@@ -38,6 +39,21 @@ const selectStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
   minWidth: 0,
 }
+
+const PRESET_PROMPTS: { key: string; label: string; text: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  {
+    key: 'phone',
+    label: '手机拍摄',
+    icon: Smartphone,
+    text: 'shot on iPhone 16, 26mm lens, Apple ProRAW photo, natural ambient lighting, slightly uneven exposure, subtle highlights slightly overexposed, soft shadows, candid moment, unposed, looking at camera, slightly off-center composition, casual framing, mild motion blur, slight camera shake, fine grain noise, realistic texture, imperfect skin details, visible pores, lens distortion, slight chromatic aberration, background slightly messy and organic, real-life atmosphere, everyday snapshot feeling',
+  },
+  {
+    key: 'dslr',
+    label: '单反拍摄',
+    icon: Camera,
+    text: 'shot on DSLR, 85mm lens, f/1.4 aperture, very shallow depth of field, sharp focus on eyes, creamy background bokeh, cinematic natural lighting, high detail skin texture, visible pores, subtle imperfections, realistic shadows, slight lens breathing, soft highlight roll-off',
+  },
+]
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   mode: 'generate',
@@ -328,6 +344,27 @@ export default function ModelFusionPage() {
               <h3 className="text-[15px] font-bold text-[#2d2422]">补充提示词 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
             </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {PRESET_PROMPTS.map(preset => {
+                const active = genExtraPrompt === preset.text
+                return (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => setGenExtraPrompt(active ? '' : preset.text)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all border"
+                    style={{
+                      background: active ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.03)',
+                      borderColor: active ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.1)',
+                      color: active ? '#c67b5c' : '#8b7355',
+                    }}
+                  >
+                    <preset.icon className="w-3.5 h-3.5" />
+                    {preset.label}
+                  </button>
+                )
+              })}
+            </div>
             <textarea
               value={genExtraPrompt}
               onChange={e => setGenExtraPrompt(e.target.value.slice(0, 500))}
@@ -595,8 +632,59 @@ function SelectField({ label, value, options, onChange, hint }: {
   hint?: string
 }) {
   const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; upward?: boolean } | null>(null)
   const selectedOption = options.find(opt => opt.value === value)
   const displayLabel = selectedOption?.label || value || '请选择'
+
+  useEffect(() => {
+    if (!open || !btnRef.current) return
+    const updatePos = () => {
+      const rect = btnRef.current!.getBoundingClientRect()
+      const maxH = 240
+      const gap = 4
+      let top = rect.bottom + gap
+      // 若下方空间不足则向上展开
+      const upward = top + maxH > window.innerHeight && rect.top > maxH + gap
+      if (upward) {
+        top = rect.top - maxH - gap
+      }
+      setPos({ top, left: rect.left, width: rect.width, upward })
+    }
+    updatePos()
+    window.addEventListener('scroll', updatePos, true)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      window.removeEventListener('scroll', updatePos, true)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [open])
+
+  const dropdown = open && pos && (
+    <>
+      <div className="fixed inset-0 z-[200]" onClick={() => setOpen(false)} />
+      <div
+        className="fixed z-[201] max-h-[240px] overflow-y-auto rounded-xl bg-white border border-[rgba(139,115,85,0.12)] shadow-lg py-1"
+        style={{ top: pos.top, left: pos.left, width: pos.width }}
+      >
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            className="w-full px-3 py-2 text-left text-[13px] transition-colors truncate"
+            style={{
+              color: opt.value === value ? '#c67b5c' : '#2d2422',
+              background: opt.value === value ? 'rgba(198,123,92,0.06)' : 'transparent',
+              fontWeight: opt.value === value ? 600 : 400,
+            }}
+            onClick={() => { onChange(opt.value); setOpen(false) }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
 
   return (
     <div className="flex flex-col gap-1 min-w-0">
@@ -604,6 +692,7 @@ function SelectField({ label, value, options, onChange, hint }: {
       {/* 移动端：自定义下拉 */}
       <div className="md:hidden relative">
         <button
+          ref={btnRef}
           type="button"
           onClick={() => setOpen(true)}
           className="w-full text-left rounded-[10px] border bg-[rgba(139,115,85,0.03)] border-[rgba(139,115,85,0.1)] outline-none transition-all"
@@ -614,28 +703,7 @@ function SelectField({ label, value, options, onChange, hint }: {
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-[200]" onClick={() => setOpen(false)} />
-            <div className="absolute left-0 right-0 top-full mt-1 z-[201] max-h-[240px] overflow-y-auto rounded-xl bg-white border border-[rgba(139,115,85,0.12)] shadow-lg py-1">
-              {options.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className="w-full px-3 py-2 text-left text-[13px] transition-colors truncate"
-                  style={{
-                    color: opt.value === value ? '#c67b5c' : '#2d2422',
-                    background: opt.value === value ? 'rgba(198,123,92,0.06)' : 'transparent',
-                    fontWeight: opt.value === value ? 600 : 400,
-                  }}
-                  onClick={() => { onChange(opt.value); setOpen(false) }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {typeof document !== 'undefined' && dropdown && createPortal(dropdown, document.body)}
       </div>
       {/* 桌面端：原生 select */}
       <select className="hidden md:block" style={selectStyle} value={value} onChange={e => onChange(e.target.value)}>

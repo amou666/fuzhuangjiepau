@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Amou',
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
   },
   formatDetection: {
     telephone: false,

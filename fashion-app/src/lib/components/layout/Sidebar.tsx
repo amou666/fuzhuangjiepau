@@ -190,6 +190,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         }}
       >
         <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt="Amou"
@@ -243,6 +244,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[rgba(139,115,85,0.06)]">
           <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
               alt="Amou"
