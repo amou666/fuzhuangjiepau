@@ -483,7 +483,9 @@ export default function FavoritesPage() {
                         background: active ? t.bg : 'transparent',
                       }}
                     >
-                      <Icon className="w-5 h-5" style={{ color: active ? t.accent : '#b0a59a' }} />
+                      <span style={{ color: active ? t.accent : '#b0a59a' }}>
+                        <Icon className="w-5 h-5" />
+                      </span>
                       <span className="text-[12px] font-semibold" style={{ color: active ? t.accent : '#8b7355' }}>{t.label}</span>
                       <span className="text-[10px] text-[#b0a59a] leading-tight text-center">{t.desc}</span>
                     </button>

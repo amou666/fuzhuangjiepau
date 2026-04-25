@@ -187,7 +187,6 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         style={{
           background: 'rgba(250,247,244,0.9)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(139,115,85,0.06)',
         }}
       >
         <div className="flex items-center gap-2.5">
@@ -200,7 +199,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
           <div className="leading-none">
             <span
               className="block text-[17px] font-bold text-[#2d2422]"
-              style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Snell Roundhand", "Apple Chancery", cursive', letterSpacing: '0.01em' }}
+              style={{ fontFamily: 'var(--font-parisienne)' }}
             >
               Amou
             </span>
@@ -254,7 +253,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
               <div className="min-w-0 leading-none">
                 <span
                   className="text-[20px] font-bold text-[#2d2422] block"
-                  style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Snell Roundhand", "Apple Chancery", cursive', letterSpacing: '0.01em' }}
+                  style={{ fontFamily: 'var(--font-parisienne)' }}
                 >
                   Amou
                 </span>

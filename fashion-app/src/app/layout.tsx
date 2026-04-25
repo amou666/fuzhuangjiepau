@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from 'next'
+import { Parisienne } from 'next/font/google'
 import './globals.css'
+
+const parisienne = Parisienne({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-parisienne',
+})
 
 export const metadata: Metadata = {
   title: 'Amou 服装工作室',
@@ -28,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className={parisienne.variable}>
       <body>{children}</body>
     </html>
   )

@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { MiniBarChart } from '@/lib/components/charts/MiniBarChart'
-import { DonutChart } from '@/lib/components/charts/DonutChart'
-import { HorizontalBar } from '@/lib/components/charts/HorizontalBar'
-import { BarChart3, Loader2, TrendingUp, Target, Coins, Zap, Image, Palette } from 'lucide-react'
+import { BarChart3, Loader2, TrendingUp, Target, Coins, Zap, Image } from 'lucide-react'
 import { TutorialButton } from '@/lib/components/common/TutorialModal'
 import { TUTORIALS } from '@/lib/tutorials'
 
@@ -35,16 +33,6 @@ interface CreditSummary {
   dailyStats: Array<{ date: string; spent: number; recharged: number }>
   typeStats: Record<string, number>
 }
-
-const GENDER_LABELS: Record<string, string> = { female: '女性', male: '男性', androgynous: '中性' }
-const BODY_LABELS: Record<string, string> = { petite: '娇小', slim: '修长', athletic: '匀称健美', average: '标准', curvy: '曲线', plus: '丰满', muscular: '肌肉型' }
-
-function extractChinese(str: string): string {
-  const m = str.match(/（(.+?)）/)
-  return m ? m[1] : str.split('（')[0]
-}
-
-const DONUT_COLORS = ['#c67b5c', '#d4a882', '#8b7355', '#b0a59a', '#7d9b76', '#9bb07d']
 
 function StatCard({ icon: Icon, label, value, sub, color }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
@@ -122,42 +110,13 @@ export default function StatsPage() {
 
   const dailyChartData = [...daily].reverse().slice(-14).map((d) => ({
     label: d.date.slice(5),
-    value: d.total,
+    value: Number(d.total) || 0,
   }))
 
   const creditChartData = [...creditDaily].reverse().slice(-14).map((d) => ({
     label: d.date.slice(5),
-    value: d.spent,
+    value: Number(d.spent) || 0,
     color: '#c67b5c',
-  }))
-
-  const taskDonutData = ov ? [
-    { label: '成功', value: ov.successTasks, color: '#7d9b76' },
-    { label: '失败', value: ov.failedTasks, color: '#c47070' },
-    { label: '进行中', value: ov.pendingTasks, color: '#d4a06a' },
-  ].filter((d) => d.value > 0) : []
-
-  const poseData = Object.entries(genStats?.modelPreferences?.pose ?? {}).map(([k, v]) => ({
-    label: extractChinese(k),
-    value: v,
-  }))
-
-  const sceneData = Object.entries(genStats?.scenePreferences?.preset ?? {}).map(([k, v]) => ({
-    label: extractChinese(k),
-    value: v,
-    color: '#7d9b76',
-  }))
-
-  const genderData = Object.entries(genStats?.modelPreferences?.gender ?? {}).map(([k, v], i) => ({
-    label: GENDER_LABELS[k] || k,
-    value: v,
-    color: DONUT_COLORS[i % DONUT_COLORS.length],
-  }))
-
-  const bodyData = Object.entries(genStats?.modelPreferences?.bodyType ?? {}).map(([k, v], i) => ({
-    label: BODY_LABELS[k] || k,
-    value: v,
-    color: DONUT_COLORS[(i + 2) % DONUT_COLORS.length],
   }))
 
   return (
@@ -216,51 +175,7 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Task Status + Gender/Body Donuts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="fashion-glass rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="w-4 h-4 text-[#7d9b76]" />
-            <span className="text-[13px] font-semibold text-[#2d2422]">任务状态分布</span>
-          </div>
-          <DonutChart data={taskDonutData} />
-        </div>
 
-        <div className="fashion-glass rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-4 h-4 text-[#c67b5c]" />
-            <span className="text-[13px] font-semibold text-[#2d2422]">性别偏好</span>
-          </div>
-          <DonutChart data={genderData} size={100} />
-        </div>
-
-        <div className="fashion-glass rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-4 h-4 text-[#8b7355]" />
-            <span className="text-[13px] font-semibold text-[#2d2422]">体型偏好</span>
-          </div>
-          <DonutChart data={bodyData} size={100} />
-        </div>
-      </div>
-
-      {/* Preference Bars */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="fashion-glass rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-[#c67b5c]" />
-            <span className="text-[13px] font-semibold text-[#2d2422]">常用姿势 TOP 8</span>
-          </div>
-          <HorizontalBar data={poseData} maxItems={8} />
-        </div>
-
-        <div className="fashion-glass rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-[#7d9b76]" />
-            <span className="text-[13px] font-semibold text-[#2d2422]">常用场景 TOP 8</span>
-          </div>
-          <HorizontalBar data={sceneData} maxItems={8} barColor="#7d9b76" />
-        </div>
-      </div>
     </div>
   )
 }

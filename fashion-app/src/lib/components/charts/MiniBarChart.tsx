@@ -13,29 +13,92 @@ interface MiniBarChartProps {
 }
 
 export function MiniBarChart({ data, height = 120, barColor = '#c67b5c' }: MiniBarChartProps) {
-  if (data.length === 0) return <div className="text-[11px] text-[#c9bfb5] text-center py-6">暂无数据</div>
+  if (data.length === 0) {
+    return (
+      <div style={{ fontSize: 11, color: '#c9bfb5', textAlign: 'center', padding: '24px 0' }}>
+        暂无数据
+      </div>
+    )
+  }
+
+  if (data.every((d) => d.value === 0)) {
+    return (
+      <div style={{ fontSize: 11, color: '#c9bfb5', textAlign: 'center', padding: '24px 0' }}>
+        暂无数据
+      </div>
+    )
+  }
 
   const max = Math.max(...data.map((d) => d.value), 1)
 
   return (
-    <div className="flex items-end gap-[3px]" style={{ height }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: 3,
+        height,
+      }}
+    >
       {data.map((item, i) => {
-        const h = Math.max((item.value / max) * 100, 2)
+        const h = Math.max((item.value / max) * height, 4)
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0 group relative">
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              minWidth: 0,
+              position: 'relative',
+            }}
+          >
             <div
-              className="w-full rounded-t-sm transition-all duration-300 group-hover:opacity-80"
               style={{
-                height: `${h}%`,
+                width: '100%',
+                borderRadius: '2px 2px 0 0',
+                height: h,
                 background: item.color || barColor,
-                minHeight: '2px',
+                minHeight: 4,
+                transition: 'all 0.3s',
               }}
             />
-            <span className="text-[8px] text-[#c9bfb5] truncate w-full text-center leading-none">
+            <span
+              style={{
+                fontSize: 8,
+                color: '#c9bfb5',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                width: '100%',
+                textAlign: 'center',
+                lineHeight: 1,
+              }}
+            >
               {item.label}
             </span>
             {/* Tooltip */}
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#2d2422] text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            <div
+              className="mini-bar-tooltip"
+              style={{
+                position: 'absolute',
+                top: -24,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#2d2422',
+                color: '#fff',
+                fontSize: 9,
+                padding: '2px 6px',
+                borderRadius: 4,
+                whiteSpace: 'nowrap',
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                pointerEvents: 'none',
+                zIndex: 10,
+              }}
+            >
               {item.value}
             </div>
           </div>

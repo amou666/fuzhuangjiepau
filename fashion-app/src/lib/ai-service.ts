@@ -592,19 +592,17 @@ Return only the generated image in base64 without markdown or explanation.`
 
     const universalAntiFakeFace = this.getUniversalAntiFakeFaceClause()
 
-    // 图片顺序：① 模特 → ② 衣服正面 → ③ 衣服反面（可选）→ 最后一张 = 场景/参考图
-    const sceneIdx = clothingBackUrl ? 4 : 3
-    const clothingRef = clothingBackUrl ? '图[2] 与图[3]' : '图[2]'
+    // 角色标签法：不再用图[1]图[2]数字索引，改用固定角色名，不受图片数量影响
+    const clothingRef = clothingBackUrl ? '【衣服正面】和【衣服反面】' : '【衣服正面】'
 
     const userPrompt = mode === 'background'
       ? [
-          `图[1] 是模特，图[2] 是衣服正面${clothingBackUrl ? '，图[3] 是衣服反面' : ''}，图[${sceneIdx}] 是场景图。`,
-          `任务：让图[1] 的模特穿上${clothingRef} 的衣服，置身于图[${sceneIdx}] 的场景中。`,
+          `让【模特】穿上${clothingRef}的衣服，放入【场景】中。真实，自然，和谐。`,
           '',
-          '- 衣服颜色、面料、纹理、图案、版型必须与原图完全一致；除非衣服原图自带，不得新增任何配饰。',
-          '- 模特脸型、五官、发色、肤色保持与图[1] 一致。',
-          '- 【场景位置】分析图[' + sceneIdx + '] 的空间布局，将模特放在场景中最合理、最自然的位置（如走道中央、窗边、建筑入口、楼梯上、柱子旁等）。不得将模特放在不合逻辑的位置（如墙面正中间、半空中、障碍物上、无立足之处）。',
-          '- 画面明显是图[' + sceneIdx + '] 的同一地点（保留至少 2 个可辨识元素），允许重新取景和微调相机角度。',
+          '- 衣服颜色、面料、纹理、图案、版型必须和【衣服正面】' + (clothingBackUrl ? '以及【衣服反面】' : '') + '完全一致；除非衣服原图自带，不得新增任何配饰。',
+          '- 模特脸型、五官、发色、肤色保持和【模特】一致。',
+          '- 分析【场景】的空间布局，将模特放在最自然、最合理的位置（如走道中央、窗边、建筑入口、楼梯上、柱子旁等）。不得放在不合逻辑的位置（如墙面正中间、半空中、障碍物上、无立足之处）。',
+          '- 画面明显是【场景】的同一地点（保留至少 2 个可辨识元素），允许重新取景和微调相机角度。',
           '- 模特的双脚必须踩在场景中可站立的表面上，身体重心自然，与场景透视和地平线一致。',
           '- 如果衣服只是上衣，必须补全协调的下装与鞋子，不得赤裸或赤脚。',
           '- 按真实成人比例渲染（约 7.5 头身），双脚踏实地面，禁止巨人感、娃娃头、悬空。',
@@ -613,21 +611,16 @@ Return only the generated image in base64 without markdown or explanation.`
           deviceBlock,
           extraPrompt ? `- 用户补充：${extraPrompt}` : '',
           '',
-          '请直接输出最终图片（base64，无需 markdown 或解释）。',
+          '直接返回最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
       : [
-          `让图[1] 的模特穿上${clothingRef} 的衣服，替换图[${sceneIdx}] 中的人物。保留原图的姿态和场景，对背景做微调（光影、色调、摆件小改），对配饰换不同款式。`,
+          `让【模特】穿上${clothingRef}的衣服，替换【参考图】中的人物。`,
           '',
-          `图[1] 模特 — 脸必须和这张图一致`,
-          `图[2] 衣服正面 — 必须完全一致`,
-          clothingBackUrl ? `图[3] 衣服反面 — 必须完全一致` : '',
-          `图[${sceneIdx}] 参考图 — 替换其中的人物，保留姿态和场景`,
-          '',
-          '- 脸 = 图[1]',
-          '- 衣服 = 图[2]' + (clothingBackUrl ? ' + 图[3]（反面）' : ''),
-          '- 姿态和场景 = 图[' + sceneIdx + ']，删除原人物',
-          '- 背景微调：光影方向/色温可变，摆件可换，整体氛围保持',
-          '- 下装：如果参考图人物穿着下装，新人物的下装款式和颜色可以做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样',
+          '- 【模特】的脸必须完全替换掉【参考图】中原人物的脸，禁止保留参考图的任何面部特征',
+          '- 衣服必须和【衣服正面】' + (clothingBackUrl ? '以及【衣服反面】' : '') + '完全一致',
+          '- 保留【参考图】的姿态和场景，删除原人物',
+          '- 背景可做微调（光影方向/色温可变，摆件可换，整体氛围保持）',
+          '- 下装：如果参考图人物穿着下装，新人物的下装款式和颜色可做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样',
           '- 配饰：换不同款式，但类型对应（有包→有包，有帽→有帽）',
           '- 真实成人比例（7.5头身），双脚着地',
           `- 输出比例：${aspectHint}`,
@@ -635,79 +628,41 @@ Return only the generated image in base64 without markdown or explanation.`
           deviceBlock,
           extraPrompt ? `- 用户补充：${extraPrompt}` : '',
           '',
-          '请直接输出换装后的图片（base64，无需 markdown 或解释）。',
+          universalAntiFakeFace,
+          '',
+          '直接返回最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
-
-    const imageUserPrompt = mode === 'background'
-      ? `${userPrompt}\n\n${universalAntiFakeFace}`
-      : userPrompt
 
     const content: ChatMessageContentPart[] = []
 
-    if (mode === 'background') {
-      // 背景图模式：文字在前，图片在后（保持原逻辑）
-      content.push({ type: 'text', text: imageUserPrompt })
+    // 统一结构：先放角色标签+图片，让AI先看图，最后放文字指令
+    content.push({ type: 'text', text: '【模特】' })
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
+    })
+    content.push({ type: 'text', text: '【衣服正面】' })
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
+    })
+    if (clothingBackUrl) {
+      content.push({ type: 'text', text: '【衣服反面】' })
       content.push({
         type: 'image_url',
-        image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
+        image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
       })
-      content.push({
-        type: 'image_url',
-        image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
-      })
-      if (clothingBackUrl) {
-        content.push({
-          type: 'image_url',
-          image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
-        })
-      }
-      content.push({
-        type: 'image_url',
-        image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
-      })
-    } else {
-      // 融合模式：图片在前，文字指令在后（让AI先看图再读规则）
-      content.push({
-        type: 'text',
-        text: `[图[1] 模特]`,
-      })
-      content.push({
-        type: 'image_url',
-        image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
-      })
-      content.push({
-        type: 'text',
-        text: `[图[2] 衣服正面]`,
-      })
-      content.push({
-        type: 'image_url',
-        image_url: { url: await this.toDataUrl(clothingUrl), detail: config.aiImageDetail },
-      })
-      if (clothingBackUrl) {
-        content.push({
-          type: 'text',
-          text: `[图[3] 衣服反面]`,
-        })
-        content.push({
-          type: 'image_url',
-          image_url: { url: await this.toDataUrl(clothingBackUrl), detail: config.aiImageDetail },
-        })
-      }
-      content.push({
-        type: 'text',
-        text: `[图[${sceneIdx}] 参考图]`,
-      })
-      content.push({
-        type: 'image_url',
-        image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
-      })
-      // 文字指令放最后
-      content.push({ type: 'text', text: imageUserPrompt })
     }
+    content.push({ type: 'text', text: mode === 'background' ? '【场景】' : '【参考图】' })
+    content.push({
+      type: 'image_url',
+      image_url: { url: await this.toDataUrl(sceneImageUrl), detail: config.aiImageDetail },
+    })
+    content.push({ type: 'text', text: userPrompt })
 
     const systemPrompt = mode === 'background'
-      ? '你是专业的虚拟试衣助手，也是顶级时尚摄影师。严格按照用户给出的"姿势与位置描述"把指定模特（仅用其脸、发型、肤色）穿着指定衣服放入场景地点中。可以重新取景与调整机位，但必须保留场景地点的标志性元素（至少 2 处可辨识元素），让观众看得出是同一个地方。【场景合理位置】这是核心要求——你必须分析场景图的空间布局，将模特放在该场景中最自然、最合理的位置：如果场景有走道，人就站在走道上；有台阶，人可以站在台阶上；有窗边，人可以倚靠窗边。绝对禁止将人放在不合逻辑的位置（如墙壁正中、半空中、无法站立的障碍物上、建筑外立面悬空）。模特必须按真实成人比例（约 7.5 头身）渲染，双脚踩在场景中可站立的表面，身体重心自然，透视与地平线与场景一致，禁止巨人、娃娃头或悬空。严格还原衣服的颜色、面料、纹理、图案、版型；模特参考图仅用于面部身份，禁止复制其身体比例、姿势、构图、相机角度、光照或背景。如果衣服仅是上衣，必须搭配协调的下装和鞋子，严禁生成没穿裤子或没穿鞋子的模特。光照、色温、阴影方向与场景一致。输出像真实相机拍摄的街拍质感：自然皮肤纹理、毛孔与细微不对称；禁止 CGI、塑料皮肤、美颜抹平、HDR 过亮、插画感、扭曲的手或多出的肢体。直接返回最终图片的 base64，不要 markdown、不要解释。'
-      : '你是专业的虚拟试衣助手。任务：用图[1]模特的脸，穿上图[2]的衣服，替换参考图中的人物。规则：1.脸=图[1]；2.衣服=图[2]（及反面图[3]）；3.姿态和场景=参考图，删除原人物；4.背景微调（光影、色调、摆件小改），不改变场景类型；5.下装可做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样；6.配饰换不同款式但类型对应；7.真实成人比例，双脚着地；8.真实相机质感，禁止CGI/美颜/蜡像。直接返回base64图片。'
+      ? '你是顶级时尚摄影师。规则：1.严格还原衣服的颜色、面料、纹理、图案、版型；2.模特仅保留脸部身份，禁止复制其姿势、构图、比例；3.场景保持标志性元素，人物放在最自然合理的位置；4.真实相机质感，禁止CGI/塑料感/美颜/插画感/扭曲肢体；5.直接返回base64，不要解释。'
+      : '你是顶级时尚摄影师。规则：1.人脸替换是最高优先级，用模特图的脸替换参考图中人物的脸；2.严格还原衣服的颜色、面料、纹理、图案、版型；3.保留参考图的姿态和场景；4.真实成人比例，双脚着地；5.真实相机质感，禁止CGI/塑料感/美颜/蜡像/扭曲肢体；6.直接返回base64，不要解释。'
 
     const genPayload: Record<string, unknown> = {
       model: getActiveGenerationModel(),

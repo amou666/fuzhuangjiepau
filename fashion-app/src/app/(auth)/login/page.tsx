@@ -69,8 +69,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-[#faf7f4]">
       <div className="w-full max-w-[420px] rounded-[32px] border border-[rgba(139,115,85,0.08)] bg-[rgba(255,252,249,0.9)] p-8 shadow-[0_20px_60px_rgba(139,115,85,0.12)] backdrop-blur-sm sm:p-10">
-        <h1 className="m-0 text-[34px] font-bold tracking-tight text-[#2d2422]">登录系统</h1>
-        <p className="mt-2 mb-8 text-[15px] leading-6 text-[#9b8e82]">请输入您的账号和密码</p>
+        <div className="mb-4 text-center">
+          <span className="text-[40px] font-bold text-[#c67b5c]" style={{ fontFamily: 'var(--font-parisienne)' }}>
+            Amou
+          </span>
+          <div className="mt-1 text-[11px] font-medium text-[#9b8e82] tracking-[0.18em]">服装工作室</div>
+        </div>
+        <h1 className="m-0 text-center text-[22px] font-bold tracking-tight text-[#2d2422]">登陆</h1>
+        <p className="mt-2 mb-8 text-center text-[15px] leading-6 text-[#9b8e82]">请输入您的账号和密码</p>
 
         <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const totalSpent = Math.abs((db.prepare('SELECT COALESCE(SUM(ABS(delta)), 0) as total FROM CreditLog WHERE userId = ? AND delta < 0').get(payload.userId) as any).total)
     const totalRecharged = (db.prepare('SELECT COALESCE(SUM(delta), 0) as total FROM CreditLog WHERE userId = ? AND delta > 0').get(payload.userId) as any).total
 
-    // 每日统计
+    // 每日统计（过滤掉只有 delta=0 锁记录的日期）
     const dailyStats = db.prepare(`
       SELECT DATE(createdAt) as date,
              COALESCE(SUM(CASE WHEN delta < 0 THEN ABS(delta) ELSE 0 END), 0) as spent,
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
       FROM CreditLog
       WHERE userId = ?
       GROUP BY DATE(createdAt)
+      HAVING spent > 0 OR recharged > 0
       ORDER BY date DESC
       LIMIT 30
     `).all(payload.userId)
