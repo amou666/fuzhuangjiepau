@@ -124,6 +124,49 @@ export const workspaceApi = {
     const response = await apiClient.post<{ materialInfo: string }>('/redesign/recognize', { imageUrl });
     return response.data.materialInfo;
   },
+  analyzeGarmentParts: async (imageUrl: string) => {
+    const response = await apiClient.post<{
+      parts: Array<{ id: string; name: string; defaultChecked: boolean }>
+      materialInfo: string
+      currentColor: string
+    }>('/recolor/analyze-parts', { imageUrl });
+    return response.data;
+  },
+  recolorByColor: async (imageUrl: string, colorMappings: Array<{
+    sourceHex: string; sourceName: string; sourceHue: number; sourceLightMin: number; sourceLightMax: number; sourceGradient: string[];
+    targetName: string; targetHex: string;
+  }>, opts?: { brightness?: number; saturation?: number }) => {
+    const response = await apiClient.post<{ resultUrl: string; taskId: string; credits: number }>('/recolor', {
+      imageUrl,
+      colorMappings,
+      brightness: opts?.brightness,
+      saturation: opts?.saturation,
+    });
+    return response.data;
+  },
+  recolorPerPart: async (imageUrl: string, partsWithColors: Array<{ partId: string; partName: string; color: { name: string; hex: string } }>, opts?: { brightness?: number; saturation?: number }) => {
+    const response = await apiClient.post<{ resultUrl: string; taskId: string; credits: number }>('/recolor', {
+      imageUrl,
+      partsWithColors,
+      brightness: opts?.brightness,
+      saturation: opts?.saturation,
+    });
+    return response.data;
+  },
+  analyzeProductionSheet: async (imageUrl: string) => {
+    const response = await apiClient.post<{
+      styleName: string
+      material: string
+      accessories: string
+      length: number
+      chest: number
+      shoulder: number
+      sleeve: number
+      bottom: number
+      credits: number
+    }>('/production-sheet/analyze', { imageUrl });
+    return response.data;
+  },
   getFavorites: async (type?: FavoriteType) => {
     const params = type ? `?type=${type}` : '';
     const response = await apiClient.get<{ favorites: Favorite[] }>(`/favorites${params}`);

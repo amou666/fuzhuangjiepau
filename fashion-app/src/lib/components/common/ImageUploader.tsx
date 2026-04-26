@@ -125,7 +125,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
   return (
     <div className="flex flex-col gap-1">
       <div
-        className="flex flex-col items-center justify-center py-8 px-5 rounded-2xl cursor-pointer transition-all duration-200 text-center min-h-[220px]"
+        className="flex flex-col items-center justify-center py-5 md:py-8 px-4 md:px-5 rounded-2xl cursor-pointer transition-all duration-200 text-center min-h-[150px] md:min-h-[220px]"
         style={{
           background: 'rgba(139,115,85,0.02)',
           border: '1.5px dashed rgba(139,115,85,0.25)',

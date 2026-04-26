@@ -25,6 +25,7 @@ import {
   Megaphone,
   LayoutTemplate,
   Zap,
+  Palette,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useHydrated } from '@/lib/hooks/useHydrated'
@@ -35,7 +36,9 @@ const appMenuIcons: Record<string, React.ComponentType<{ className?: string }>> 
   workspace: Sparkles,
   'quick-workspace': Zap,
   'model-fusion': Drama,
+  tools: Wand2,
   redesign: Wand2,
+  recolor: Palette,
   favorites: Gem,
   stats: BarChart3,
   history: Camera,
@@ -95,7 +98,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
       </span>
       {menuItems.map((item) => {
         const Icon = iconMap[item.to.replace('/', '')] || Sparkles
-        const isActive = pathname === item.to
+        const isActive = pathname === item.to || (item.to !== '/' && pathname.startsWith(item.to + '/'))
         return (
           <Link
             key={item.to}
@@ -266,12 +269,6 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
           <div className="flex items-center gap-1">
             {variant === 'app' && <NotificationBell />}
             <button
-              onClick={toggleCollapsed}
-              className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors text-[#b0a59a] hover:text-[#8b7355]"
-            >
-              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-            <button
               onClick={closeMobile}
               className="md:hidden p-1 rounded-lg hover:bg-[rgba(139,115,85,0.06)] transition-colors"
             >
@@ -279,6 +276,21 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
             </button>
           </div>
         </div>
+
+        {/* Desktop collapse toggle — positioned at right edge */}
+        <button
+          onClick={toggleCollapsed}
+          className="hidden md:flex items-center justify-center w-6 h-6 rounded-full transition-colors text-[#8b7355] hover:text-[#c67b5c] absolute top-[22px] z-[101]"
+          style={{
+            background: 'rgba(255,253,250,0.95)',
+            border: '1px solid rgba(139,115,85,0.12)',
+            boxShadow: '0 2px 8px rgba(139,115,85,0.08)',
+            right: '-12px',
+          }}
+          title={collapsed ? '展开' : '收起'}
+        >
+          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
 
         {/* Navigation */}
         <div className={cn('flex-1 p-4 overflow-y-auto', collapsed && 'p-2')}>{navContent}</div>
@@ -366,12 +378,11 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
 
   const menuItems = [
     { to: '/quick-workspace', label: '快速工作台', icon: 'quick-workspace' },
-    { to: '/model-fusion', label: '模特工厂', icon: 'model-fusion' },
     { to: '/redesign', label: 'AI 改款', icon: 'redesign' },
-    { to: '/favorites', label: '素材库', icon: 'favorites' },
-    { to: '/stats', label: '数据统计', icon: 'stats' },
+    { to: '/favorites', label: '收藏夹', icon: 'favorites' },
     { to: '/history', label: '历史记录', icon: 'history' },
-    { to: '/profile', label: '账户设置', icon: 'profile' },
+    { to: '/tools', label: '工具', icon: 'tools' },
+    { to: '/profile', label: '个人中心', icon: 'profile' },
   ]
 
   return (
@@ -398,7 +409,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {menuItems.filter((item) =>
-          ['/quick-workspace', '/redesign', '/history', '/favorites', '/profile'].includes(item.to)
+          ['/quick-workspace', '/redesign', '/favorites', '/history', '/tools'].includes(item.to)
         ).map((item) => {
           const Icon = appMenuIcons[item.icon] || Sparkles
           const isActive = pathname === item.to
@@ -406,11 +417,11 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.to}
               href={item.to}
-              className="flex flex-col items-center gap-0.5 py-2 px-3 transition-colors"
+              className="flex flex-col items-center gap-0.5 py-1.5 px-2 transition-colors"
               style={{ color: isActive ? '#c67b5c' : '#b0a59a' }}
             >
-              <Icon className={cn('w-[18px] h-[18px]', isActive && 'text-[#c67b5c]')} />
-              <span className={cn('text-[10px] font-medium', isActive && 'font-semibold text-[#c67b5c]')}>{item.label}</span>
+              <Icon className={cn('w-[16px] h-[16px]', isActive && 'text-[#c67b5c]')} />
+              <span className={cn('text-[9px] font-medium', isActive && 'font-semibold text-[#c67b5c]')}>{item.label}</span>
             </Link>
           )
         })}

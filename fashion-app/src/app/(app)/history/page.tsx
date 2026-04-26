@@ -7,15 +7,19 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import type { GenerationTask } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown, ListChecks, ChevronDown, Minimize2 } from 'lucide-react';
+import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown, ListChecks, ChevronDown, Minimize2, Box, Palette, FileText, AlertCircle } from 'lucide-react';
 import { ComparePanel } from '@/lib/components/history/ComparePanel';
 import { TutorialButton } from '@/lib/components/common/TutorialModal';
 import { TUTORIALS } from '@/lib/tutorials';
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   'workspace': { label: '工作台', icon: Sparkles, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
+  'quick-workspace': { label: '快速工作台', icon: Sparkles, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
   'model-fusion': { label: '模特合成', icon: Drama, color: 'text-[#8b7355]', bg: 'bg-[rgba(139,115,85,0.08)]' },
   'redesign': { label: 'AI改款', icon: Wand2, color: 'text-[#b0654a]', bg: 'bg-[rgba(176,101,74,0.08)]' },
+  'ghost-mannequin': { label: '一键3D图', icon: Box, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
+  'recolor': { label: 'AI改色', icon: Palette, color: 'text-[#6366f1]', bg: 'bg-[rgba(99,102,241,0.08)]' },
+  'production-sheet': { label: '生产单', icon: FileText, color: 'text-[#8b7355]', bg: 'bg-[rgba(139,115,85,0.08)]' },
 }
 
 function CollapseToggle({
@@ -191,6 +195,7 @@ export default function HistoryPage() {
   const [batchDownloading, setBatchDownloading] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [feedbacks, setFeedbacks] = useState<Record<string, number>>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     try { return window.localStorage.getItem('fashion-history-collapsed') === '1' } catch { return false }
@@ -292,12 +297,10 @@ export default function HistoryPage() {
   };
 
   const handleDelete = async (taskId: string) => {
-    if (!window.confirm('确定要删除这条记录吗？删除后无法恢复。')) {
-      return;
-    }
     try {
       await workspaceApi.deleteTask(taskId);
       setRecords((prev) => prev.filter((r) => r.id !== taskId));
+      setDeleteConfirmId(null);
     } catch (err) {
       console.error('删除失败', err);
       alert('删除失败，请重试');
@@ -431,7 +434,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4 md:gap-5">
         <div className="md:hidden flex items-center gap-2 -mb-1">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -492,7 +495,7 @@ export default function HistoryPage() {
         {loading ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-5">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="fashion-glass rounded-2xl p-5" style={{ animation: `fade-up 0.4s ease-out ${i * 0.06}s both` }}>
+              <div key={i} className="fashion-glass rounded-2xl p-3 md:p-5" style={{ animation: `fade-up 0.4s ease-out ${i * 0.06}s both` }}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-20 h-6 rounded-full" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
                   <div className="w-16 h-5 rounded-full" style={{ backgroundImage: 'linear-gradient(to right, rgba(203,213,225,0.6), rgba(248,250,252,0.8), rgba(203,213,225,0.6))', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
@@ -538,7 +541,7 @@ export default function HistoryPage() {
               const isSelected = selectedIds.has(record.id);
 
               return (
-                <article key={record.id} className="fashion-glass rounded-2xl p-4 sm:p-5 shadow-sm relative" style={{
+                <article key={record.id} className="fashion-glass rounded-2xl p-3 sm:p-5 shadow-sm relative" style={{
                   animation: `fade-up 0.4s ease-out ${index * 0.06}s both`,
                   ...(isSelected ? { outline: '2px solid rgba(198,123,92,0.4)', outlineOffset: '-1px' } : {}),
                 }}>
@@ -586,7 +589,7 @@ export default function HistoryPage() {
                     {/* Desktop: 文字 + 图标 删除按钮 */}
                     <button
                       className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#c47070] bg-[rgba(196,112,112,0.04)] border border-[rgba(196,112,112,0.1)] hover:bg-[rgba(196,112,112,0.08)] active:bg-[rgba(196,112,112,0.12)] transition-all"
-                      onClick={() => handleDelete(record.id)}
+                      onClick={() => setDeleteConfirmId(record.id)}
                     >
                       <Trash2 className="w-3 h-3" /> 删除
                     </button>
@@ -810,6 +813,35 @@ export default function HistoryPage() {
             >
               取消
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 删除确认弹窗 */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-6" onClick={() => setDeleteConfirmId(null)}>
+          <div className="relative max-w-[380px] w-full bg-white/95 backdrop-blur-[40px] rounded-2xl border border-white/80 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#2d2422]">确认删除</h3>
+            </div>
+            <p className="text-[13px] text-[#9b8e82] mb-5 leading-relaxed">删除后无法恢复，确定要删除这条记录吗？</p>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                取消
+              </button>
+              <button
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95"
+                onClick={() => void handleDelete(deleteConfirmId)}
+              >
+                删除
+              </button>
+            </div>
           </div>
         </div>
       )}

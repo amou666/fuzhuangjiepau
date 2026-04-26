@@ -56,7 +56,7 @@ const MODES: {
   },
   {
     id: 'material-silhouette',
-    label: '材质锁定改款式',
+    label: '改固定款式',
     icon: Shirt,
     description: 'AI识别材质与品类，同品类内改款设计，严格遵循品类规范，符合欧美审美趋势',
     outputCount: '3',
@@ -172,36 +172,56 @@ export default function RedesignPage() {
     if (!imageUrl) return
     setSubmitting(true)
     setError('')
+    const initialUrls = refineFrom ? [...resultUrls] : []
+    const initialItems = refineFrom ? [...generatedItems] : []
     if (!refineFrom) {
       setResultUrls([])
       setGeneratedItems([])
       clearRedesignResult()
     }
-    setPendingCount(refineFrom ? count : count)
-    setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」...` : '正在生成中...')
+    const totalCount = count
+    setPendingCount(totalCount)
+    setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (1/${totalCount})` : `正在生成第 1/${totalCount} 张...`)
 
-    try {
-      const data = await workspaceApi.redesign(imageUrl, mode, {
-        customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
-        excludedItems: refineFrom ? [] : generatedItems,
-        constraints: constraints || undefined,
-        count,
-        refineFrom: refineFrom || undefined,
-      })
-      const newUrls = refineFrom ? [...resultUrls, ...data.resultUrls] : data.resultUrls
-      const newItems = refineFrom ? [...generatedItems, ...(data.generatedItems || [])] : (data.generatedItems || [])
-      setResultUrls(newUrls)
-      setGeneratedItems(newItems)
-      setRedesignResult({ resultUrls: newUrls, generatedItems: newItems, imageUrl, mode })
-      setPendingCount(0)
+    let currentUrls = initialUrls
+    let currentItems = initialItems
+    let successCount = 0
+
+    for (let i = 0; i < totalCount; i++) {
+      setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (${i + 1}/${totalCount})` : `正在生成第 ${i + 1}/${totalCount} 张...`)
+      try {
+        const data = await workspaceApi.redesign(imageUrl, mode, {
+          customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
+          excludedItems: i === 0 && !refineFrom ? generatedItems : [...initialItems, ...currentItems.slice(initialItems.length)],
+          constraints: constraints || undefined,
+          count: 1,
+          refineFrom: refineFrom || undefined,
+        })
+        currentUrls = [...currentUrls, ...data.resultUrls]
+        currentItems = [...currentItems, ...(data.generatedItems || [])]
+        setResultUrls([...currentUrls])
+        setGeneratedItems([...currentItems])
+        setRedesignResult({ resultUrls: [...currentUrls], generatedItems: [...currentItems], imageUrl, mode })
+        setPendingCount(totalCount - i - 1)
+        successCount += data.resultUrls.length
+        updateCredits(data.credits)
+      } catch (err) {
+        // 单张失败不中断整体流程，继续生成下一张
+        console.error(`改款第 ${i + 1} 张生成失败:`, err)
+        setPendingCount(totalCount - i - 1)
+        if (i === 0 && !refineFrom) {
+          // 第一张就失败，设置错误提示
+          setError(getErrorMessage(err, '改款生成失败'))
+        }
+      }
+    }
+
+    setPendingCount(0)
+    setSubmitting(false)
+    setProgress('')
+    if (successCount > 0) {
       updateCredits(await workspaceApi.getBalance())
-      addNotification({ type: 'success', message: refineFrom ? `深化完成！追加了 ${data.resultUrls.length} 张方案` : `改款完成！已生成 ${data.resultUrls.length} 张方案` })
-    } catch (err) {
-      setPendingCount(0)
-      setError(getErrorMessage(err, '改款生成失败'))
-    } finally {
-      setSubmitting(false)
-      setProgress('')
+      addNotification({ type: 'success', message: refineFrom ? `深化完成！追加了 ${successCount} 张方案` : `改款完成！已生成 ${successCount} 张方案` })
     }
   }
 
@@ -209,30 +229,46 @@ export default function RedesignPage() {
     if (!imageUrl) return
     setSubmitting(true)
     setError('')
-    setPendingCount(count)
-    setProgress('追加方案中...')
+    const totalCount = count
+    setPendingCount(totalCount)
+    setProgress(`追加方案中... (1/${totalCount})`)
 
-    try {
-      const data = await workspaceApi.redesign(imageUrl, mode, {
-        customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
-        excludedItems: generatedItems,
-        constraints: constraints || undefined,
-        count,
-      })
-      const newUrls = [...resultUrls, ...data.resultUrls]
-      const newItems = [...generatedItems, ...(data.generatedItems || [])]
-      setResultUrls(newUrls)
-      setGeneratedItems(newItems)
-      setRedesignResult({ resultUrls: newUrls, generatedItems: newItems, imageUrl, mode })
-      setPendingCount(0)
+    let currentUrls = [...resultUrls]
+    let currentItems = [...generatedItems]
+    let successCount = 0
+
+    for (let i = 0; i < totalCount; i++) {
+      setProgress(`追加方案中... (${i + 1}/${totalCount})`)
+      try {
+        const data = await workspaceApi.redesign(imageUrl, mode, {
+          customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
+          excludedItems: currentItems,
+          constraints: constraints || undefined,
+          count: 1,
+        })
+        currentUrls = [...currentUrls, ...data.resultUrls]
+        currentItems = [...currentItems, ...(data.generatedItems || [])]
+        setResultUrls([...currentUrls])
+        setGeneratedItems([...currentItems])
+        setRedesignResult({ resultUrls: [...currentUrls], generatedItems: [...currentItems], imageUrl, mode })
+        setPendingCount(totalCount - i - 1)
+        successCount += data.resultUrls.length
+        updateCredits(data.credits)
+      } catch (err) {
+        console.error(`追加第 ${i + 1} 张失败:`, err)
+        setPendingCount(totalCount - i - 1)
+        if (i === 0) {
+          setError(getErrorMessage(err, '追加方案失败'))
+        }
+      }
+    }
+
+    setPendingCount(0)
+    setSubmitting(false)
+    setProgress('')
+    if (successCount > 0) {
       updateCredits(await workspaceApi.getBalance())
-      addNotification({ type: 'success', message: `已追加 ${data.resultUrls.length} 款方案` })
-    } catch (err) {
-      setPendingCount(0)
-      setError(getErrorMessage(err, '追加方案失败'))
-    } finally {
-      setSubmitting(false)
-      setProgress('')
+      addNotification({ type: 'success', message: `已追加 ${successCount} 款方案` })
     }
   }
 
@@ -452,7 +488,7 @@ export default function RedesignPage() {
         {/* 右侧：结果展示 */}
         <div className="lg:col-span-8">
           {resultUrls.length === 0 && pendingCount === 0 && (
-            <div className="fashion-glass rounded-2xl p-12 text-center">
+            <div className="fashion-glass rounded-2xl p-8 md:p-12 text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(198,123,92,0.08)' }}>
                 <Sparkles className="w-7 h-7 text-[#c67b5c]" style={{ opacity: 0.5 }} />
               </div>

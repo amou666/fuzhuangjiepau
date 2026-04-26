@@ -158,7 +158,7 @@ export interface GenerationTask {
   id: string
   userId: string
   status: string
-  type: 'workspace' | 'model-fusion' | 'redesign' | 'quick-workspace'
+  type: 'workspace' | 'model-fusion' | 'redesign' | 'quick-workspace' | 'ghost-mannequin' | 'recolor' | 'production-sheet'
   creditCost: number
   clothingUrl: string
   clothingBackUrl?: string | null

@@ -258,11 +258,11 @@ export default function QuickWorkspacePage() {
           <p className="text-[13px] text-[#8b7355] mt-1">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-4 md:gap-6">
           {/* 左：配置 */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 md:gap-5">
             {/* Mode */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
               <div className="text-[12px] font-semibold text-[#8b7355] mb-3">① 选择模式</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {MODES.map((m) => {
@@ -283,7 +283,7 @@ export default function QuickWorkspacePage() {
                         <Icon className="w-4 h-4 text-[#c67b5c]" />
                         <span className="text-[13px] font-semibold text-[#2d2422]">{m.label}</span>
                       </div>
-                      <div className="text-[11px] text-[#8b7355] leading-relaxed">{m.desc}</div>
+                      <div className="text-[11px] text-[#8b7355] leading-relaxed hidden sm:block">{m.desc}</div>
                     </button>
                   )
                 })}
@@ -291,7 +291,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Model */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">② 选择模特</div>
                 <FavButton disabled={!modelImageUrl} onClick={() => openFavDialog('model')} />
@@ -300,7 +300,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Clothing */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">③ 上传衣服</div>
                 <FavButton disabled={!clothingUrl} onClick={() => openFavDialog('clothing')} />
@@ -318,7 +318,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Scene */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">
                   ④ 上传{mode === 'background' ? '干净背景图' : '含原人物的场景图'}
@@ -336,7 +336,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Output options */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
               <div className="text-[12px] font-semibold text-[#8b7355] mb-3">⑤ 输出设置</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -472,49 +472,51 @@ export default function QuickWorkspacePage() {
               <div className="px-4 py-3 rounded-xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-[12px] text-[#c47070]">{error}</div>
             )}
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-col gap-3">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 h-12 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {submitting || isPolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 {submitting ? '提交中...' : isPolling ? 'AI 合成中...' : '一键生成'}
               </button>
-              <button
-                type="button"
-                onClick={() => openFavDialog('full')}
-                disabled={!canSaveFullConfig}
-                title={canSaveFullConfig ? '把当前服装 + 模特 + 场景 + 参数整套打包到素材库' : '请先上传 服装 / 模特 / 场景 三张图'}
-                className="h-12 px-4 rounded-xl border text-[12px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-                style={{
-                  borderColor: canSaveFullConfig ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.15)',
-                  color: canSaveFullConfig ? '#c67b5c' : '#b0a59a',
-                  background: canSaveFullConfig ? 'rgba(198,123,92,0.06)' : 'rgba(139,115,85,0.02)',
-                }}
-              >
-                <Layers className="w-4 h-4" />
-                收藏完整配置
-              </button>
-              {(resultUrl || failed) && (
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   type="button"
-                  onClick={handleReset}
-                  className="h-12 px-4 rounded-xl border border-[rgba(139,115,85,0.2)] text-[13px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
+                  onClick={() => openFavDialog('full')}
+                  disabled={!canSaveFullConfig}
+                  title={canSaveFullConfig ? '把当前服装 + 模特 + 场景 + 参数整套打包到素材库' : '请先上传 服装 / 模特 / 场景 三张图'}
+                  className="h-10 px-4 rounded-xl border text-[12px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                  style={{
+                    borderColor: canSaveFullConfig ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.15)',
+                    color: canSaveFullConfig ? '#c67b5c' : '#b0a59a',
+                    background: canSaveFullConfig ? 'rgba(198,123,92,0.06)' : 'rgba(139,115,85,0.02)',
+                  }}
                 >
-                  <RefreshCw className="w-4 h-4 inline -mt-0.5 mr-1" />重置结果
+                  <Layers className="w-4 h-4" />
+                  收藏完整配置
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="h-12 px-4 rounded-xl border border-[rgba(139,115,85,0.2)] text-[13px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
-                title="清空所有已上传的图片和表单"
-              >
-                清空表单
-              </button>
+                {(resultUrl || failed) && (
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="h-10 px-4 rounded-xl border border-[rgba(139,115,85,0.2)] text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />重置结果
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="h-10 px-4 rounded-xl border border-[rgba(139,115,85,0.2)] text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
+                  title="清空所有已上传的图片和表单"
+                >
+                  清空表单
+                </button>
+              </div>
             </div>
           </div>
 

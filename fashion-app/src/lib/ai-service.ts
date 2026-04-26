@@ -979,6 +979,85 @@ Return only the generated image in base64 without markdown or explanation.`
     return result
   }
 
+  // 生产单分析 — 识别欧美女装款式信息与 S 码尺寸
+  async analyzeProductionSheet(imageUrl: string, userApiKey?: string): Promise<{
+    styleName: string
+    material: string
+    accessories: string
+    length: number
+    chest: number
+    shoulder: number
+    sleeve: number
+    bottom: number
+  }> {
+    const response = await this.requestChatCompletion({
+      model: getActiveAnalysisModel(),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: `你是一位专业的服装工艺员。识别的衣服属于欧美女装品类。请识别图片中的款式信息和尺寸表格数据。
+要求：
+1. 识别尺寸：请优先提取 S 码数值。如果图中 S 码模糊，请根据 M 码数值减去 1cm 推导出 S 码衣长，减去 2cm 推导出胸宽/肩宽/下摆。返回数值必须为数字。
+2. 识别文字：寻找图片中提到的款式名称、主面料和辅料配件。特别注意图片中出现的描述性文字。
+3. 如果图中未明确提到名称或辅料，请根据欧美女装的外观和流行趋势给出一个合理的简短描述。
+4. 必须输出纯 JSON 格式，不要包含任何 markdown 代码块标识（不要用\`\`\`json\`\`\`），只输出 JSON 对象本身。
+5. JSON 字段：styleName(款式名称), material(主面料), accessories(辅料配件), length(衣长cm), chest(胸宽cm), shoulder(肩宽cm), sleeve(袖长cm), bottom(下摆cm)。`,
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '请解析这款欧美女装的款式名称(styleName)、主面料(material)、辅料配件(accessories)以及 S 码尺寸数据(length, chest, shoulder, sleeve, bottom)。' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: await this.toDataUrl(imageUrl),
+                detail: config.aiImageDetail,
+              },
+            },
+          ],
+        },
+      ],
+      temperature: 0.2,
+    }, userApiKey)
+
+    const content = this.extractTextContent(response)
+    if (!content) {
+      throw new Error('AI 分析接口未返回有效数据')
+    }
+
+    try {
+      // 容错：移除可能的 markdown 代码块包裹
+      let cleaned = content.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
+      // 容错：如果模型返回了额外文字，尝试提取第一个 JSON 对象
+      const jsonStart = cleaned.indexOf('{')
+      const jsonEnd = cleaned.lastIndexOf('}')
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        cleaned = cleaned.substring(jsonStart, jsonEnd + 1)
+      }
+      const parsed = JSON.parse(cleaned)
+      // 用 parseFloat 提取数字，兼容 AI 返回 "65cm" / "65厘米" 等带单位字符串
+      const extractNum = (v: unknown): number => {
+        if (typeof v === 'number') return v
+        const str = String(v ?? '')
+        const match = str.match(/[\d.]+/)
+        return match ? parseFloat(match[0]) : 0
+      }
+      return {
+        styleName: String(parsed.styleName || '欧美女装款式'),
+        material: String(parsed.material || '自定义面料'),
+        accessories: String(parsed.accessories || '常规辅料'),
+        length: extractNum(parsed.length),
+        chest: extractNum(parsed.chest),
+        shoulder: extractNum(parsed.shoulder),
+        sleeve: extractNum(parsed.sleeve),
+        bottom: extractNum(parsed.bottom),
+      }
+    } catch {
+      throw new Error('AI 返回数据格式异常，请重试')
+    }
+  }
+
   // 材质+款式结构化识别（仅供改款内部使用）— 带缓存
   private async recognizeGarmentStructure(imageUrl: string, userApiKey?: string): Promise<{
     materialDna: string
@@ -1402,6 +1481,436 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     return { resultUrls: results, generatedItems: directions }
   }
 
+  // ============ AI 改色 ============
+
+  // 识别衣服可独立改色的部件
+  async analyzeGarmentParts(imageUrl: string, userApiKey?: string): Promise<{
+    parts: Array<{ id: string; name: string; defaultChecked: boolean }>
+    currentColor: string
+  }> {
+    const response = await this.requestChatCompletion({
+      model: getActiveAnalysisModel(),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert garment analyst. Identify garment parts and return ONLY valid JSON. No explanation, no markdown.',
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze this garment image and identify: (1) The current dominant color name; (2) All distinguishable garment parts that could be recolored independently. Return pure JSON: {"currentColor":"color name","parts":[{"id":"body","name":"衣身主体","defaultChecked":true},{"id":"collar","name":"领子/领口","defaultChecked":false},{"id":"sleeve","name":"袖子","defaultChecked":true},{"id":"buttons","name":"纽扣/五金","defaultChecked":false},{"id":"pocket","name":"口袋","defaultChecked":false},{"id":"hem","name":"下摆/腰部","defaultChecked":false},{"id":"lapel","name":"翻领","defaultChecked":false},{"id":"cuff","name":"袖口","defaultChecked":false}]}. Only include parts that are actually visible in the image. "defaultChecked":true means this part should be recolored by default (typically the main fabric areas), "defaultChecked":false means it should keep its original color by default (typically hardware, trims).`,
+            },
+            {
+              type: 'image_url',
+              image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail },
+            },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 500,
+    }, userApiKey)
+
+    const content = this.extractTextContent(response)
+    if (!content) {
+      return {
+        parts: [
+          { id: 'body', name: '衣身主体', defaultChecked: true },
+          { id: 'sleeve', name: '袖子', defaultChecked: true },
+        ],
+        currentColor: '未知',
+      }
+    }
+
+    try {
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const parsed = JSON.parse(cleaned)
+      return {
+        parts: parsed.parts || [{ id: 'body', name: '衣身主体', defaultChecked: true }],
+        currentColor: parsed.currentColor || '未知',
+      }
+    } catch {
+      return {
+        parts: [{ id: 'body', name: '衣身主体', defaultChecked: true }],
+        currentColor: '未知',
+      }
+    }
+  }
+
+  // 生成颜色色卡 SVG data URL
+  private generateColorSwatch(hex: string): string {
+    // 生成带轻微渐变和布料质感模拟的色卡 SVG
+    const lighterHex = this.adjustBrightness(hex, 15)
+    const darkerHex = this.adjustBrightness(hex, -15)
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <defs>
+    <radialGradient id="g" cx="35%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="${lighterHex}" stop-opacity="1"/>
+      <stop offset="50%" stop-color="${hex}" stop-opacity="1"/>
+      <stop offset="100%" stop-color="${darkerHex}" stop-opacity="1"/>
+    </radialGradient>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <feBlend mode="overlay" in="SourceGraphic" in2="grayNoise" result="blended"/>
+      <feComponentTransfer in="blended">
+        <feFuncA type="linear" slope="1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="200" height="200" fill="url(#g)" filter="url(#noise)" opacity="0.95"/>
+</svg>`
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  }
+
+  // 调整颜色亮度
+  private adjustBrightness(hex: string, percent: number): string {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const r = Math.min(255, Math.max(0, ((num >> 16) & 0xFF) + Math.round(255 * percent / 100)))
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xFF) + Math.round(255 * percent / 100)))
+    const b = Math.min(255, Math.max(0, (num & 0xFF) + Math.round(255 * percent / 100)))
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+  }
+
+  // 生成渐变色卡（模拟布料从暗到亮的光照效果）
+  private generateGradientSwatch(hex: string, lightMin: number, lightMax: number): string {
+    // 将 hex 转 HSL，生成 7 级明度渐变
+    const hsl = this.hexToHsl(hex)
+    const steps = 7
+    const stops: string[] = []
+    for (let i = 0; i < steps; i++) {
+      const l = lightMin + (lightMax - lightMin) * (i / (steps - 1))
+      stops.push(this.hslToHex(hsl.h, hsl.s, Math.round(l)))
+    }
+
+    // 构建水平渐变 + 布料质感噪声
+    const gradientStops = stops.map((c, i) => `${c} ${Math.round((i / (steps - 1)) * 100)}%`).join(', ')
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+      ${stops.map((c, i) => `<stop offset="${Math.round((i / (steps - 1)) * 100)}%" stop-color="${c}" stop-opacity="1"/>`).join('\n      ')}
+    </linearGradient>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <feBlend mode="overlay" in="SourceGraphic" in2="grayNoise" result="blended"/>
+      <feComponentTransfer in="blended">
+        <feFuncA type="linear" slope="1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="400" height="100" fill="url(#g)" filter="url(#noise)" opacity="0.95"/>
+  <text x="10" y="18" font-size="11" fill="white" font-family="monospace" opacity="0.8">Shadow ${lightMin}%</text>
+  <text x="310" y="18" font-size="11" fill="white" font-family="monospace" opacity="0.8">Highlight ${lightMax}%</text>
+</svg>`
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  }
+
+  // 生成源色→目标色映射色卡
+  private generateMappingSwatch(
+    sourceHex: string,
+    sourceGradient: string[],
+    targetHex: string,
+    index: number,
+  ): string {
+    const width = 360
+    const height = 90
+    const barW = 140
+    const barH = 56
+    const padX = 16
+    const barY = 28
+
+    const srcX = padX
+    const tgtX = width - padX - barW
+
+    const isLight = (hex: string) => {
+      const num = parseInt(hex.replace('#', ''), 16)
+      const r = (num >> 16) & 0xFF
+      const g = (num >> 8) & 0xFF
+      const b = num & 0xFF
+      return (r * 299 + g * 587 + b * 114) / 1000 > 140
+    }
+
+    const srcTextColor = isLight(sourceGradient[2] || sourceHex) ? '#333' : '#fff'
+    const tgtTextColor = isLight(targetHex) ? '#333' : '#fff'
+
+    const gradientStops = sourceGradient.map((c, i) => {
+      const offset = sourceGradient.length > 1 ? Math.round((i / (sourceGradient.length - 1)) * 100) : 0
+      return `<stop offset="${offset}%" stop-color="${c}" stop-opacity="1"/>`
+    }).join('')
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <defs>
+    <linearGradient id="srcGrad${index}" x1="0%" y1="0%" x2="100%" y2="0%">
+      ${gradientStops}
+    </linearGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="#f8f6f3" rx="10"/>
+  <text x="${width / 2}" y="20" font-size="12" fill="#888" text-anchor="middle" font-family="system-ui, sans-serif">Mapping ${index + 1}</text>
+  <rect x="${srcX}" y="${barY}" width="${barW}" height="${barH}" fill="url(#srcGrad${index})" rx="8" stroke="#ddd" stroke-width="1"/>
+  <text x="${srcX + barW / 2}" y="${barY + barH - 10}" font-size="11" fill="${srcTextColor}" text-anchor="middle" font-weight="600" font-family="monospace">${sourceHex}</text>
+  <text x="${srcX + barW / 2}" y="${barY + barH + 14}" font-size="10" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">Source</text>
+  <text x="${(srcX + barW + tgtX) / 2}" y="${barY + barH / 2 + 4}" font-size="18" fill="#666" text-anchor="middle" font-family="system-ui, sans-serif">→</text>
+  <rect x="${tgtX}" y="${barY}" width="${barW}" height="${barH}" fill="${targetHex}" rx="8" stroke="#ddd" stroke-width="1"/>
+  <text x="${tgtX + barW / 2}" y="${barY + barH - 10}" font-size="11" fill="${tgtTextColor}" text-anchor="middle" font-weight="600" font-family="monospace">${targetHex}</text>
+  <text x="${tgtX + barW / 2}" y="${barY + barH + 14}" font-size="10" fill="#999" text-anchor="middle" font-family="system-ui, sans-serif">Target</text>
+</svg>`
+
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+  }
+
+  // HSL → HEX
+  private hslToHex(h: number, s: number, l: number): string {
+    s /= 100; l /= 100
+    const a = s * Math.min(l, 1 - l)
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+      return Math.round(255 * Math.max(0, Math.min(1, color))).toString(16).padStart(2, '0')
+    }
+    return `#${f(0)}${f(8)}${f(4)}`
+  }
+
+  // HEX → HSL
+  private hexToHsl(hex: string): { h: number; s: number; l: number } {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    if (!result) return { h: 0, s: 0, l: 50 }
+    let r = parseInt(result[1], 16) / 255, g = parseInt(result[2], 16) / 255, b = parseInt(result[3], 16) / 255
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    let h = 0, s = 0
+    const l = (max + min) / 2
+    if (max !== min) {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+      switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break }
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) }
+  }
+
+  // AI 改色 — 支持视觉色卡参考 + 局部改色 + 明度/饱和度微调
+  async recolorGarment(
+    taskId: string,
+    imageUrl: string,
+    color: { name: string; hex: string },
+    userApiKey?: string,
+    opts: { parts?: string[]; brightness?: number; saturation?: number } = {},
+  ): Promise<string> {
+    const swatchDataUrl = this.generateColorSwatch(color.hex)
+
+    // 局部改色提示
+    const isPartial = opts.parts && opts.parts.length > 0
+    const partNames: Record<string, string> = {
+      body: '衣身主体', collar: '领子/领口', sleeve: '袖子',
+      buttons: '纽扣/五金', pocket: '口袋', hem: '下摆/腰部',
+      lapel: '翻领', cuff: '袖口',
+    }
+
+    const partHint = isPartial
+      ? `PARTIAL RECOLOR: Change color ONLY on these parts: ${opts.parts!.map(p => partNames[p] || p).join(', ')}. All other parts must remain their ORIGINAL color. The boundary between recolored and original parts must be natural and seamless.`
+      : 'FULL RECOLOR: Change the color of the ENTIRE garment.'
+
+    // 明度/饱和度微调提示
+    const brightHint = opts.brightness ? ` BRIGHTNESS ADJUSTMENT: ${opts.brightness > 0 ? 'Increase' : 'Decrease'} overall brightness by ${Math.abs(opts.brightness)}%. Maintain highlight-shadow relationships.` : ''
+    const satHint = opts.saturation ? ` SATURATION ADJUSTMENT: ${opts.saturation > 0 ? 'Increase' : 'Decrease'} saturation by ${Math.abs(opts.saturation)}%. Keep it natural, not oversaturated.` : ''
+
+    const prompt = [
+      `You are a professional garment recoloring model. You receive a garment image and a TARGET COLOR SWATCH.`,
+      `Your task: Change the garment's color to match the color swatch. ${partHint}${brightHint}${satHint}`,
+      ``,
+      `CRITICAL CONSTRAINTS:`,
+      `(1) The TARGET COLOR is shown in the COLOR SWATCH image — use it as the absolute color reference, NOT the text name.`,
+      `(2) 100% PRESERVE all fiber textures, weave patterns, stitch details, seams, and surface characteristics.`,
+      `(3) 100% PRESERVE all highlights, shadows, folds, drape, and depth — only shift the hue and saturation.`,
+      `(4) 100% PRESERVE the garment silhouette, fit, and all structural details (buttons, zippers, pockets).`,
+      `(5) The new color must look natural on this specific fabric type with realistic color absorption/reflection.`,
+      `(6) Background and model (if any) remain identical and unchanged.`,
+      `(7) Color transition between parts must be natural and seamless.`,
+      ``,
+      `Target color: ${color.name} (${color.hex})`,
+      `Return only the final recolored image as base64 data without markdown or explanation.`,
+    ].join('\n')
+
+    const content: ChatMessageContentPart[] = [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail } },
+      { type: 'text', text: '【目标颜色色卡 COLOR SWATCH — match this color】' },
+      { type: 'image_url', image_url: { url: swatchDataUrl, detail: 'high' } },
+    ]
+
+    const response = await this.requestChatCompletion({
+      model: getActiveGenerationModel(),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert fashion image recoloring model. You receive a garment image and a color swatch reference. You must regenerate the garment with the swatch color while preserving 100% of material texture, fabric details, highlights, shadows, and garment structure. Only the color/hue changes. Return only the generated image in base64 without markdown or explanation.',
+        },
+        { role: 'user', content },
+      ],
+    }, userApiKey)
+
+    const image = await this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+    return toStoredFilePath(`uploads/results/${fileName}`)
+  }
+
+  // AI 改色 — 基于颜色映射（点选取色模式）
+  async recolorByColorMapping(
+    taskId: string,
+    imageUrl: string,
+    colorMappings: Array<{
+      sourceHex: string; sourceName: string; sourceHue: number;
+      sourceLightMin: number; sourceLightMax: number; sourceGradient: string[];
+      targetName: string; targetHex: string;
+    }>,
+    userApiKey?: string,
+    _opts: { brightness?: number; saturation?: number } = {},
+  ): Promise<string> {
+    const mappingLines: string[] = []
+    const colorSwatches: ChatMessageContentPart[] = []
+
+    for (let i = 0; i < colorMappings.length; i++) {
+      const m = colorMappings[i]
+      mappingLines.push(
+        `${i + 1}. Change ${m.sourceName} (${m.sourceHex}) to ${m.targetName} (${m.targetHex}).`,
+      )
+      const swatchDataUrl = this.generateMappingSwatch(m.sourceHex, m.sourceGradient, m.targetHex, i)
+      colorSwatches.push({ type: 'text', text: `【Mapping ${i + 1}: ${m.sourceName} ${m.sourceHex} → ${m.targetName} ${m.targetHex}】` })
+      colorSwatches.push({ type: 'image_url', image_url: { url: swatchDataUrl, detail: 'high' } })
+    }
+
+    const prompt = [
+      `You are a professional garment recoloring model. You receive a garment image and a series of COLOR MAPPING SWATCHES.`,
+      `Your task: Change ONLY the specified source colors to their corresponding target colors.`,
+      ``,
+      `Color mappings (match each numbered swatch below):`,
+      ...mappingLines,
+      ``,
+      `CRITICAL CONSTRAINTS:`,
+      `(1) Use the COLOR MAPPING SWATCH images as the absolute reference for source→target color pairs. The swatch shows the exact source gradient range and the exact target solid color.`,
+      `(2) Each mapping number corresponds to the swatch with the same number. Follow them strictly — do NOT swap or confuse the mappings.`,
+      `(3) Change the ENTIRE color family shown in the source gradient, not just the single hex value. Preserve natural light-to-shadow transitions within that family.`,
+      `(4) 100% PRESERVE all fabric textures, weave patterns, stitch details, seams, and surface characteristics.`,
+      `(5) 100% PRESERVE all highlights, shadows, folds, drape, and depth — only shift the hue and saturation of the mapped source family.`,
+      `(6) 100% PRESERVE the garment silhouette, fit, and all structural details (buttons, zippers, pockets).`,
+      `(7) Background and model (if any) remain identical and unchanged.`,
+      `(8) Colors NOT listed in the mappings must remain exactly as they are in the original image.`,
+      ``,
+      `Return only the final recolored image as base64 data without markdown or explanation.`,
+    ].join('\n')
+
+    const content: ChatMessageContentPart[] = [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail } },
+      ...colorSwatches,
+    ]
+
+    const response = await this.requestChatCompletion({
+      model: getActiveGenerationModel(),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert fashion image recoloring model. You receive a garment image and color mapping swatches. You must change only the specified source colors to their target colors while preserving 100% of material texture, fabric details, highlights, shadows, and garment structure. Follow the numbered swatches strictly and do not swap mappings. Return only the generated image in base64 without markdown or explanation.',
+        },
+        { role: 'user', content },
+      ],
+    }, userApiKey)
+
+    const image = await this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+    return toStoredFilePath(`uploads/results/${fileName}`)
+  }
+
+  // AI 改色 — 基于部件（每部件独立色版）
+  async recolorGarmentPerPart(
+    taskId: string,
+    imageUrl: string,
+    partsWithColors: Array<{ partId: string; partName: string; color: { name: string; hex: string } }>,
+    userApiKey?: string,
+    opts: { brightness?: number; saturation?: number } = {},
+  ): Promise<string> {
+    // 为每个颜色生成色卡，并构建详细的 Prompt
+    const colorSwatches: ChatMessageContentPart[] = []
+    const partInstructions: string[] = []
+
+    for (const pc of partsWithColors) {
+      const swatchDataUrl = this.generateColorSwatch(pc.color.hex)
+      partInstructions.push(`- "${pc.partName}" → change to "${pc.color.name}" (${pc.color.hex})`)
+      colorSwatches.push({ type: 'text', text: `【${pc.partName} target color: ${pc.color.name} (${pc.color.hex})】` })
+      colorSwatches.push({ type: 'image_url', image_url: { url: swatchDataUrl, detail: 'high' } })
+    }
+
+    // 明度/饱和度微调提示
+    const brightHint = opts.brightness ? ` BRIGHTNESS ADJUSTMENT: ${opts.brightness > 0 ? 'Increase' : 'Decrease'} overall brightness by ${Math.abs(opts.brightness)}%. Maintain highlight-shadow relationships.` : ''
+    const satHint = opts.saturation ? ` SATURATION ADJUSTMENT: ${opts.saturation > 0 ? 'Increase' : 'Decrease'} saturation by ${Math.abs(opts.saturation)}%. Keep it natural.` : ''
+
+    // 未列出的部件 = 保持原色
+    const partIds = partsWithColors.map(pc => pc.partId)
+    const allKnownParts = ['body', 'collar', 'sleeve', 'buttons', 'pocket', 'hem', 'lapel', 'cuff']
+    const unchangedParts = allKnownParts.filter(p => !partIds.includes(p))
+    const unchangedHint = unchangedParts.length > 0
+      ? `\n\nKEEP ORIGINAL COLOR for these parts: ${unchangedParts.map(p => { const names: Record<string, string> = { body: '衣身主体', collar: '领子/领口', sleeve: '袖子', buttons: '纽扣/五金', pocket: '口袋', hem: '下摆/腰部', lapel: '翻领', cuff: '袖口' }; return names[p] || p }).join(', ')}. Do NOT change their color.`
+      : ''
+
+    const prompt = [
+      `You are a professional garment recoloring model. You receive a garment image and TARGET COLOR SWATCHES for SPECIFIC PARTS.`,
+      `Your task: Change each specified garment part to its target color. ${brightHint}${satHint}`,
+      ``,
+      `COLOR ASSIGNMENT (each part gets a different color):`,
+      ...partInstructions,
+      unchangedHint,
+      ``,
+      `CRITICAL CONSTRAINTS:`,
+      `(1) The TARGET COLOR for each part is shown in the corresponding COLOR SWATCH image — use each swatch as the absolute color reference for that part.`,
+      `(2) 100% PRESERVE all fiber textures, weave patterns, stitch details, seams, and surface characteristics.`,
+      `(3) 100% PRESERVE all highlights, shadows, folds, drape, and depth.`,
+      `(4) 100% PRESERVE the garment silhouette, fit, and structural details.`,
+      `(5) Color transition between different-colored parts must be natural and follow the garment's seam/structure lines.`,
+      `(6) Background and model (if any) remain identical and unchanged.`,
+      `(7) Parts not listed above must keep their original color exactly.`,
+      ``,
+      `Return only the final recolored image as base64 data without markdown or explanation.`,
+    ].join('\n')
+
+    const content: ChatMessageContentPart[] = [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: await this.toDataUrl(imageUrl), detail: config.aiImageDetail } },
+      ...colorSwatches,
+    ]
+
+    const response = await this.requestChatCompletion({
+      model: getActiveGenerationModel(),
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert fashion image recoloring model. You receive a garment image and color swatches for specific parts. You must recolor ONLY the specified parts to their target colors while preserving 100% of material texture, fabric details, highlights, shadows, and garment structure. Unspecified parts must keep their original color. Return only the generated image in base64 without markdown or explanation.',
+        },
+        { role: 'user', content },
+      ],
+    }, userApiKey)
+
+    const image = await this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+    return toStoredFilePath(`uploads/results/${fileName}`)
+  }
+
   // 5. 图片放大（优先走 AI 4K 放大；不满足比例/尺寸时回退本地重采样）
   async upscaleImage(
     taskId: string,
@@ -1516,6 +2025,60 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     await fs.writeFile(filePath, outputBuffer)
 
     return toStoredFilePath(`uploads/upscaled/${fileName}`)
+  }
+
+  // ===== 一键3D图（隐形模特） =====
+  async generateGhostMannequin(
+    taskId: string,
+    imageUrl: string,
+    prompt: string,
+    userApiKey?: string
+  ): Promise<string> {
+    const content: ChatMessageContentPart[] = [
+      {
+        type: 'image_url',
+        image_url: {
+          url: await this.toDataUrl(imageUrl),
+          detail: config.aiImageDetail,
+        },
+      },
+      { type: 'text', text: prompt },
+    ]
+
+    const systemPrompt = `You are an expert fashion product photography AI. Your task is to transform casual clothing photos into professional ghost mannequin (invisible mannequin) product shots.
+
+STRICT RULES:
+1. The garment must appear as if worn by an invisible person, showing natural 3D volume, inner collar, and fabric folds.
+2. CRITICAL SLEEVE RULE: If the garment has sleeves, the sleeves MUST be fully inflated and puffed out to show realistic 3D arm volume — never flat, collapsed, or deflated. The sleeves should look like invisible arms are inside them.
+3. Completely remove the original background, hangers, hands, and all environmental clutter.
+4. Apply the exact background color and lighting specified by the user.
+5. Center the garment perfectly with equal padding on all sides.
+6. Remove any visible watermarks, logos, text overlays, or date stamps.
+7. Enhance fabric texture, seams, and stitches for crisp detail.
+8. Output must look like a professional e-commerce catalog photo — clean, symmetrical, with crisp edges.
+9. Return only the generated image in base64 without markdown or explanation.`
+
+    const genPayload: Record<string, unknown> = {
+      model: getActiveGenerationModel(),
+      stream: false,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content },
+      ],
+    }
+    if (config.aiGenerationTemperature !== undefined) {
+      genPayload.temperature = config.aiGenerationTemperature
+    }
+
+    const response = await this.requestChatCompletion(genPayload, userApiKey)
+    const image = await this.extractImagePayload(response)
+    const extension = extensionByMime[image.mimeType] || '.png'
+    const fileName = `${taskId}${extension}`
+    const filePath = path.join(getUploadPath(), 'results', fileName)
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
+    await fs.writeFile(filePath, Buffer.from(image.base64, 'base64'))
+    return toStoredFilePath(`uploads/results/${fileName}`)
   }
 
   // ============ 私有方法 ============

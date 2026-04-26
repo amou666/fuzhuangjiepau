@@ -38,7 +38,7 @@ export const config = {
     const n = Number.parseFloat(raw)
     return Number.isFinite(n) ? n : undefined
   })() as number | undefined,
-  aiRequestTimeoutMs: parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '120000'),
+  aiRequestTimeoutMs: parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '200000'),
   creditPerGeneration: parseInt(process.env.CREDIT_PER_GENERATION || '1'),
   creditPerUpscale: parseInt(process.env.CREDIT_PER_UPSCALE || '1'),
 

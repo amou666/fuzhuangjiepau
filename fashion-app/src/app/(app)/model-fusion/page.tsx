@@ -9,7 +9,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
-import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon, Smartphone, Camera } from 'lucide-react'
+import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon, Smartphone, Camera, ChevronLeft } from 'lucide-react'
 import { TutorialButton } from '@/lib/components/common/TutorialModal'
 import { TUTORIALS } from '@/lib/tutorials'
 import type { ModelConfig } from '@/lib/types'
@@ -234,29 +234,32 @@ export default function ModelFusionPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Mobile header */}
-      <div className="md:hidden flex items-center gap-2.5 -mb-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center flex-shrink-0">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-[#faf7f4] overflow-hidden">
+      {/* 顶部导航 */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[rgba(139,115,85,0.08)]"
+        style={{ background: 'rgba(255,253,250,0.95)', backdropFilter: 'blur(20px)' }}
+      >
+        <button
+          type="button"
+          onClick={() => router.push('/tools')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+          style={{ background: 'rgba(139,115,85,0.06)' }}
+        >
+          <ChevronLeft className="w-4 h-4 text-[#8b7355]" />
+        </button>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
           <Users className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">模特工厂</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-[16px] font-bold tracking-tight text-[#2d2422]">模特工厂</h1>
+          <p className="text-[11px] text-[#9b8e82] truncate">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
+        </div>
         <TutorialButton id="model-fusion" steps={TUTORIALS['model-fusion']} />
       </div>
 
-      {/* Desktop header */}
-      <div className="hidden md:block">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-            <Users className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">模特工厂</h1>
-          <div className="ml-auto"><TutorialButton id="model-fusion" steps={TUTORIALS['model-fusion']} /></div>
-        </div>
-        <p className="text-gray-500 text-sm ml-[52px]">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
-      </div>
-
       {/* ═══════════════ 左右分栏布局 ═══════════════ */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="max-w-[1200px] mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_440px] gap-6">
         {/* ─── 左栏：配置表单 ─── */}
         <div className="flex flex-col gap-6 min-w-0">
@@ -297,8 +300,8 @@ export default function ModelFusionPage() {
       {tab === 'generate' && (
         <>
           {/* 基础属性 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+            <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">基础属性</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">决定模特的整体气质方向</p>
             </div>
@@ -311,8 +314,8 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 身体特征 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+            <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">身体特征</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">肤色、体型、身高等身体属性</p>
             </div>
@@ -324,8 +327,8 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 面部与发型 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+            <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部与发型</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">脸型、发型、发色、妆容等精细控制</p>
             </div>
@@ -339,8 +342,8 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 补充提示词（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="mb-4">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+            <div className="mb-3 md:mb-4">
               <h3 className="text-[15px] font-bold text-[#2d2422]">补充提示词 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
             </div>
@@ -378,8 +381,8 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 参考图（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="mb-4 sm:mb-5">
+          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+            <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部参考图 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">上传一张人脸照片，AI 会参考该面部特征来生成模特，使结果更贴近你想要的长相</p>
             </div>
@@ -389,7 +392,7 @@ export default function ModelFusionPage() {
           {/* 生成按钮 */}
           <div className="text-center mb-4">
             <button
-              className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-5 px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+              className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-3.5 md:py-5 px-6 md:px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               type="button"
               onClick={() => { void handleGenerate() }}
               disabled={submitting}
@@ -471,7 +474,7 @@ export default function ModelFusionPage() {
 
           <div className="text-center mb-4">
             <button
-              className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-5 px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+              className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-3.5 md:py-5 px-6 md:px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               type="button"
               onClick={() => { void handleFuse() }}
               disabled={!canFuse || submitting}
@@ -488,7 +491,7 @@ export default function ModelFusionPage() {
 
         {/* ─── 右栏：结果面板（sticky） ─── */}
         <aside className="lg:sticky lg:top-4 self-start w-full">
-          <div className="bg-white/75 backdrop-blur-xl border border-white/60 rounded-2xl p-5 shadow-sm min-h-[520px] flex flex-col">
+          <div className="bg-white/75 backdrop-blur-xl border border-white/60 rounded-2xl p-3 md:p-5 shadow-sm min-h-[320px] md:min-h-[520px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[14px] font-semibold text-[#2d2422] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
@@ -501,7 +504,7 @@ export default function ModelFusionPage() {
               )}
             </div>
 
-            <div className="flex-1 rounded-xl border border-dashed border-[rgba(139,115,85,0.18)] bg-[rgba(139,115,85,0.02)] flex items-center justify-center overflow-hidden p-4 min-h-[420px]">
+            <div className="flex-1 rounded-xl border border-dashed border-[rgba(139,115,85,0.18)] bg-[rgba(139,115,85,0.02)] flex items-center justify-center overflow-hidden p-3 md:p-4 min-h-[240px] md:min-h-[420px]">
               {submitting ? (
                 <div className="text-center">
                   <div className="relative w-16 h-16 mx-auto mb-4">
@@ -564,6 +567,8 @@ export default function ModelFusionPage() {
         </aside>
       </div>
       {/* ═══════════════ /左右分栏布局 ═══════════════ */}
+      </div>
+      </div>
 
       {/* ─── 全屏预览（拍立得） ─── */}
       {previewSrc && (
