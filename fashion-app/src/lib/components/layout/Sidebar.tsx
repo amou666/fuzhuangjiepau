@@ -377,7 +377,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
   }
 
   const menuItems = [
-    { to: '/quick-workspace', label: '快速工作台', icon: 'quick-workspace' },
+    { to: '/quick-workspace', label: '工作台', icon: 'quick-workspace' },
     { to: '/redesign', label: 'AI 改款', icon: 'redesign' },
     { to: '/favorites', label: '收藏夹', icon: 'favorites' },
     { to: '/history', label: '历史记录', icon: 'history' },

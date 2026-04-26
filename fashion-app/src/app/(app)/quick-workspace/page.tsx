@@ -247,12 +247,8 @@ export default function QuickWorkspacePage() {
         </div>
         {/* Desktop header */}
         <header className="hidden md:block mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(198,123,92,0.08)] border border-[rgba(198,123,92,0.18)] mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-[#c67b5c]" />
-            <span className="text-[11px] font-semibold text-[#c67b5c]">Quick Workspace</span>
-          </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-bold text-[#2d2422]">快速工作台</h1>
+            <h1 className="text-[28px] font-bold text-[#2d2422]">工作台</h1>
             <div className="ml-auto"><TutorialButton id="quick-workspace" steps={TUTORIALS['quick-workspace']} /></div>
           </div>
           <p className="text-[13px] text-[#8b7355] mt-1">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
