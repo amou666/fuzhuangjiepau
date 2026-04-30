@@ -49,12 +49,12 @@ export default function ToolsPage() {
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="md:hidden flex items-center gap-2.5 -mb-2">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #8b7355 0%, #c67b5c 100%)' }}
         >
           <Wand2 className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">工具</h1>
+        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">工具</h1>
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">

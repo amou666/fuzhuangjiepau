@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { createAccessToken, verifyRefreshToken } from '@/lib/auth'
+import { createAccessToken, createRefreshToken, verifyRefreshToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,8 +17,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '用户不存在或已禁用' }, { status: 401 })
     }
 
+    // Refresh token rotation：签发新的 refresh token，旧 token 自动失效
+    const newRefreshToken = createRefreshToken(user.id)
+
     return NextResponse.json({
       accessToken: createAccessToken({ userId: user.id, email: user.email, role: user.role }),
+      refreshToken: newRefreshToken,
     })
   } catch (error) {
     return NextResponse.json({ message: 'refreshToken 无效或已过期' }, { status: 401 })

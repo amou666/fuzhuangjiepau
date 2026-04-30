@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
+import { useGenerationStore } from '@/lib/stores/generationStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import {
   Palette, ChevronLeft, Download, Loader2, ImageIcon,
-  GripVertical, Sun, Droplets, BookmarkPlus, Layers,
+  GripVertical, Sun, Droplets, BookmarkPlus, Layers, Users,
   Pipette, Plus, X, Check, RotateCcw,
 } from 'lucide-react'
 
@@ -212,35 +213,37 @@ function TargetColorPicker({
   }, [hsv.s, hsv.v])
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-[rgba(139,115,85,0.1)]">
-      {/* SV 面板 — 背景用纯色+渐变，选点位置基于 HSV */}
-      <div
-        ref={panelRef}
-        className="relative w-full aspect-square rounded-xl cursor-crosshair select-none touch-none overflow-hidden"
-        style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h}, 100%, 50%))` }}
-        onPointerDown={(e) => { panelDragging.current = true; (e.target as HTMLElement).setPointerCapture(e.pointerId); updateSV(e.clientX, e.clientY) }}
-        onPointerMove={(e) => { if (panelDragging.current) updateSV(e.clientX, e.clientY) }}
-        onPointerUp={() => { panelDragging.current = false }}
-      >
-        <div className="absolute w-4 h-4 rounded-full border-2 border-white shadow-lg"
-          style={{ left: `${hsv.s}%`, top: `${100 - hsv.v}%`, transform: 'translate(-50%, -50%)', backgroundColor: currentComputedHex }} />
+    <div>
+      {/* SV 面板 */}
+      <div className="max-w-[260px] mx-auto">
+        <div
+          ref={panelRef}
+          className="relative w-full aspect-square rounded-xl cursor-crosshair select-none touch-none overflow-hidden"
+          style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsv.h}, 100%, 50%))` }}
+          onPointerDown={(e) => { panelDragging.current = true; (e.target as HTMLElement).setPointerCapture(e.pointerId); updateSV(e.clientX, e.clientY) }}
+          onPointerMove={(e) => { if (panelDragging.current) updateSV(e.clientX, e.clientY) }}
+          onPointerUp={() => { panelDragging.current = false }}
+        >
+          <div className="absolute w-6 h-6 rounded-full border-[3px] border-white shadow-lg"
+            style={{ left: `${hsv.s}%`, top: `${100 - hsv.v}%`, transform: 'translate(-50%, -50%)', backgroundColor: currentComputedHex }} />
+        </div>
       </div>
 
       {/* 色相条 */}
       <div ref={barRef}
-        className="relative w-full h-3 rounded-full cursor-crosshair select-none touch-none mt-3"
+        className="relative w-full h-5 rounded-full cursor-crosshair select-none touch-none mt-4"
         style={{ background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)' }}
         onPointerDown={(e) => { barDragging.current = true; (e.target as HTMLElement).setPointerCapture(e.pointerId); updateHue(e.clientX) }}
         onPointerMove={(e) => { if (barDragging.current) updateHue(e.clientX) }}
         onPointerUp={() => { barDragging.current = false }}
       >
-        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-lg"
+        <div className="absolute top-1/2 w-6 h-6 rounded-full border-[3px] border-white shadow-lg"
           style={{ left: `${(hsv.h / 360) * 100}%`, transform: 'translate(-50%, -50%)', backgroundColor: hslToHex(hsv.h, 100, 50) }} />
       </div>
 
       {/* HEX + 按钮 */}
-      <div className="flex items-center gap-2 mt-3">
-        <div className="w-8 h-8 rounded-lg border border-white shadow-sm flex-shrink-0" style={{ backgroundColor: currentComputedHex }} />
+      <div className="flex items-center gap-2 mt-4">
+        <div className="w-9 h-9 rounded-lg border border-white shadow-sm flex-shrink-0" style={{ backgroundColor: currentComputedHex }} />
         <input type="text" value={hexInput} onChange={(e) => {
           setHexInput(e.target.value)
           const c = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`
@@ -248,28 +251,92 @@ function TargetColorPicker({
             const hsl = hexToHsl(c)
             setHsv(hslToHsv(hsl.h, hsl.s, hsl.l))
           }
-        }} className="flex-1 px-2.5 py-1.5 rounded-lg text-[12px] font-mono outline-none"
+        }} className="w-[88px] px-2.5 py-2 rounded-lg text-[13px] font-mono outline-none flex-shrink-0"
           style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.1)' }} maxLength={7} />
-        <button type="button" onClick={() => onConfirm({ name: getColorName(currentComputedHex), hex: currentComputedHex.toUpperCase() })}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-          <Check className="w-3 h-3 inline mr-0.5" />确认
-        </button>
-        <button type="button" onClick={onClose} className="px-2 py-1.5 rounded-lg text-[11px] text-[#b0a59a] hover:bg-[rgba(139,115,85,0.06)]">
+        <div className="flex-1" />
+        <button type="button" onClick={onClose}
+          className="px-4 py-2.5 rounded-xl text-[13px] text-[#b0a59a] hover:bg-[rgba(139,115,85,0.06)] active:bg-[rgba(139,115,85,0.12)] flex-shrink-0">
           取消
+        </button>
+        <button type="button" onClick={() => onConfirm({ name: getColorName(currentComputedHex), hex: currentComputedHex.toUpperCase() })}
+          className="px-5 py-2.5 rounded-xl text-[13px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+          确认
         </button>
       </div>
 
       {/* 快捷色 */}
-      <div className="mt-3 flex flex-wrap gap-1 max-h-[120px] overflow-y-auto">
-        {PRESET_COLORS.map(c => (
-          <button key={c.hex} type="button" onClick={() => onConfirm(c)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium hover:bg-[rgba(139,115,85,0.06)] transition-colors"
-            style={{ border: '1px solid rgba(139,115,85,0.08)' }}>
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: c.hex }} />{c.name}
-          </button>
-        ))}
+      <div className="mt-4">
+        <div className="text-[11px] text-[#b0a59a] mb-2">快捷选色</div>
+        <div className="grid grid-cols-4 gap-2">
+          {PRESET_COLORS.map(c => (
+            <button key={c.hex} type="button" onClick={() => {
+              const hsl = hexToHsl(c.hex)
+              const hsvFromHsl = hslToHsv(hsl.h, hsl.s, hsl.l)
+              setHsv(hsvFromHsl)
+              setHexInput(c.hex.toUpperCase())
+            }}
+              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-medium hover:bg-[rgba(139,115,85,0.06)] active:bg-[rgba(139,115,85,0.12)] transition-colors"
+              style={{ border: '1px solid rgba(139,115,85,0.08)' }}>
+              <span className="w-4 h-4 rounded-full flex-shrink-0 border border-white/60 shadow-sm" style={{ backgroundColor: c.hex }} />
+              <span className="truncate">{c.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
+  )
+}
+
+// ─── 标记点覆盖层（独立组件，安全使用 getBoundingClientRect） ───
+
+function MarkerOverlay({ imageContainerRef, imgRef, replacements }: {
+  imageContainerRef: React.RefObject<HTMLDivElement | null>
+  imgRef: React.RefObject<HTMLImageElement | null>
+  replacements: ColorReplacement[]
+}) {
+  const [positions, setPositions] = useState<Array<{ left: string; top: string }>>([])
+
+  useLayoutEffect(() => {
+    const container = imageContainerRef.current
+    const img = imgRef.current
+    if (!container || !img || !img.naturalWidth) {
+      setPositions(replacements.map(() => ({ left: '50%', top: '50%' })))
+      return
+    }
+
+    const cr = container.getBoundingClientRect()
+    const ir = img.naturalWidth / img.naturalHeight
+    const ctr = cr.width / cr.height
+    let imgLeft: number, imgTop: number, imgWidth: number, imgHeight: number
+    if (ir > ctr) {
+      imgWidth = cr.width; imgHeight = cr.width / ir; imgLeft = 0; imgTop = (cr.height - imgHeight) / 2
+    } else {
+      imgHeight = cr.height; imgWidth = cr.height * ir; imgLeft = (cr.width - imgWidth) / 2; imgTop = 0
+    }
+
+    setPositions(replacements.map(rep => ({
+      left: `${imgLeft + rep.clickX / 100 * imgWidth}px`,
+      top: `${imgTop + rep.clickY / 100 * imgHeight}px`,
+    })))
+  }, [replacements, imageContainerRef, imgRef])
+
+  return (
+    <>
+      {replacements.map((rep, i) => (
+        <div
+          key={rep.id}
+          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
+          style={{ left: positions[i]?.left ?? '50%', top: positions[i]?.top ?? '50%' }}
+        >
+          <div className="w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center"
+            style={{
+              background: `linear-gradient(135deg, ${rep.sourceGradient[0]}, ${rep.sourceGradient[2]}, ${rep.sourceGradient[4]})`,
+            }}>
+            <div className="w-2 h-2 rounded-full bg-white/80" />
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -279,6 +346,8 @@ export default function RecolorPage() {
   const router = useRouter()
   const updateCredits = useAuthStore((state) => state.updateCredits)
   const addNotification = useNotificationStore((state) => state.add)
+  const credits = useAuthStore((s) => s.user?.credits ?? 0)
+  const creditsLow = credits < 1
   const quickDraft = useDraftStore((state) => state.quickWorkspaceDraft)
   const setQuickDraft = useDraftStore((state) => state.setQuickWorkspaceDraft)
 
@@ -297,12 +366,12 @@ export default function RecolorPage() {
   const [saturation, setSaturation] = useState(0)
 
   // 生成
-  const [submitting, setSubmitting] = useState(false)
-  const [progress, setProgress] = useState('')
-  const [results, setResults] = useState<RecolorResult[]>([])
+  const genState = useGenerationStore((s) => s.recolor)
+  const setGen = useGenerationStore((s) => s.setRecolorGen)
+  const { submitting, progress, results, error } = genState
   const [compareMode, setCompareMode] = useState(false)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  const [applyTarget, setApplyTarget] = useState<'clothing' | 'clothingBack' | 'model' | 'scene' | null>(null)
 
   // Canvas 用于取色
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -493,9 +562,25 @@ export default function RecolorPage() {
     if (!sample) return
 
     const container = imageContainerRef.current
+    const img = imgRef.current
     const rect = container?.getBoundingClientRect()
-    const relX = rect ? ((e.clientX - rect.left) / rect.width * 100) : 50
-    const relY = rect ? ((e.clientY - rect.top) / rect.height * 100) : 50
+    if (!rect || !img) return
+
+    // 计算实际渲染图片的位置（object-contain 居中）
+    const containerW = rect.width
+    const containerH = rect.height
+    const imgRatio = img.naturalWidth / img.naturalHeight
+    const containerRatio = containerW / containerH
+    let renderW, renderH, offsetX, offsetY
+    if (imgRatio > containerRatio) {
+      renderW = containerW; renderH = containerW / imgRatio; offsetX = 0; offsetY = (containerH - renderH) / 2
+    } else {
+      renderH = containerH; renderW = containerH * imgRatio; offsetX = (containerW - renderW) / 2; offsetY = 0
+    }
+
+    // 标记点位置相对于实际渲染图片
+    const relX = ((e.clientX - rect.left - offsetX) / renderW * 100)
+    const relY = ((e.clientY - rect.top - offsetY) / renderH * 100)
 
     setReplacements(prev => [...prev, {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -549,11 +634,11 @@ export default function RecolorPage() {
   }
 
   // 生成
-  const canGenerate = imageUrl && replacements.length > 0 && replacements.every(r => r.targetColor)
+  const canGenerate = imageUrl && replacements.length > 0 && replacements.every(r => r.targetColor) && !creditsLow
 
   const handleGenerate = async () => {
     if (!canGenerate) return
-    setSubmitting(true); setError(''); setResults([])
+    setGen({ submitting: true, error: '', results: [] })
 
     const colorMappings = replacements.map(r => ({
       sourceHex: r.sourceHex,
@@ -566,23 +651,34 @@ export default function RecolorPage() {
       targetHex: r.targetColor!.hex,
     }))
 
-    setProgress('正在生成改色图...')
+    setGen({ progress: '正在生成改色图...' })
     try {
       const data = await workspaceApi.recolorByColor(imageUrl, colorMappings, { brightness, saturation })
       const label = replacements.map(r => `${r.sourceName}→${r.targetColor!.name}`).join(' + ')
-      setResults([{ url: data.resultUrl, label }])
+      setGen({ results: [{ url: data.resultUrl, label }] })
       updateCredits(data.credits)
       addNotification({ type: 'success', message: '改色完成！' })
     } catch (err) {
-      setError(getErrorMessage(err, '改色生成失败'))
+      setGen({ error: getErrorMessage(err, '改色生成失败') })
     }
-    setSubmitting(false); setProgress('')
+    setGen({ submitting: false, progress: '' })
   }
 
-  const handleDownload = (url: string) => {
-    const link = document.createElement('a')
-    link.href = url; link.download = `recolor-${Date.now()}.png`; link.target = '_blank'
-    document.body.appendChild(link); link.click(); document.body.removeChild(link)
+  const handleDownload = async (url: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const downloadUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `recolor-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(downloadUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
   }
 
   return (
@@ -591,17 +687,17 @@ export default function RecolorPage() {
       <canvas ref={canvasRef} className="hidden" />
 
       {/* 顶部导航 */}
-      <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-3 border-b border-[rgba(139,115,85,0.08)]"
-        style={{ background: 'rgba(255,253,250,0.95)', backdropFilter: 'blur(20px)' }}>
+      <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-3"
+        style={{ background: 'rgba(250,247,244,0.95)', backdropFilter: 'blur(20px)' }}>
         <button type="button" onClick={() => router.push('/tools')} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(139,115,85,0.06)' }}>
           <ChevronLeft className="w-4 h-4 text-[#8b7355]" />
         </button>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+        <div className="w-8 h-8 rounded-lg hidden md:flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
           <Palette className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-[16px] font-bold tracking-tight text-[#2d2422]">AI 改色</h1>
-          <p className="text-[11px] text-[#9b8e82] truncate">点击衣服取色 → 选择目标色 → AI 色系替换（保留明暗层次）</p>
+          <p className="hidden md:block text-[11px] text-[#9b8e82] truncate">点击衣服取色 → 选择目标色 → AI 色系替换（保留明暗层次）</p>
         </div>
       </div>
 
@@ -611,7 +707,7 @@ export default function RecolorPage() {
           {!imageUrl ? (
             /* ─── 上传状态 ─── */
             <div className="max-w-lg mx-auto">
-              <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-8 shadow-sm text-center">
+              <div className="fashion-glass rounded-2xl p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(99,102,241,0.08)' }}>
                   <Pipette className="w-7 h-7 text-[#6366f1]" />
                 </div>
@@ -626,22 +722,23 @@ export default function RecolorPage() {
               {/* 左侧：大图 + 取色 */}
               <div className="lg:col-span-7 space-y-4">
                 {/* 大图卡片（含顶部控制栏） */}
-                <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl overflow-hidden shadow-sm">
+                <div className="fashion-glass rounded-2xl overflow-hidden">
                   {/* 顶部控制栏 */}
                   <div className="flex items-center justify-between p-3 md:p-4 border-b border-[rgba(139,115,85,0.08)]">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setPickMode(!pickMode)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-[12px] font-semibold transition-all"
                         style={{
                           background: pickMode ? 'rgba(99,102,241,0.1)' : 'rgba(139,115,85,0.04)',
                           border: pickMode ? '1px solid rgba(99,102,241,0.25)' : '1px solid rgba(139,115,85,0.08)',
                           color: pickMode ? '#6366f1' : '#8b7355',
                         }}
                       >
-                        <Pipette className="w-3.5 h-3.5" />
-                        {pickMode ? '取色模式（点击图片取色）' : '取色模式已关闭'}
+                        <Pipette className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="hidden sm:inline">{pickMode ? '取色模式（点击图片取色）' : '取色模式已关闭'}</span>
+                        <span className="sm:hidden">{pickMode ? '取色中' : '已关闭'}</span>
                       </button>
                       {hoverColor && pickMode && (
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.08)' }}>
@@ -650,7 +747,7 @@ export default function RecolorPage() {
                         </div>
                       )}
                     </div>
-                    <button type="button" onClick={() => { setImageUrl(''); setReplacements([]); setResults([]); setCompareMode(false); setPreviewSrc(null); setError(''); }} className="text-[11px] text-[#b0a59a] hover:text-[#c47070] transition-colors flex items-center gap-1">
+                    <button type="button" onClick={() => { setImageUrl(''); setReplacements([]); setGen({ results: [], error: '' }); setCompareMode(false); setPreviewSrc(null); }} className="text-[11px] text-[#b0a59a] hover:text-[#c47070] transition-colors flex items-center gap-1">
                       <RotateCcw className="w-3 h-3" /> 换图片
                     </button>
                   </div>
@@ -663,27 +760,20 @@ export default function RecolorPage() {
                     onMouseMove={handleImageMouseMove}
                     onMouseLeave={() => setHoverColor(null)}
                   >
+                    {/* 标记点定位层 — 精确覆盖在渲染图片上 */}
+                    {replacements.length > 0 && (
+                      <MarkerOverlay
+                        imageContainerRef={imageContainerRef}
+                        imgRef={imgRef}
+                        replacements={replacements}
+                      />
+                    )}
                     <img
                       src={imageUrl}
                       alt="服装原图"
                       className="w-full max-h-[65vh] object-contain block"
                       draggable={false}
                     />
-                    {/* 取色标记点 */}
-                    {replacements.map(rep => (
-                      <div
-                        key={rep.id}
-                        className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
-                        style={{ left: `${rep.clickX}%`, top: `${rep.clickY}%` }}
-                      >
-                        <div className="w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center"
-                          style={{
-                            background: `linear-gradient(135deg, ${rep.sourceGradient[0]}, ${rep.sourceGradient[2]}, ${rep.sourceGradient[4]})`,
-                          }}>
-                          <div className="w-2 h-2 rounded-full bg-white/80" />
-                        </div>
-                      </div>
-                    ))}
                     {/* 取色提示 */}
                     {pickMode && replacements.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -697,7 +787,7 @@ export default function RecolorPage() {
 
                 {/* 改色结果 — 放在原图下方，同等大小 */}
                 {results.length > 0 && (
-                  <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl overflow-hidden shadow-sm hover:shadow-[0_4px_16px_rgba(99,102,241,0.12)] transition-all">
+                  <div className="fashion-glass rounded-2xl overflow-hidden hover:shadow-[0_4px_16px_rgba(99,102,241,0.12)] transition-all">
                     {/* 颜色替换映射 — 仅色块，无文字 */}
                     <div className="flex items-center gap-3 px-4 py-2 border-b border-[rgba(139,115,85,0.08)]">
                       {replacements.map((rep) => (
@@ -742,20 +832,7 @@ export default function RecolorPage() {
                       <BookmarkPlus className="w-3.5 h-3.5" />
                     </button>
                     <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-[#b0a59a] hover:bg-[rgba(99,102,241,0.06)] hover:text-[#6366f1] transition-colors"
-                      onClick={() => {
-                        setQuickDraft({
-                          mode: quickDraft?.mode || 'background',
-                          clothingUrl: results[0].url,
-                          clothingBackUrl: quickDraft?.clothingBackUrl || '',
-                          modelImageUrl: quickDraft?.modelImageUrl || '',
-                          sceneImageUrl: quickDraft?.sceneImageUrl || '',
-                          extraPrompt: quickDraft?.extraPrompt || '',
-                          aspectRatio: quickDraft?.aspectRatio || '3:4',
-                          framing: quickDraft?.framing || 'auto',
-                          device: quickDraft?.device || 'phone',
-                        })
-                        router.push('/quick-workspace')
-                      }}>
+                      onClick={() => setApplyTarget('clothing')}>
                       <Layers className="w-3.5 h-3.5" /> 应用到工作台
                     </button>
                   </div>
@@ -765,7 +842,7 @@ export default function RecolorPage() {
               {/* 右侧：颜色替换列表 + 操作 */}
               <div className="lg:col-span-5 space-y-4">
                 {/* 颜色替换列表 */}
-                <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 md:p-5 shadow-sm">
+                <div className="fashion-glass rounded-2xl p-4 md:p-5">
                   <h3 className="text-[14px] font-bold text-[#2d2422] flex items-center gap-2 mb-3 pb-3 border-b border-[rgba(139,115,85,0.08)]">
                     <Palette className="w-4 h-4 text-[#6366f1]" /> 颜色替换方案
                   </h3>
@@ -781,19 +858,18 @@ export default function RecolorPage() {
                       {replacements.map((rep) => (
                         <div key={rep.id} className="rounded-xl p-3 transition-all"
                           style={{ background: 'rgba(139,115,85,0.02)', border: '1px solid rgba(139,115,85,0.08)' }}>
-                          {/* 源色 → 目标色 */}
-                          <div className="flex items-center gap-3">
+                          {/* 源色 → 目标色 — 小屏换行 */}
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
                             {/* 源色 — 渐变色条 */}
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-1 min-w-0 basis-[40%] sm:basis-auto">
                               <div
-                                className="w-10 h-8 rounded-lg border-2 border-white shadow-md flex-shrink-0"
+                                className="w-8 h-7 sm:w-10 sm:h-8 rounded-lg border-2 border-white shadow-md flex-shrink-0"
                                 style={{
                                   background: `linear-gradient(to right, ${rep.sourceGradient[0]}, ${rep.sourceGradient[1]}, ${rep.sourceGradient[2]}, ${rep.sourceGradient[3]}, ${rep.sourceGradient[4]})`,
                                 }}
                               />
                               <div className="min-w-0">
                                 <div className="text-[12px] font-semibold text-[#2d2422] truncate">{rep.sourceName}</div>
-                                <div className="text-[10px] text-[#b0a59a]">H{rep.sourceHue}° L{rep.sourceLightMin}-{rep.sourceLightMax}%</div>
                               </div>
                             </div>
 
@@ -801,17 +877,16 @@ export default function RecolorPage() {
                             <span className="text-[16px] text-[#b0a59a] flex-shrink-0">→</span>
 
                             {/* 目标色 */}
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 basis-[40%] sm:basis-auto">
                               {rep.targetColor ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-lg border-2 border-white shadow-md flex-shrink-0"
+                                <div className="flex items-center gap-2 cursor-pointer group"
+                                  onClick={() => setEditingId(editingId === rep.id ? null : rep.id)}>
+                                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 border-white shadow-md flex-shrink-0 ring-2 ring-transparent group-hover:ring-[#6366f1]/30 group-active:ring-[#6366f1]/50 transition-all"
                                     style={{ backgroundColor: rep.targetColor.hex }} />
                                   <div className="min-w-0">
                                     <div className="text-[12px] font-semibold text-[#6366f1] truncate">{rep.targetColor.name}</div>
                                     <div className="text-[10px] font-mono text-[#b0a59a]">{rep.targetColor.hex}</div>
                                   </div>
-                                  <button type="button" onClick={() => setEditingId(editingId === rep.id ? null : rep.id)}
-                                    className="text-[10px] text-[#6366f1] hover:underline flex-shrink-0">修改</button>
                                 </div>
                               ) : (
                                 <button type="button" onClick={() => setEditingId(rep.id)}
@@ -824,21 +899,10 @@ export default function RecolorPage() {
 
                             {/* 删除 */}
                             <button type="button" onClick={() => removeReplacement(rep.id)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-[rgba(196,112,112,0.1)] flex-shrink-0">
+                              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[rgba(196,112,112,0.1)] active:bg-[rgba(196,112,112,0.2)] flex-shrink-0">
                               <X className="w-3.5 h-3.5 text-[#c47070]" />
                             </button>
                           </div>
-
-                          {/* 目标色选择器展开 */}
-                          {editingId === rep.id && (
-                            <div className="mt-3">
-                              <TargetColorPicker
-                                currentHex={rep.sourceHex}
-                                onConfirm={(color) => setTargetColor(rep.id, color)}
-                                onClose={() => setEditingId(null)}
-                              />
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -853,7 +917,7 @@ export default function RecolorPage() {
                 </div>
 
                 {/* 微调 */}
-                <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 shadow-sm">
+                <div className="fashion-glass rounded-2xl p-4">
                   <h3 className="text-[13px] font-bold text-[#2d2422] mb-3">微调</h3>
                   <div className="space-y-3">
                     <div>
@@ -881,7 +945,7 @@ export default function RecolorPage() {
                   style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', boxShadow: '0 4px 20px rgba(99,102,241,0.35)' }}
                   type="button"
                   onClick={handleGenerate}
-                  disabled={!canGenerate || submitting}
+                  disabled={!canGenerate || submitting || creditsLow}
                 >
                   {submitting ? (
                     <div className="flex items-center gap-2">
@@ -892,7 +956,7 @@ export default function RecolorPage() {
                     <>
                       <div>开始改色</div>
                       <div className="text-[11px] font-normal opacity-85 mt-1">
-                        消耗 1 积分 · {replacements.length > 0 ? replacements.map(r => `${r.sourceName}→${r.targetColor?.name || '?'}`).join(' · ') : '请先取色'}
+                        {creditsLow ? '积分不足，无法改色' : `消耗 1 积分 · ${replacements.length > 0 ? replacements.map(r => `${r.sourceName}→${r.targetColor?.name || '?'}`).join(' · ') : '请先取色'}`}
                       </div>
                     </>
                   )}
@@ -905,6 +969,99 @@ export default function RecolorPage() {
           )}
         </div>
       </div>
+
+      {/* 颜色选择器底部弹出面板 */}
+      {editingId && (() => {
+        const rep = replacements.find(r => r.id === editingId)
+        if (!rep) return null
+        return (
+          <div
+            className="fixed inset-0 z-[300] flex items-end justify-center"
+            onClick={() => setEditingId(null)}
+          >
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+            <div
+              className="relative w-full max-w-lg bg-white rounded-t-2xl shadow-[0_-4px_32px_rgba(0,0,0,0.15)] z-10 animate-in slide-in-from-bottom duration-200"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxHeight: '85vh', overflowY: 'auto' }}
+            >
+              {/* 拖拽条 */}
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="w-9 h-1 rounded-full bg-[#d4cfc8]" />
+              </div>
+              <div className="px-4 pb-5">
+                <TargetColorPicker
+                  currentHex={rep.sourceHex}
+                  onConfirm={(color) => setTargetColor(rep.id, color)}
+                  onClose={() => setEditingId(null)}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 应用到工作台 - 选择目标弹窗 */}
+      {applyTarget && results.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[350] p-6" onClick={() => setApplyTarget(null)}>
+          <div className="relative max-w-[360px] w-full bg-white/95 backdrop-blur-[40px] rounded-2xl border border-white/80 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[16px] font-semibold text-[#2d2422] mb-1">应用到工作台</h3>
+            <p className="text-[13px] text-[#9b8e82] mb-5">选择改色结果图在工作台中的用途</p>
+            <div className="flex flex-col gap-2.5">
+              {([
+                { key: 'clothing', label: '服装正面', desc: '作为工作台的服装主视图', icon: ImageIcon },
+                { key: 'clothingBack', label: '服装反面', desc: '作为工作台的服装背面图', icon: ImageIcon },
+                { key: 'model', label: '模特', desc: '作为工作台的模特参考图', icon: Users },
+                { key: 'scene', label: '场景', desc: '作为工作台的场景图', icon: Layers },
+              ] as const).map(opt => {
+                const OptIcon = opt.icon
+                return (
+                  <button key={opt.key} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                    style={{ borderColor: 'rgba(139,115,85,0.12)', background: 'rgba(139,115,85,0.03)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.background = 'rgba(99,102,241,0.06)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,115,85,0.12)'; e.currentTarget.style.background = 'rgba(139,115,85,0.03)'; }}
+                    onClick={() => {
+                      const url = results[0].url
+                      const existing = useDraftStore.getState().quickWorkspaceDraft
+                      const patch: Record<string, string> = {}
+                      if (opt.key === 'clothing') patch.clothingUrl = url
+                      else if (opt.key === 'clothingBack') patch.clothingBackUrl = url
+                      else if (opt.key === 'model') patch.modelImageUrl = url
+                      else if (opt.key === 'scene') patch.sceneImageUrl = url
+                      setQuickDraft({
+                        mode: existing?.mode || 'background',
+                        clothingUrl: existing?.clothingUrl || '',
+                        clothingBackUrl: existing?.clothingBackUrl || '',
+                        modelImageUrl: existing?.modelImageUrl || '',
+                        sceneImageUrl: existing?.sceneImageUrl || '',
+                        extraPrompt: existing?.extraPrompt || '',
+                        aspectRatio: existing?.aspectRatio || '3:4',
+                        framing: existing?.framing || 'auto',
+                        device: existing?.device || 'phone',
+                        ...patch,
+                      })
+                      setApplyTarget(null)
+                      addNotification({ type: 'success', message: `已应用到工作台（${opt.label}），正在跳转...` })
+                      router.push('/quick-workspace')
+                    }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                      <OptIcon className="w-4 h-4 text-[#6366f1]" />
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-semibold text-[#2d2422]">{opt.label}</div>
+                      <div className="text-[11px] text-[#9b8e82]">{opt.desc}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <button className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+              onClick={() => setApplyTarget(null)}>
+              取消
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 预览弹窗 */}
       {previewSrc && (

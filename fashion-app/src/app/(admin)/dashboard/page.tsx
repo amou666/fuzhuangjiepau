@@ -30,14 +30,13 @@ export default function DashboardPage() {
   ] : [];
 
   const statusLabel: Record<string, string> = {
-    completed: '已完成', done: '已完成', processing: '处理中', pending: '排队中',
+    completed: '已完成', processing: '处理中', pending: '排队中',
     describing_model: '描述模特', describing_scene: '描述场景',
     generating: '生成中', failed: '失败',
   };
 
   const statusColor: Record<string, string> = {
     completed: 'bg-green-100 text-green-800',
-    done: 'bg-green-100 text-green-800',
     processing: 'bg-yellow-100 text-yellow-800',
     pending: 'bg-indigo-100 text-indigo-800',
     describing_model: 'bg-yellow-100 text-yellow-800',
@@ -71,7 +70,7 @@ export default function DashboardPage() {
             {metrics.map((m) => (
               <div
                 key={m.label}
-                className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex items-center gap-4"
+                className="fashion-glass rounded-2xl p-6 flex items-center gap-4"
               >
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${m.color} flex items-center justify-center shadow-lg shrink-0`}>
                   <m.icon className="w-6 h-6 text-white" />
@@ -88,7 +87,7 @@ export default function DashboardPage() {
 
           {/* Feedback Summary */}
           {feedback && feedback.total > 0 && (
-            <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <div className="fashion-glass rounded-2xl p-6">
               <h2 className="text-base font-semibold text-gray-900 m-0 mb-4 flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500" />
                 用户满意度
@@ -122,7 +121,7 @@ export default function DashboardPage() {
           {/* Two columns */}
           <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
             {/* Daily Tasks */}
-            <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <div className="fashion-glass rounded-2xl p-6">
               <h2 className="text-base font-semibold text-gray-900 m-0 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-500" />
                 近 7 天生图趋势
@@ -141,7 +140,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Top Customers */}
-            <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <div className="fashion-glass rounded-2xl p-6">
               <h2 className="text-base font-semibold text-gray-900 m-0 mb-4 flex items-center gap-2">
                 <Award className="w-4 h-4 text-amber-500" />
                 客户积分消耗排行
@@ -163,7 +162,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Tasks Table */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <div className="fashion-glass rounded-2xl p-6">
             <h2 className="text-base font-semibold text-gray-900 m-0 mb-4">最近任务</h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[13px]">

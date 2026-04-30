@@ -7,9 +7,8 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import type { CreditLog } from '@/lib/types'
 import { getErrorMessage } from '@/lib/utils/api'
 import { formatDateTime } from '@/lib/utils/format'
-import { Mail, Shield, Key, Coins, Lightbulb, ArrowUp, ArrowDown, UserCircle, Copy, Check, Target, Zap, Image, TrendingUp, Loader2 } from 'lucide-react'
-import { TutorialButton } from '@/lib/components/common/TutorialModal'
-import { TUTORIALS } from '@/lib/tutorials'
+import { useRouter } from 'next/navigation'
+import { Mail, Shield, Key, Coins, Lightbulb, ArrowUp, ArrowDown, UserCircle, Copy, Check, Target, Zap, Image, TrendingUp, Loader2, BookOpen, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { MiniBarChart } from '@/lib/components/charts/MiniBarChart'
 
 interface GenerationStats {
@@ -60,6 +59,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
 }
 
 export default function ProfilePage() {
+  const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
   const updateCredits = useAuthStore((state) => state.updateCredits)
@@ -67,6 +67,8 @@ export default function ProfilePage() {
   const [logs, setLogs] = useState<CreditLog[]>([])
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [creditPage, setCreditPage] = useState(1)
+  const CREDIT_PAGE_SIZE = 10
 
   // 统计数据
   const [genStats, setGenStats] = useState<GenerationStats | null>(null)
@@ -129,13 +131,12 @@ export default function ProfilePage() {
     <div className="flex flex-col gap-4 md:gap-5">
       <div className="md:hidden flex items-center gap-2.5 -mb-1">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #8b7355 0%, #b0a59a 100%)' }}
         >
           <UserCircle className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">个人中心</h1>
-        <TutorialButton id="profile" steps={TUTORIALS.profile} />
+        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">个人中心</h1>
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">
@@ -146,7 +147,6 @@ export default function ProfilePage() {
             <UserCircle className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">个人中心</h1>
-          <div className="ml-auto"><TutorialButton id="profile" steps={TUTORIALS.profile} /></div>
         </div>
         <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">查看账号信息、数据统计与积分变动记录</p>
       </div>
@@ -220,6 +220,34 @@ export default function ProfilePage() {
             <div className="px-4 py-3 bg-[rgba(198,123,92,0.06)] border border-[rgba(198,123,92,0.12)] rounded-xl text-[13px] text-[#b0654a] leading-relaxed">
               在工作台、模特工厂、AI 改款中生成的图片都会消耗积分，可在下方查看流水。
             </div>
+            <button
+              type="button"
+              onClick={() => router.push('/tutorials')}
+              className="flex items-center justify-between px-4 py-3 rounded-xl transition-all border"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,115,85,0.06), rgba(176,165,154,0.06))',
+                borderColor: 'rgba(139,115,85,0.2)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(176,165,154,0.1))'
+                e.currentTarget.style.borderColor = 'rgba(139,115,85,0.35)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139,115,85,0.06), rgba(176,165,154,0.06))'
+                e.currentTarget.style.borderColor = 'rgba(139,115,85,0.2)'
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b7355, #b0a59a)' }}>
+                  <BookOpen className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="text-[13px] font-semibold text-[#2d2422]">使用教程</div>
+                  <div className="text-[11px] text-[#b0a59a]">查看所有功能的详细操作指南</div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#8b7355] flex-shrink-0" />
+            </button>
           </div>
         </div>
       </div>
@@ -277,33 +305,59 @@ export default function ProfilePage() {
         {logs.length === 0 ? (
           <div className="py-8 text-center text-[13px] text-[#c9bfb5]">暂无积分变动记录</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
-              <thead>
-                <tr>
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">变动</th>
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">余额</th>
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">原因</th>
-                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-[rgba(139,115,85,0.02)] transition-colors">
-                    <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)]">
-                      <span className={`inline-flex items-center gap-1 font-semibold ${log.delta > 0 ? 'text-[#7d9b76]' : 'text-[#c47070]'}`}>
-                        {log.delta > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                        {log.delta > 0 ? `+${log.delta}` : log.delta}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#2d2422] font-medium">{log.balanceAfter}</td>
-                    <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#8b7355]">{log.reason}</td>
-                    <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#b0a59a]">{formatDateTime(log.createdAt)}</td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[13px]">
+                <thead>
+                  <tr>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">变动</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">余额</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">原因</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider border-b border-[rgba(139,115,85,0.08)] bg-[rgba(139,115,85,0.02)]">时间</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {logs.slice((creditPage - 1) * CREDIT_PAGE_SIZE, creditPage * CREDIT_PAGE_SIZE).map((log) => (
+                    <tr key={log.id} className="hover:bg-[rgba(139,115,85,0.02)] transition-colors">
+                      <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)]">
+                        <span className={`inline-flex items-center gap-1 font-semibold ${log.delta > 0 ? 'text-[#7d9b76]' : 'text-[#c47070]'}`}>
+                          {log.delta > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                          {log.delta > 0 ? `+${log.delta}` : log.delta}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#2d2422] font-medium">{log.balanceAfter}</td>
+                      <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#8b7355]">{log.reason}</td>
+                      <td className="px-4 py-3 border-b border-[rgba(139,115,85,0.04)] text-[#b0a59a]">{formatDateTime(log.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {Math.ceil(logs.length / CREDIT_PAGE_SIZE) > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(139,115,85,0.06)]">
+                <span className="text-[12px] text-[#b0a59a]">共 {logs.length} 条记录</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreditPage(p => Math.max(1, p - 1))}
+                    disabled={creditPage === 1}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[rgba(139,115,85,0.06)]"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#8b7355]" />
+                  </button>
+                  <span className="text-[12px] text-[#8b7355] tabular-nums min-w-[50px] text-center">{creditPage} / {Math.ceil(logs.length / CREDIT_PAGE_SIZE)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCreditPage(p => Math.min(Math.ceil(logs.length / CREDIT_PAGE_SIZE), p + 1))}
+                    disabled={creditPage >= Math.ceil(logs.length / CREDIT_PAGE_SIZE)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[rgba(139,115,85,0.06)]"
+                  >
+                    <ChevronRight className="w-4 h-4 text-[#8b7355]" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -73,7 +73,7 @@ export default function AdminRecordsPage() {
 
   const getStatusStyle = (status: string) => {
     const s = status.toLowerCase();
-    if (s === 'completed' || s === 'done') return 'bg-green-100 text-green-700';
+    if (s === 'completed') return 'bg-green-100 text-green-700';
     if (s === 'failed') return 'bg-red-100 text-red-700';
     if (s === 'generating') return 'bg-pink-100 text-pink-800';
     if (s === 'pending') return 'bg-indigo-100 text-indigo-800';
@@ -97,7 +97,7 @@ export default function AdminRecordsPage() {
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100">{error}</div>
         ) : null}
         
-        <div className="overflow-x-auto bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-sm">
+        <div className="overflow-x-auto fashion-glass rounded-2xl">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>

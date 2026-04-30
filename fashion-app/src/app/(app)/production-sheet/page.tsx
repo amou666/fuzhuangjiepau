@@ -7,6 +7,7 @@ import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
+import { useGenerationStore } from '@/lib/stores/generationStore'
 import { ChevronLeft, FileText, RefreshCw, Layers, Scissors, CheckCircle2, Image as ImageIcon, Download, ArrowLeft, AlertCircle, Loader2, History, Trash2, Clock, BookmarkPlus } from 'lucide-react'
 
 interface SpecRow {
@@ -48,12 +49,16 @@ function loadHistory(): HistoryRecord[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? JSON.parse(raw) : []
+    const records: HistoryRecord[] = raw ? JSON.parse(raw) : []
+    // 清理超过30天的记录
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+    return records.filter(r => r.createdAt > thirtyDaysAgo)
   } catch { return [] }
 }
 
 function saveHistory(records: HistoryRecord[]) {
   if (typeof window === 'undefined') return
+  // TODO: 迁移到服务端存储，当前仅存 localStorage，换设备/清缓存会丢失
   localStorage.setItem(HISTORY_KEY, JSON.stringify(records.slice(0, MAX_HISTORY)))
 }
 
@@ -79,6 +84,11 @@ const processGrading = (baseS: Omit<SpecRow, 'size'>): SpecRow[] => {
       bottom: baseS.bottom === 0 ? 0 : baseS.bottom + (index * grading.bottom),
     }
   })
+}
+
+/** HTML 转义，防止 XSS */
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 /** 生成纯内联样式的导出 HTML（给 html2canvas 截图用，避免 Tailwind CSS 变量解析问题） */
@@ -107,7 +117,7 @@ function buildExportHtml(data: ProductData, imgUrl: string): string {
         <div style="font-size:20px;font-weight:700;letter-spacing:-0.01em">生产单</div>
       </div>
     </div>
-    <div style="font-size:16px;opacity:0.9;font-weight:800;letter-spacing:0.1em;color:#fff">${data.date}</div>
+    <div style="font-size:16px;opacity:0.9;font-weight:800;letter-spacing:0.1em;color:#fff">${escapeHtml(data.date)}</div>
   </div>
 
   <!-- 主体：左图右表 -->
@@ -151,12 +161,12 @@ function buildExportHtml(data: ProductData, imgUrl: string): string {
   <table style="width:100%;border-collapse:collapse;border-top:2px solid #2d2422">
     <tr>
       <td style="padding:20px 40px;vertical-align:top">
-        <div style="font-size:24px;font-weight:900;color:#2d2422;letter-spacing:-0.01em;margin-bottom:8px">${data.name}</div>
+        <div style="font-size:24px;font-weight:900;color:#2d2422;letter-spacing:-0.01em;margin-bottom:8px">${escapeHtml(data.name)}</div>
         <table style="border-collapse:collapse"><tr>
           <td style="font-size:17px;font-weight:900;color:#2d2422;white-space:nowrap;padding-right:6px">主面料：</td>
-          <td style="font-size:17px;font-weight:800;color:#6b5d4f;padding-right:28px">${data.material}</td>
+          <td style="font-size:17px;font-weight:800;color:#6b5d4f;padding-right:28px">${escapeHtml(data.material)}</td>
           <td style="font-size:17px;font-weight:900;color:#2d2422;white-space:nowrap;padding-right:6px">辅料配件：</td>
-          <td style="font-size:17px;font-weight:800;color:#8b7355;padding-left:8px">${data.accessories}</td>
+          <td style="font-size:17px;font-weight:800;color:#8b7355;padding-left:8px">${escapeHtml(data.accessories)}</td>
         </tr></table>
       </td>
     </tr>
@@ -170,10 +180,11 @@ export default function ProductionSheetPage() {
   const addNotification = useNotificationStore((state) => state.add)
 
   const [imageUrl, setImageUrl] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [showTable, setShowTable] = useState(false)
   const [isExportMode, setIsExportMode] = useState(false)
-  const [error, setError] = useState('')
+
+  const genState = useGenerationStore((s) => s.productionSheet)
+  const setGen = useGenerationStore((s) => s.setProductionSheetGen)
+  const { isProcessing, showTable, error } = genState
   const [history, setHistory] = useState<HistoryRecord[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
@@ -219,13 +230,11 @@ export default function ProductionSheetPage() {
   const handleUpload = async (url: string) => {
     setImageUrl(url)
     if (!url) {
-      setShowTable(false)
-      setError('')
+      setGen({ showTable: false, error: '' })
       return
     }
 
-    setIsProcessing(true)
-    setError('')
+    setGen({ isProcessing: true, error: '' })
     try {
       const data = await workspaceApi.analyzeProductionSheet(url)
       updateCredits(data.credits)
@@ -245,7 +254,7 @@ export default function ProductionSheetPage() {
         date: new Date().toLocaleDateString('zh-CN'),
         specs: processGrading(baseS),
       })
-      setShowTable(true)
+      setGen({ showTable: true })
 
       // 保存到历史记录
       const record: HistoryRecord = {
@@ -273,10 +282,10 @@ export default function ProductionSheetPage() {
       }
     } catch (err) {
       const msg = getErrorMessage(err, 'AI 识别失败，请尝试重新上传')
-      setError(msg)
+      setGen({ error: msg })
       addNotification({ type: 'error', message: msg })
     } finally {
-      setIsProcessing(false)
+      setGen({ isProcessing: false })
     }
   }
 
@@ -292,8 +301,7 @@ export default function ProductionSheetPage() {
   const handleRestoreHistory = (record: HistoryRecord) => {
     setImageUrl(record.imageUrl)
     setProductData(record.productData)
-    setShowTable(true)
-    setError('')
+    setGen({ showTable: true, error: '' })
     setShowHistory(false)
     addNotification({ type: 'success', message: '已恢复历史记录' })
   }
@@ -334,7 +342,7 @@ export default function ProductionSheetPage() {
       return
     }
 
-    setIsProcessing(true)
+    setGen({ isProcessing: true })
 
     setTimeout(() => {
       // 创建离屏容器，避免滚动/缩放/定位干扰 html2canvas 渲染
@@ -361,12 +369,12 @@ export default function ProductionSheetPage() {
         link.href = canvas.toDataURL('image/png')
         link.click()
         document.body.removeChild(offscreen)
-        setIsProcessing(false)
+        setGen({ isProcessing: false })
       }).catch((err: Error) => {
         console.error('Canvas Error:', err)
         addNotification({ type: 'error', message: '导出失败，请重试' })
         document.body.removeChild(offscreen)
-        setIsProcessing(false)
+        setGen({ isProcessing: false })
       })
     }, 300)
   }
@@ -377,7 +385,7 @@ export default function ProductionSheetPage() {
       <div className="fixed inset-0 z-[200] flex flex-col bg-[#2d2422] overflow-hidden">
         {/* 操作栏 */}
         <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-8 md:py-4 flex-shrink-0"
-          style={{ background: 'rgba(255,253,250,0.95)', backdropFilter: 'blur(20px)' }}
+          style={{ background: 'rgba(250,247,244,0.95)', backdropFilter: 'blur(20px)' }}
         >
           <button
             onClick={() => setIsExportMode(false)}
@@ -422,8 +430,8 @@ export default function ProductionSheetPage() {
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-[#faf7f4] overflow-hidden">
       {/* 顶部导航 */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[rgba(139,115,85,0.08)]"
-        style={{ background: 'rgba(255,253,250,0.95)', backdropFilter: 'blur(20px)' }}
+      <div className="flex items-center gap-2.5 px-4 py-3"
+        style={{ background: 'rgba(250,247,244,0.95)', backdropFilter: 'blur(20px)' }}
       >
         <button
           type="button"
@@ -433,12 +441,12 @@ export default function ProductionSheetPage() {
         >
           <ChevronLeft className="w-4 h-4 text-[#8b7355]" />
         </button>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b7355, #c67b5c)' }}>
+        <div className="w-8 h-8 rounded-lg hidden md:flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b7355, #c67b5c)' }}>
           <FileText className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-[16px] font-bold tracking-tight text-[#2d2422]">生产单</h1>
-          <p className="text-[11px] text-[#9b8e82] truncate">上传服装图片，AI 自动识别款式信息和尺寸，生成全码规格单</p>
+          <p className="hidden md:block text-[11px] text-[#9b8e82] truncate">上传服装图片，AI 自动识别款式信息和尺寸，生成全码规格单</p>
         </div>
       </div>
 
@@ -450,7 +458,7 @@ export default function ProductionSheetPage() {
             {/* ─── 左栏：上传 + 参数编辑 ─── */}
             <div className="lg:col-span-4 space-y-5">
               {/* 上传区 */}
-              <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 md:p-5 shadow-sm">
+              <div className="fashion-glass rounded-2xl p-4 md:p-5">
                 <div className="mb-3">
                   <h3 className="text-[15px] font-bold text-[#2d2422] flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[#c67b5c]" /> 样照/生产单原图
@@ -466,7 +474,7 @@ export default function ProductionSheetPage() {
               </div>
 
               {/* 款式参数 */}
-              <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 md:p-5 shadow-sm">
+              <div className="fashion-glass rounded-2xl p-4 md:p-5">
                 <h3 className="text-[14px] font-bold text-[#2d2422] flex items-center gap-2 mb-4 pb-3 border-b border-[rgba(139,115,85,0.08)]">
                   <FileText size={16} className="text-[#c67b5c]" /> 款式参数 <span className="text-[11px] font-normal text-[#b0a59a]">（支持手动微调）</span>
                 </h3>
@@ -503,7 +511,7 @@ export default function ProductionSheetPage() {
               </div>
 
               {/* 历史记录 */}
-              <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-4 md:p-5 shadow-sm">
+              <div className="fashion-glass rounded-2xl p-4 md:p-5">
                 <button
                   type="button"
                   onClick={() => setShowHistory(!showHistory)}
@@ -560,7 +568,7 @@ export default function ProductionSheetPage() {
             {/* ─── 右栏：表格 + 操作 ─── */}
             <div className="lg:col-span-8">
               {isProcessing ? (
-                <div className="h-full flex flex-col items-center justify-center py-20 bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-sm">
+                <div className="h-full flex flex-col items-center justify-center py-20 fashion-glass rounded-2xl">
                   <div className="relative w-16 h-16 mb-5">
                     <div className="absolute inset-0 rounded-full border-4 border-[rgba(198,123,92,0.15)]" />
                     <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#c67b5c] animate-spin" />
@@ -584,7 +592,7 @@ export default function ProductionSheetPage() {
                   </div>
 
                   {/* 尺寸表格 */}
-                  <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl overflow-hidden shadow-sm -mx-4 md:mx-0">
+                  <div className="fashion-glass rounded-2xl overflow-hidden -mx-4 md:mx-0">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm min-w-[480px] md:min-w-0 md:table-fixed">
                         <thead>
@@ -669,7 +677,7 @@ export default function ProductionSheetPage() {
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center py-28 bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-sm">
+                <div className="h-full flex flex-col items-center justify-center py-28 fashion-glass rounded-2xl">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
                     style={{ background: 'rgba(139,115,85,0.06)' }}
                   >

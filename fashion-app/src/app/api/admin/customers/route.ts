@@ -69,27 +69,30 @@ export async function POST(request: NextRequest) {
     }
 
     const id = uuidv4()
-    const userApiKey = apiKey?.trim() || uuidv4()
+    const trimmedApiKey = apiKey?.trim() || ''
 
-    // 检查 apiKey 是否已被使用
-    if (apiKey?.trim()) {
-      const existingKey = db.prepare('SELECT id FROM User WHERE apiKey = ?').get(apiKey.trim()) as any
+    // 检查 apiKey 是否已被使用（需对加密后的 key 做唯一性检查）
+    let storedApiKey: string | null = null
+    if (trimmedApiKey) {
+      const encryptedKey = encryptApiKey(trimmedApiKey)
+      const existingKey = db.prepare('SELECT id FROM User WHERE apiKey = ?').get(encryptedKey) as any
       if (existingKey) {
         return NextResponse.json({ message: '该 API Key 已被其他用户使用，请换一个' }, { status: 409 })
       }
+      storedApiKey = encryptedKey
     }
 
     const passwordHash = await hashPassword(password)
     db.prepare(
       'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, normalizedEmail, passwordHash, 'CUSTOMER', userApiKey, initialCredits)
+    ).run(id, normalizedEmail, passwordHash, 'CUSTOMER', storedApiKey, initialCredits)
 
     db.prepare(
       'INSERT INTO AdminAuditLog (id, adminId, action, targetUserId, detail) VALUES (?, ?, ?, ?, ?)'
     ).run(uuidv4(), payload.userId, 'create_customer', id, `创建客户 ${normalizedEmail}`)
 
     return NextResponse.json({
-      customer: { id, email: normalizedEmail, role: 'CUSTOMER', apiKey: userApiKey, credits: initialCredits, isActive: true, taskCount: 0 },
+      customer: { id, email: normalizedEmail, role: 'CUSTOMER', apiKey: storedApiKey, credits: initialCredits, isActive: true, taskCount: 0 },
     }, { status: 201 })
   } catch (error) {
     console.error('[Admin Customers POST Error]', error)

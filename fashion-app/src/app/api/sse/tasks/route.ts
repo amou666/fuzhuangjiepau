@@ -46,8 +46,7 @@ export async function GET(request: NextRequest) {
       const connMap = sentStates.get(connId)!
       for (const task of recentCompleted) {
         // 标记为已发送，防止重连时重复推送
-        const key = task.status === 'COMPLETED' ? 'DONE:' : 'FAILED:'
-        connMap.set(task.id, key)
+        connMap.set(task.id, `${task.status}:`)
       }
 
       // 轮询检查用户任务状态
@@ -67,19 +66,20 @@ export async function GET(request: NextRequest) {
           for (const task of tasks) {
             const lastStatus = connMap.get(task.id)
 
-            // 将 DB 状态映射为 SSE 状态
-            let sseStatus: 'PROCESSING' | 'DONE' | 'FAILED'
+            // 将 DB 状态映射为 SSE 状态（传递中间状态让前端展示精确进度）
+            let sseStatus: string
             let resultUrl: string | undefined
             let errorMsg: string | undefined
 
             if (task.status === 'COMPLETED') {
-              sseStatus = 'DONE'
+              sseStatus = 'COMPLETED'
               resultUrl = task.resultUrl || task.upscaledUrl || undefined
             } else if (task.status === 'FAILED') {
               sseStatus = 'FAILED'
               errorMsg = task.errorMsg || undefined
             } else {
-              sseStatus = 'PROCESSING'
+              // 传递实际中间状态：PENDING / PROCESSING / DESCRIBING_MODEL / DESCRIBING_SCENE / GENERATING
+              sseStatus = task.status
             }
 
             const sseStateKey = `${sseStatus}:${resultUrl || ''}:${errorMsg || ''}`

@@ -13,7 +13,7 @@ const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || generateRandomSecret(
 export const config = {
   port: parseInt(process.env.PORT || '3001'),
   uploadDir: process.env.UPLOAD_DIR || 'uploads',
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB
   adminEmail: process.env.ADMIN_EMAIL || 'admin@qq.com',
   adminPassword,
   demoEmail: process.env.DEMO_EMAIL || 'demo@fashionai.local',

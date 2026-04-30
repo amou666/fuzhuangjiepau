@@ -5,6 +5,7 @@ import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useDraftStore, type RedesignMode } from '@/lib/stores/draftStore'
+import { useGenerationStore } from '@/lib/stores/generationStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import {
@@ -12,8 +13,7 @@ import {
   Loader2, ImageIcon, Send, GripVertical, Zap, RefreshCw,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { TutorialButton } from '@/lib/components/common/TutorialModal'
-import { TUTORIALS } from '@/lib/tutorials'
+
 
 type RedesignModeLocal = RedesignMode;
 
@@ -130,7 +130,6 @@ export default function RedesignPage() {
   const router = useRouter()
   const redesignDraft = useDraftStore((state) => state.redesignDraft)
   const setRedesignDraft = useDraftStore((state) => state.setRedesignDraft)
-  const redesignResult = useDraftStore((state) => state.redesignResult)
   const setRedesignResult = useDraftStore((state) => state.setRedesignResult)
   const clearRedesignResult = useDraftStore((state) => state.clearRedesignResult)
   const setQuickWorkspaceDraft = useDraftStore((state) => state.setQuickWorkspaceDraft)
@@ -140,19 +139,17 @@ export default function RedesignPage() {
   const [customPrompt, setCustomPrompt] = useState(redesignDraft?.customPrompt ?? '')
   const [constraints, setConstraints] = useState(redesignDraft?.constraints ?? '')
   const [count, setCount] = useState(redesignDraft?.count ?? 3)
-  const [resultUrls, setResultUrls] = useState<string[]>(redesignResult?.resultUrls ?? [])
-  const [pendingCount, setPendingCount] = useState(0)
-  const [generatedItems, setGeneratedItems] = useState<string[]>(redesignResult?.generatedItems ?? [])
   const [materialInfo, setMaterialInfo] = useState('')
   const [materialLoading, setMaterialLoading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [progress, setProgress] = useState('')
-  const [error, setError] = useState('')
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [previewSize, setPreviewSize] = useState<{ width: number; height: number } | null>(null)
   const [compareIdx, setCompareIdx] = useState<number | null>(null)
   const updateCredits = useAuthStore((state) => state.updateCredits)
   const addNotification = useNotificationStore((state) => state.add)
+
+  const genState = useGenerationStore((s) => s.redesign)
+  const setGen = useGenerationStore((s) => s.setRedesignGen)
+  const { submitting, progress, resultUrls, pendingCount, generatedItems, error } = genState
 
   useEffect(() => {
     setRedesignDraft({ imageUrl, mode, customPrompt, constraints, count })
@@ -170,25 +167,22 @@ export default function RedesignPage() {
 
   const handleGenerate = async (refineFrom?: string) => {
     if (!imageUrl) return
-    setSubmitting(true)
-    setError('')
+    setGen({ submitting: true, error: '' })
     const initialUrls = refineFrom ? [...resultUrls] : []
     const initialItems = refineFrom ? [...generatedItems] : []
     if (!refineFrom) {
-      setResultUrls([])
-      setGeneratedItems([])
+      setGen({ resultUrls: [], generatedItems: [] })
       clearRedesignResult()
     }
     const totalCount = count
-    setPendingCount(totalCount)
-    setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (1/${totalCount})` : `正在生成第 1/${totalCount} 张...`)
+    setGen({ pendingCount: totalCount, progress: refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (1/${totalCount})` : `正在生成第 1/${totalCount} 张...` })
 
     let currentUrls = initialUrls
     let currentItems = initialItems
     let successCount = 0
 
     for (let i = 0; i < totalCount; i++) {
-      setProgress(refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (${i + 1}/${totalCount})` : `正在生成第 ${i + 1}/${totalCount} 张...`)
+      setGen({ progress: refineFrom ? `正在深化「${refineFrom.slice(0, 20)}」... (${i + 1}/${totalCount})` : `正在生成第 ${i + 1}/${totalCount} 张...` })
       try {
         const data = await workspaceApi.redesign(imageUrl, mode, {
           customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
@@ -199,26 +193,23 @@ export default function RedesignPage() {
         })
         currentUrls = [...currentUrls, ...data.resultUrls]
         currentItems = [...currentItems, ...(data.generatedItems || [])]
-        setResultUrls([...currentUrls])
-        setGeneratedItems([...currentItems])
+        setGen({ resultUrls: [...currentUrls], generatedItems: [...currentItems] })
         setRedesignResult({ resultUrls: [...currentUrls], generatedItems: [...currentItems], imageUrl, mode })
-        setPendingCount(totalCount - i - 1)
+        setGen({ pendingCount: totalCount - i - 1 })
         successCount += data.resultUrls.length
         updateCredits(data.credits)
       } catch (err) {
         // 单张失败不中断整体流程，继续生成下一张
         console.error(`改款第 ${i + 1} 张生成失败:`, err)
-        setPendingCount(totalCount - i - 1)
+        setGen({ pendingCount: totalCount - i - 1 })
         if (i === 0 && !refineFrom) {
           // 第一张就失败，设置错误提示
-          setError(getErrorMessage(err, '改款生成失败'))
+          setGen({ error: getErrorMessage(err, '改款生成失败') })
         }
       }
     }
 
-    setPendingCount(0)
-    setSubmitting(false)
-    setProgress('')
+    setGen({ pendingCount: 0, submitting: false, progress: '' })
     if (successCount > 0) {
       updateCredits(await workspaceApi.getBalance())
       addNotification({ type: 'success', message: refineFrom ? `深化完成！追加了 ${successCount} 张方案` : `改款完成！已生成 ${successCount} 张方案` })
@@ -227,18 +218,16 @@ export default function RedesignPage() {
 
   const handleAppendMore = async () => {
     if (!imageUrl) return
-    setSubmitting(true)
-    setError('')
+    setGen({ submitting: true, error: '' })
     const totalCount = count
-    setPendingCount(totalCount)
-    setProgress(`追加方案中... (1/${totalCount})`)
+    setGen({ pendingCount: totalCount, progress: `追加方案中... (1/${totalCount})` })
 
     let currentUrls = [...resultUrls]
     let currentItems = [...generatedItems]
     let successCount = 0
 
     for (let i = 0; i < totalCount; i++) {
-      setProgress(`追加方案中... (${i + 1}/${totalCount})`)
+      setGen({ progress: `追加方案中... (${i + 1}/${totalCount})` })
       try {
         const data = await workspaceApi.redesign(imageUrl, mode, {
           customPrompt: mode === 'commercial-brainstorm' ? customPrompt : undefined,
@@ -248,24 +237,21 @@ export default function RedesignPage() {
         })
         currentUrls = [...currentUrls, ...data.resultUrls]
         currentItems = [...currentItems, ...(data.generatedItems || [])]
-        setResultUrls([...currentUrls])
-        setGeneratedItems([...currentItems])
+        setGen({ resultUrls: [...currentUrls], generatedItems: [...currentItems] })
         setRedesignResult({ resultUrls: [...currentUrls], generatedItems: [...currentItems], imageUrl, mode })
-        setPendingCount(totalCount - i - 1)
+        setGen({ pendingCount: totalCount - i - 1 })
         successCount += data.resultUrls.length
         updateCredits(data.credits)
       } catch (err) {
         console.error(`追加第 ${i + 1} 张失败:`, err)
-        setPendingCount(totalCount - i - 1)
+        setGen({ pendingCount: totalCount - i - 1 })
         if (i === 0) {
-          setError(getErrorMessage(err, '追加方案失败'))
+          setGen({ error: getErrorMessage(err, '追加方案失败') })
         }
       }
     }
 
-    setPendingCount(0)
-    setSubmitting(false)
-    setProgress('')
+    setGen({ pendingCount: 0, submitting: false, progress: '' })
     if (successCount > 0) {
       updateCredits(await workspaceApi.getBalance())
       addNotification({ type: 'success', message: `已追加 ${successCount} 款方案` })
@@ -306,13 +292,12 @@ export default function RedesignPage() {
     <div className="flex flex-col gap-8">
       <div className="md:hidden flex items-center gap-2.5 -mb-4">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
         >
           <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">AI 改款</h1>
-        <TutorialButton id="redesign" steps={TUTORIALS.redesign} />
+        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">AI 改款</h1>
       </div>
       {/* 页头 */}
       <div className="hidden md:flex items-end justify-between">
@@ -329,7 +314,6 @@ export default function RedesignPage() {
           <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">上传服装原图，选择改款模式，AI 批量生成全新设计方案</p>
         </div>
         <div className="hidden md:flex items-center gap-3 text-[11px] text-[#b0a59a] tracking-widest uppercase">
-          <TutorialButton id="redesign" steps={TUTORIALS.redesign} />
           <span>消耗</span>
           <span className="text-[#c67b5c] font-bold text-sm">{count}</span>
           <span>积分 / 次 · {count} 图</span>

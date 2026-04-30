@@ -8,8 +8,7 @@ import type { Favorite, FavoriteType } from '@/lib/types'
 import { getErrorMessage } from '@/lib/utils/api'
 import { formatDateTime } from '@/lib/utils/format'
 import { Star, Trash2, Loader2, UserCircle, MapPin, Layers, ArrowRight, Shirt, Plus, Upload, X, Check, AlertCircle } from 'lucide-react'
-import { TutorialButton } from '@/lib/components/common/TutorialModal'
-import { TUTORIALS } from '@/lib/tutorials'
+
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
 
 const TYPE_TABS: { key: FavoriteType | 'all'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -236,9 +235,9 @@ export default function FavoritesPage() {
       })
     }
 
-    setApplyMsg(`已应用「${fav.name}」`)
-    setTimeout(() => setApplyMsg(''), 2000)
-    router.push('/quick-workspace')
+    setApplyMsg(`已应用「${fav.name}」到工作台，点击侧栏「工作台」查看`)
+    setTimeout(() => setApplyMsg(''), 4000)
+    // 不自动跳转，让用户自行决定何时去工作台
   }
 
   const filtered = activeTab === 'all' ? favorites : favorites.filter((f) => f.type === activeTab)
@@ -252,26 +251,13 @@ export default function FavoritesPage() {
       )}
       <div className="md:hidden flex items-center gap-2 -mb-1">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #d4a06a 0%, #c67b5c 100%)' }}
         >
           <Star className="w-4 h-4 text-white" />
         </div>
-        <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">收藏夹</h1>
-        <TutorialButton id="favorites" steps={TUTORIALS.favorites} />
-        <button
-          type="button"
-          onClick={() => openUploadDialog()}
-          className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-[12px] font-semibold text-white flex-shrink-0 transition-all active:scale-95"
-          style={{
-            background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
-            boxShadow: '0 2px 8px rgba(198,123,92,0.25)',
-          }}
-          aria-label="上传素材"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>上传</span>
-        </button>
+        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">收藏夹</h1>
+
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">
@@ -283,7 +269,6 @@ export default function FavoritesPage() {
           </div>
           <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">收藏夹</h1>
           <div className="ml-auto flex items-center gap-2">
-            <TutorialButton id="favorites" steps={TUTORIALS.favorites} />
             <button
               type="button"
               onClick={() => openUploadDialog()}
@@ -575,6 +560,20 @@ export default function FavoritesPage() {
           </div>
         </div>
       )}
+
+      {/* 移动端悬浮上传按钮 */}
+      <button
+        type="button"
+        onClick={() => openUploadDialog()}
+        className="md:hidden fixed bottom-[64px] right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all"
+        style={{
+          background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
+          boxShadow: '0 4px 20px rgba(198,123,92,0.4)',
+        }}
+        aria-label="上传素材"
+      >
+        <Plus className="w-6 h-6 text-white" />
+      </button>
     </div>
   )
 }

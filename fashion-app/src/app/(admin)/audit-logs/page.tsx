@@ -57,7 +57,7 @@ export default function AuditLogsPage() {
           暂无审计日志。
         </div>
       ) : (
-        <div className="overflow-x-auto bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="overflow-x-auto fashion-glass rounded-2xl">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>

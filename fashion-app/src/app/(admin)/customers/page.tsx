@@ -88,7 +88,7 @@ export default function CustomersPage() {
 
   const startEditApiKey = (customer: Customer) => {
     setEditingCustomerId(customer.id);
-    setEditingApiKey(customer.apiKey);
+    setEditingApiKey(customer.apiKey || '');
   };
 
   const cancelEditApiKey = () => {
@@ -185,7 +185,7 @@ export default function CustomersPage() {
       {/* 工具栏：批量充值 + 导出 */}
       <div className="flex flex-wrap items-center gap-3">
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 bg-white/65 backdrop-blur-xl border border-white/50 rounded-xl px-4 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2 bg-white/65 backdrop-blur-xl border border-white/50 rounded-xl px-4 py-2.5">
             <Zap className="w-4 h-4 text-amber-500" />
             <span className="text-[12px] font-semibold text-gray-700">批量充值 ({selectedIds.size} 人)</span>
             <input
@@ -199,7 +199,7 @@ export default function CustomersPage() {
             <button
               onClick={handleBatchRecharge}
               disabled={batchLoading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 disabled:opacity-50"
             >
               {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Coins className="w-3 h-3" />}
               充值
@@ -231,7 +231,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+      <div className="fashion-glass rounded-2xl p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Plus className="w-4 h-4 text-blue-500" />
           新建客户
@@ -303,7 +303,7 @@ export default function CustomersPage() {
         </form>
       </div>
 
-      <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+      <div className="fashion-glass rounded-2xl p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Users className="w-4 h-4 text-indigo-500" />
           客户列表
@@ -372,7 +372,7 @@ export default function CustomersPage() {
                         <span className="inline-block px-2.5 py-1 bg-slate-100 rounded-md font-mono text-xs text-slate-600 break-all">{customer.apiKey}</span>
                         <button
                           className="flex items-center gap-1 bg-transparent border-none text-gray-500 cursor-pointer px-2 py-1 rounded-md text-xs hover:bg-gray-100 hover:text-blue-500 transition-colors"
-                          onClick={() => copyToClipboard(customer.apiKey)}
+                          onClick={() => copyToClipboard(customer.apiKey || '')}
                         >
                           <Copy className="w-3 h-3" /> 复制
                         </button>

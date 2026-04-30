@@ -71,7 +71,7 @@ export default function AdminNotificationsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 发送表单 */}
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-sm p-6">
+        <div className="fashion-glass rounded-2xl p-6">
           <h3 className="text-[15px] font-bold text-gray-900 mb-4">发送通知</h3>
           <div className="flex flex-col gap-4">
             <div>
@@ -141,7 +141,7 @@ export default function AdminNotificationsPage() {
         </div>
 
         {/* 发送历史 */}
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl shadow-sm p-6">
+        <div className="fashion-glass rounded-2xl p-6">
           <h3 className="text-[15px] font-bold text-gray-900 mb-4">发送历史</h3>
           {history.length === 0 ? (
             <div className="text-center py-8 text-gray-400 text-[13px]">暂无发送记录</div>

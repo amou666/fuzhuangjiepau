@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
 import { safeJsonParse } from '@/lib/utils/json'
+import { decryptApiKey } from '@/lib/utils/security'
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
 import { isValidDeviceId } from '@/lib/device-presets'
 
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
       framing,
       device,
       extraPrompt,
+      batchVariation,
     } = body as {
       clothingUrl?: string
       clothingBackUrl?: string
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
       framing?: QuickWorkspaceFraming
       device?: string
       extraPrompt?: string
+      batchVariation?: 'pose' | 'scene' | 'both'
     }
 
     if (!clothingUrl || !modelImageUrl || !sceneImageUrl) {
@@ -53,7 +56,8 @@ export async function POST(request: NextRequest) {
     if (!user || user.credits < QUICK_CREDIT_COST) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
-    if (!user.apiKey) {
+    const userApiKey = user?.apiKey ? decryptApiKey(user.apiKey) : undefined
+    if (!userApiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
       aspectRatio: finalAspect,
       quickFraming: finalFraming,
       quickDevice: finalDevice,
+      batchVariation: batchVariation || undefined,
     }
 
     const taskId = uuidv4()

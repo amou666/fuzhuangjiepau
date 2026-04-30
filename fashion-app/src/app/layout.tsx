@@ -12,10 +12,11 @@ export const metadata: Metadata = {
   title: 'Amou 服装工作室',
   description: 'Amou 服装工作室 · AI 服装街拍生图平台',
   applicationName: 'Amou 服装工作室',
+  colorScheme: 'light',
   appleWebApp: {
     capable: true,
     title: 'Amou',
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
   },
   formatDetection: {
     telephone: false,
@@ -23,10 +24,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#faf7f4',
+  themeColor: '#f5f0eb',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -35,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN" className={parisienne.variable}>
+    <html lang="zh-CN" className={parisienne.variable} style={{ background: '#faf7f4' }}>
       <body>{children}</body>
     </html>
   )

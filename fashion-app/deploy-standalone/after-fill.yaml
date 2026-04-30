@@ -1,0 +1,35 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: Amou AI 生图平台
+        - heading "让服装上新图像生成真正可运营。" [level=1] [ref=e9]
+        - paragraph [ref=e10]: 一个前后端已打通、可直接本地运行的 Amou AI 生图平台原型。
+      - generic [ref=e11]:
+        - generic [ref=e12]: 管理员可管理客户、充值积分、查看生成记录。
+        - generic [ref=e13]: 客户可上传服装图、配置模特和场景，并异步生成结果。
+        - generic [ref=e14]: AI 生图引擎已就绪，一键生成高质量街拍图。
+    - generic [ref=e15]:
+      - heading "登录系统" [level=2] [ref=e16]
+      - paragraph [ref=e17]: 请输入您的账号和密码
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: 邮箱
+          - generic [ref=e21]:
+            - img [ref=e22]
+            - textbox "邮箱" [ref=e25]:
+              - /placeholder: 请输入邮箱
+              - text: admin@fashionai.local
+        - generic [ref=e26]:
+          - generic [ref=e27]: 密码
+          - generic [ref=e28]:
+            - img [ref=e29]
+            - textbox "密码" [active] [ref=e32]:
+              - /placeholder: 输入密码
+              - text: admin123456
+        - button "立即登录" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+          - text: 立即登录
+  - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+    - img [ref=e43]
+  - alert [ref=e46]

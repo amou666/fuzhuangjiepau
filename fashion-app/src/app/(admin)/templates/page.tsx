@@ -96,7 +96,7 @@ export default function TemplatesPage() {
       {error && <div className="text-red-500 text-sm font-medium">{error}</div>}
 
       {showForm && (
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="fashion-glass rounded-2xl p-6">
           <h3 className="text-[15px] font-semibold text-gray-900 mb-4">创建新模板</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
@@ -170,7 +170,7 @@ export default function TemplatesPage() {
           <p className="text-gray-400 text-sm">暂无模板，点击上方按钮创建</p>
         </div>
       ) : (
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="fashion-glass rounded-2xl p-6">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[13px]">
               <thead>

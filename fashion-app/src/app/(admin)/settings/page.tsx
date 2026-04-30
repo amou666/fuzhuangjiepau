@@ -122,7 +122,7 @@ export default function AdminSettingsPage() {
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载 AI 模型配置...
         </div>
       ) : (
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="fashion-glass rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <h2 className="text-base font-semibold text-gray-900 m-0 flex items-center gap-2">
               <Cpu className="w-4 h-4 text-purple-500" />
@@ -258,7 +258,7 @@ export default function AdminSettingsPage() {
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> 加载水印配置...
         </div>
       ) : (
-        <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="fashion-glass rounded-2xl p-6">
           <h2 className="text-base font-semibold text-gray-900 m-0 mb-5 flex items-center gap-2">
             <Droplets className="w-4 h-4 text-blue-500" />
             图片水印

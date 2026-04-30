@@ -1,16 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { workspaceApi } from '@/lib/api/workspace';
 import { LazyImage } from '@/lib/components/LazyImage';
 import { useAuthStore } from '@/lib/stores/authStore';
+import { useDraftStore } from '@/lib/stores/draftStore';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
+import { showBottomProgress } from '@/lib/components/common/BottomProgress';
 import type { GenerationTask } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown, ListChecks, ChevronDown, Minimize2, Box, Palette, FileText, AlertCircle } from 'lucide-react';
+import { Clock, Trash2, ZoomIn, Download, Maximize2, Loader2, X, Image as ImageIcon, Coins, Hash, CalendarCheck, Drama, Wand2, Sparkles, PackageCheck, CheckSquare, Square, GitCompareArrows, Star, ThumbsUp, ThumbsDown, ListChecks, ChevronDown, ChevronLeft, ChevronRight, Minimize2, Box, Palette, FileText, AlertCircle, Send, Heart, MapPin } from 'lucide-react';
 import { ComparePanel } from '@/lib/components/history/ComparePanel';
-import { TutorialButton } from '@/lib/components/common/TutorialModal';
-import { TUTORIALS } from '@/lib/tutorials';
+
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   'workspace': { label: '工作台', icon: Sparkles, color: 'text-[#c67b5c]', bg: 'bg-[rgba(198,123,92,0.08)]' },
@@ -171,12 +174,20 @@ function applyWatermarkToCanvas(canvas: HTMLCanvasElement, wm: WatermarkCfg) {
 }
 
 export default function HistoryPage() {
+  const router = useRouter()
   const updateCredits = useAuthStore((state) => state.updateCredits);
+  const addNotification = useNotificationStore((state) => state.add);
+  const setQuickWorkspaceDraft = useDraftStore((state) => state.setQuickWorkspaceDraft);
   const [records, setRecords] = useState<GenerationTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
+  const PAGE_SIZE = 10;
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewRecord, setPreviewRecord] = useState<GenerationTask | null>(null);
   const [previewSize, setPreviewSize] = useState<{ width: number; height: number } | null>(null);
+  const [sendTarget, setSendTarget] = useState<'clothing' | 'clothingBack' | 'model' | 'scene' | null>(null);
   const [upscaleModal, setUpscaleModal] = useState<{ taskId: string; imageUrl: string } | null>(null);
   const [upscaleLoading, setUpscaleLoading] = useState(false);
   const [upscalingTaskIds, setUpscalingTaskIds] = useState<Set<string>>(new Set());
@@ -215,11 +226,11 @@ export default function HistoryPage() {
   };
 
   const toggleSelectAll = () => {
-    const completedIds = records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').map((r) => r.id);
+    const completedIds = records.filter((r) => r.status === 'COMPLETED').map((r) => r.id);
     if (completedIds.every((id) => selectedIds.has(id))) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(completedIds));
+      setSelectedIds(new Set(completedIds)); // 仅选中当前页
     }
   };
 
@@ -236,15 +247,29 @@ export default function HistoryPage() {
     }
   };
 
+  const fetchPage = useCallback(async (page: number) => {
+    setLoading(true)
+    setError('')
+    try {
+      const allRecords = await workspaceApi.getRecords()
+      setTotalCount(allRecords.length)
+      const start = (page - 1) * PAGE_SIZE
+      const pageRecords = allRecords.slice(start, start + PAGE_SIZE)
+      setRecords(pageRecords)
+      setCurrentPage(page)
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, '加载历史记录失败'))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    setLoading(true);
-    void workspaceApi
-      .getRecords()
-      .then(setRecords)
-      .catch((loadError) => setError(getErrorMessage(loadError, '加载历史记录失败')))
-      .finally(() => setLoading(false));
+    void fetchPage(1)
     void workspaceApi.getWatermarkConfig().then((wm) => { watermarkRef.current = wm; }).catch(() => {});
-  }, []);
+  }, [fetchPage]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   const handleDownload = async (url: string, taskId: string) => {
     try {
@@ -401,7 +426,7 @@ export default function HistoryPage() {
 
   const getStatusStyle = (status: string) => {
     const s = status.toLowerCase();
-    if (s === 'completed' || s === 'done') return 'bg-green-100 text-green-700';
+    if (s === 'completed') return 'bg-green-100 text-green-700';
     if (s === 'failed') return 'bg-red-100 text-red-700';
     if (s === 'generating') return 'bg-pink-100 text-pink-800';
     if (s === 'pending') return 'bg-indigo-100 text-indigo-800';
@@ -437,20 +462,19 @@ export default function HistoryPage() {
       <div className="flex flex-col gap-4 md:gap-5">
         <div className="md:hidden flex items-center gap-2 -mb-1">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
           >
             <Clock className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">历史记录</h1>
-          <TutorialButton id="history" steps={TUTORIALS.history} />
+          <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">历史记录</h1>
           {records.length > 0 && (
             <CollapseToggle compact collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
           )}
           {records.length > 0 && (
             <BatchMenu
               compact
-              allSelected={records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
+              allSelected={records.filter((r) => r.status === 'COMPLETED').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
               selectedCount={selectedIds.size}
               batchDownloading={batchDownloading}
               onToggleAll={toggleSelectAll}
@@ -469,13 +493,12 @@ export default function HistoryPage() {
             </div>
             <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">历史记录</h1>
             <div className="ml-auto flex items-center gap-2">
-              <TutorialButton id="history" steps={TUTORIALS.history} />
               {records.length > 0 && (
                 <CollapseToggle collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
               )}
               {records.length > 0 && (
                 <BatchMenu
-                  allSelected={records.filter((r) => r.status === 'COMPLETED' || r.status === 'DONE').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
+                  allSelected={records.filter((r) => r.status === 'COMPLETED').every((r) => selectedIds.has(r.id)) && selectedIds.size > 0}
                   selectedCount={selectedIds.size}
                   batchDownloading={batchDownloading}
                   onToggleAll={toggleSelectAll}
@@ -537,7 +560,7 @@ export default function HistoryPage() {
               const resultImages = getResultImages(record)
               const refImages = getRefImages(record)
 
-              const isCompleted = record.status === 'COMPLETED' || record.status === 'DONE';
+              const isCompleted = record.status === 'COMPLETED';
               const isSelected = selectedIds.has(record.id);
 
               return (
@@ -550,7 +573,7 @@ export default function HistoryPage() {
                     type="button"
                     aria-label="删除记录"
                     className="md:hidden absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm text-[#c47070] flex items-center justify-center shadow-sm active:scale-90 transition-all"
-                    onClick={() => handleDelete(record.id)}
+                    onClick={() => setDeleteConfirmId(record.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -626,8 +649,8 @@ export default function HistoryPage() {
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         {refImages.map((img, idx) => (
-                          <div key={idx} className="relative w-16 h-[86px] sm:w-[72px] sm:h-[96px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(img.url)}>
-                            <LazyImage src={img.url} alt={img.label} onClick={() => setPreviewImage(img.url)} />
+                          <div key={idx} className="relative w-16 h-[86px] sm:w-[72px] sm:h-[96px] rounded-[10px] overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => { setPreviewImage(img.url); setPreviewRecord(record); }}>
+                            <LazyImage src={img.url} alt={img.label} onClick={() => { setPreviewImage(img.url); setPreviewRecord(record); }} />
                           </div>
                         ))}
                       </div>
@@ -647,25 +670,17 @@ export default function HistoryPage() {
                       )}
                       <div className="grid grid-cols-2 @md:grid-cols-3 @4xl:grid-cols-4 gap-3">
                         {resultImages.map((url, idx) => (
-                          <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity group" onClick={() => setPreviewImage(url)}>
-                            <LazyImage src={url} alt={`结果 ${idx + 1}`} onClick={() => setPreviewImage(url)} />
+                          <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => { setPreviewImage(url); setPreviewRecord(record); }}>
+                            <LazyImage src={url} alt={`结果 ${idx + 1}`} onClick={() => { setPreviewImage(url); setPreviewRecord(record); }} />
                             {resultImages.length > 1 && (
                               <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">{idx + 1}</div>
-                            )}
-                            {!upscalingTaskIds.has(record.id) && (
-                              <button
-                                className="absolute top-1.5 right-1.5 bg-[#c67b5c]/90 hover:bg-[#b0654a] text-white px-2 py-1 rounded-md text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 z-10"
-                                onClick={(e) => { e.stopPropagation(); setUpscaleModal({ taskId: record.id, imageUrl: url }); }}
-                              >
-                                <Sparkles className="w-3 h-3" /> 变高清
-                              </button>
                             )}
                           </div>
                         ))}
                         {record.upscaledUrl && (
-                          <div className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-green-400 cursor-pointer active:opacity-80 transition-opacity" onClick={() => setPreviewImage(record.upscaledUrl!)}>
+                          <div className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-green-400 cursor-pointer active:opacity-80 transition-opacity" onClick={() => { setPreviewImage(record.upscaledUrl!); setPreviewRecord(record); }}>
                             <div className="absolute top-1.5 left-1.5 bg-green-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold z-10">{record.upscaleFactor}x</div>
-                            <LazyImage src={record.upscaledUrl} alt={`放大 ${record.upscaleFactor}x 结果`} onClick={() => setPreviewImage(record.upscaledUrl!)} />
+                            <LazyImage src={record.upscaledUrl} alt={`放大 ${record.upscaleFactor}x 结果`} onClick={() => { setPreviewImage(record.upscaledUrl!); setPreviewRecord(record); }} />
                           </div>
                         )}
                         {!record.upscaledUrl && upscalingTaskIds.has(record.id) && (
@@ -715,10 +730,36 @@ export default function HistoryPage() {
             })}
           </div>
         )}
+
+        {/* 分页 */}
+        {!loading && totalCount > PAGE_SIZE && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+            <span className="text-[13px] text-gray-500">共 {totalCount} 条记录</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fetchPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-600" />
+              </button>
+              <span className="text-[13px] text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
+              <button
+                type="button"
+                onClick={() => fetchPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                <ChevronRight className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {previewImage && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[1000] p-4 cursor-pointer" onClick={() => { setPreviewImage(null); setPreviewSize(null) }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[1000] p-4 cursor-pointer" onClick={() => { setPreviewImage(null); setPreviewRecord(null); setPreviewSize(null) }}>
           {/* 拍立得卡片 */}
           <div
             className="relative bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.45),0_2px_8px_rgba(0,0,0,0.2)] cursor-default"
@@ -735,7 +776,7 @@ export default function HistoryPage() {
             <img
               src={previewImage}
               alt="预览图片"
-              className="block w-full h-full object-contain"
+              className="block w-full object-contain"
               style={{ boxShadow: 'inset 0 0 20px rgba(0,0,0,0.03)' }}
               onLoad={(e) => {
                 const img = e.currentTarget
@@ -753,23 +794,60 @@ export default function HistoryPage() {
                 })
               }}
             />
-            {/* 拍立得底部文字区 */}
-            <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-              <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>这个款真好看！！！</span>
+            {/* 操作按钮组 */}
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <button
+                className="w-9 h-9 bg-white shadow-lg text-[#8b7355] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#c67b5c] active:scale-90 transition-all"
+                onClick={() => {
+                  if (!previewImage) return
+                  const typeConf = TYPE_CONFIG[previewRecord?.type || 'workspace']
+                  const typeName = typeConf?.label || '生图'
+                  void workspaceApi.createFavorite({
+                    type: 'clothing',
+                    name: `${typeName} · ${new Date().toLocaleDateString('zh-CN')}`,
+                    data: { imageUrl: previewImage, source: 'history' },
+                    previewUrl: previewImage,
+                  }).then(() => {
+                    addNotification({ type: 'success', message: '已收藏到素材库' })
+                  }).catch(() => {
+                    addNotification({ type: 'error', message: '收藏失败' })
+                  })
+                }}
+                title="收藏到素材库"
+              >
+                <Heart className="w-4 h-4" />
+              </button>
+              <button
+                className="w-9 h-9 bg-white shadow-lg text-[#8b7355] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#c67b5c] active:scale-90 transition-all"
+                onClick={() => {
+                  if (!previewRecord) return
+                  setUpscaleModal({ taskId: previewRecord.id, imageUrl: previewImage! })
+                }}
+                title="变高清"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+              <button
+                className="w-9 h-9 bg-white shadow-lg text-[#8b7355] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#c67b5c] active:scale-90 transition-all"
+                onClick={() => setSendTarget('clothing')}
+                title="发送到工作台"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+              <button
+                className="w-9 h-9 bg-white shadow-lg text-[#c67b5c] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#b0654a] active:scale-90 transition-all"
+                onClick={() => void handleDownload(previewImage!, 'preview')}
+                title="下载"
+              >
+                <Download className="w-4 h-4" />
+              </button>
             </div>
             {/* 关闭按钮 */}
             <button
               className="absolute -top-2 -right-2 w-8 h-8 bg-white shadow-lg text-[#666] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#333] active:scale-90 transition-all z-10"
-              onClick={() => { setPreviewImage(null); setPreviewSize(null) }}
+              onClick={() => { setPreviewImage(null); setPreviewRecord(null); setPreviewSize(null) }}
             >
               <X className="w-4 h-4" />
-            </button>
-            {/* 下载按钮 */}
-            <button
-              className="absolute -bottom-2 -right-2 w-9 h-9 bg-white shadow-lg text-[#c67b5c] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#b0654a] active:scale-90 transition-all z-10"
-              onClick={() => void handleDownload(previewImage, 'preview')}
-            >
-              <Download className="w-4 h-4" />
             </button>
           </div>
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-[12px] pointer-events-none sm:hidden">
@@ -810,6 +888,156 @@ export default function HistoryPage() {
               className="w-full mt-4 inline-flex items-center justify-center px-5 py-2.5 bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] rounded-xl text-[13px] font-medium hover:bg-[rgba(139,115,85,0.06)] transition-all disabled:opacity-50"
               onClick={() => setUpscaleModal(null)}
               disabled={upscaleLoading}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 发送到工作台 - 选择目标弹窗 */}
+      {sendTarget && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-6" onClick={() => setSendTarget(null)}>
+          <div className="relative max-w-[360px] w-full bg-white/95 backdrop-blur-[40px] rounded-2xl border border-white/80 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[16px] font-semibold text-[#2d2422] mb-1">发送到工作台</h3>
+            <p className="text-[13px] text-[#9b8e82] mb-5">选择该图片在工作台中的用途</p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                style={{ borderColor: 'rgba(139,115,85,0.12)', background: 'rgba(139,115,85,0.03)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(198,123,92,0.4)'; e.currentTarget.style.background = 'rgba(198,123,92,0.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,115,85,0.12)'; e.currentTarget.style.background = 'rgba(139,115,85,0.03)'; }}
+                onClick={() => {
+                  if (!previewImage) return
+                  const existing = useDraftStore.getState().quickWorkspaceDraft
+                  setQuickWorkspaceDraft({
+                    mode: existing?.mode ?? 'background',
+                    clothingUrl: previewImage,
+                    clothingBackUrl: existing?.clothingBackUrl ?? '',
+                    modelImageUrl: existing?.modelImageUrl ?? '',
+                    sceneImageUrl: existing?.sceneImageUrl ?? '',
+                    aspectRatio: existing?.aspectRatio ?? '3:4',
+                    framing: existing?.framing ?? 'auto',
+                    extraPrompt: existing?.extraPrompt ?? '',
+                    device: existing?.device ?? 'phone',
+                  })
+                  setSendTarget(null)
+                  addNotification({ type: 'success', message: '已发送到工作台（服装正面），正在跳转...' })
+                  showBottomProgress()
+                  router.push('/quick-workspace')
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(198,123,92,0.08)' }}>
+                  <ImageIcon className="w-4 h-4 text-[#c67b5c]" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#2d2422]">服装正面</div>
+                  <div className="text-[11px] text-[#9b8e82]">作为工作台的服装主视图</div>
+                </div>
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                style={{ borderColor: 'rgba(139,115,85,0.12)', background: 'rgba(139,115,85,0.03)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(198,123,92,0.4)'; e.currentTarget.style.background = 'rgba(198,123,92,0.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,115,85,0.12)'; e.currentTarget.style.background = 'rgba(139,115,85,0.03)'; }}
+                onClick={() => {
+                  if (!previewImage) return
+                  const existing = useDraftStore.getState().quickWorkspaceDraft
+                  setQuickWorkspaceDraft({
+                    mode: existing?.mode ?? 'background',
+                    clothingUrl: existing?.clothingUrl ?? '',
+                    clothingBackUrl: previewImage,
+                    modelImageUrl: existing?.modelImageUrl ?? '',
+                    sceneImageUrl: existing?.sceneImageUrl ?? '',
+                    aspectRatio: existing?.aspectRatio ?? '3:4',
+                    framing: existing?.framing ?? 'auto',
+                    extraPrompt: existing?.extraPrompt ?? '',
+                    device: existing?.device ?? 'phone',
+                  })
+                  setSendTarget(null)
+                  addNotification({ type: 'success', message: '已发送到工作台（服装反面），正在跳转...' })
+                  showBottomProgress()
+                  router.push('/quick-workspace')
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(198,123,92,0.08)' }}>
+                  <ImageIcon className="w-4 h-4 text-[#c67b5c]" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#2d2422]">服装反面</div>
+                  <div className="text-[11px] text-[#9b8e82]">作为工作台的服装背面图</div>
+                </div>
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                style={{ borderColor: 'rgba(139,115,85,0.12)', background: 'rgba(139,115,85,0.03)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(198,123,92,0.4)'; e.currentTarget.style.background = 'rgba(198,123,92,0.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,115,85,0.12)'; e.currentTarget.style.background = 'rgba(139,115,85,0.03)'; }}
+                onClick={() => {
+                  if (!previewImage) return
+                  const existing = useDraftStore.getState().quickWorkspaceDraft
+                  setQuickWorkspaceDraft({
+                    mode: existing?.mode ?? 'background',
+                    clothingUrl: existing?.clothingUrl ?? '',
+                    clothingBackUrl: existing?.clothingBackUrl ?? '',
+                    modelImageUrl: previewImage,
+                    sceneImageUrl: existing?.sceneImageUrl ?? '',
+                    aspectRatio: existing?.aspectRatio ?? '3:4',
+                    framing: existing?.framing ?? 'auto',
+                    extraPrompt: existing?.extraPrompt ?? '',
+                    device: existing?.device ?? 'phone',
+                  })
+                  setSendTarget(null)
+                  addNotification({ type: 'success', message: '已发送到工作台（模特），正在跳转...' })
+                  showBottomProgress()
+                  router.push('/quick-workspace')
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(198,123,92,0.08)' }}>
+                  <Drama className="w-4 h-4 text-[#c67b5c]" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#2d2422]">模特</div>
+                  <div className="text-[11px] text-[#9b8e82]">作为工作台的模特参考图</div>
+                </div>
+              </button>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                style={{ borderColor: 'rgba(139,115,85,0.12)', background: 'rgba(139,115,85,0.03)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(198,123,92,0.4)'; e.currentTarget.style.background = 'rgba(198,123,92,0.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,115,85,0.12)'; e.currentTarget.style.background = 'rgba(139,115,85,0.03)'; }}
+                onClick={() => {
+                  if (!previewImage) return
+                  const existing = useDraftStore.getState().quickWorkspaceDraft
+                  setQuickWorkspaceDraft({
+                    mode: existing?.mode ?? 'background',
+                    clothingUrl: existing?.clothingUrl ?? '',
+                    clothingBackUrl: existing?.clothingBackUrl ?? '',
+                    modelImageUrl: existing?.modelImageUrl ?? '',
+                    sceneImageUrl: previewImage,
+                    aspectRatio: existing?.aspectRatio ?? '3:4',
+                    framing: existing?.framing ?? 'auto',
+                    extraPrompt: existing?.extraPrompt ?? '',
+                    device: existing?.device ?? 'phone',
+                  })
+                  setSendTarget(null)
+                  addNotification({ type: 'success', message: '已发送到工作台（场景），正在跳转...' })
+                  showBottomProgress()
+                  router.push('/quick-workspace')
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(125,155,118,0.08)' }}>
+                  <MapPin className="w-4 h-4 text-[#7d9b76]" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#2d2422]">场景</div>
+                  <div className="text-[11px] text-[#9b8e82]">作为工作台的场景图</div>
+                </div>
+              </button>
+            </div>
+            <button
+              className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+              onClick={() => setSendTarget(null)}
             >
               取消
             </button>

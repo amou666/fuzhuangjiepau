@@ -7,11 +7,11 @@ import { ImageUploader } from '@/lib/components/common/ImageUploader'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
+import { useGenerationStore } from '@/lib/stores/generationStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import { Users, Download, Send, X, Sparkles, Sliders, Blend, Crown, Shuffle, Settings2, Loader2, ImageIcon, Smartphone, Camera, ChevronLeft } from 'lucide-react'
-import { TutorialButton } from '@/lib/components/common/TutorialModal'
-import { TUTORIALS } from '@/lib/tutorials'
+
 import type { ModelConfig } from '@/lib/types'
 import { categoryOptions, ageOptions, ethnicityOptions, genderOptions, skinOptions, bodyOptions, heightOptions, faceShapeOptions, hairStyleOptions, hairColorOptions, faceFeatureOptions, expressionOptions } from '@/lib/model-options'
 
@@ -77,7 +77,6 @@ export default function ModelFusionPage() {
   const fusionDraft = useDraftStore((state) => state.fusionDraft)
   const setFusionDraft = useDraftStore((state) => state.setFusionDraft)
   const clearFusionDraft = useDraftStore((state) => state.clearFusionDraft)
-  const fusionResult = useDraftStore((state) => state.fusionResult)
   const setFusionResult = useDraftStore((state) => state.setFusionResult)
   const setQuickWorkspaceDraft = useDraftStore((state) => state.setQuickWorkspaceDraft)
   const updateCredits = useAuthStore((state) => state.updateCredits)
@@ -87,10 +86,11 @@ export default function ModelFusionPage() {
   const [tab, setTab] = useState<PageTab>('generate')
 
   // ─── 共享状态 ───
-  const [resultUrl, setResultUrl] = useState(fusionResult?.resultUrl ?? '')
-  const [resultUrls, setResultUrls] = useState<string[]>(fusionResult?.resultUrl ? [fusionResult.resultUrl] : [])
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const genState = useGenerationStore((s) => s.fusion)
+  const setGen = useGenerationStore((s) => s.setFusionGen)
+  const { submitting, resultUrl, resultUrls, error } = genState
+  const credits = useAuthStore((s) => s.user?.credits ?? 0)
+  const creditsLow = credits < 1
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [previewSize, setPreviewSize] = useState<{ width: number; height: number } | null>(null)
 
@@ -112,7 +112,7 @@ export default function ModelFusionPage() {
 
   const models = [model1, model2, model3]
   const activeIndices = models.map((m, i) => m ? i : -1).filter(i => i >= 0)
-  const canFuse = activeIndices.length > 0
+  const canFuse = activeIndices.length >= 2
   const modelCount = activeIndices.length
 
   const updateWeight = (index: number, value: number) => {
@@ -130,16 +130,12 @@ export default function ModelFusionPage() {
   // ─── 融合模式提交 ───
   const handleFuse = async () => {
     if (!canFuse) return
-    setSubmitting(true)
-    setError('')
-    setResultUrl('')
-    setResultUrls([])
+    setGen({ submitting: true, error: '', resultUrl: '', resultUrls: [] })
     try {
       const urls = activeIndices.map(i => models[i])
       const activeWeights = activeIndices.map(i => weights[i])
       const data = await workspaceApi.fuseModels(urls, { weights: activeWeights, strategy })
-      setResultUrl(data.resultUrl)
-      setResultUrls([data.resultUrl])
+      setGen({ resultUrl: data.resultUrl, resultUrls: [data.resultUrl] })
       setFusionResult({ resultUrl: data.resultUrl, modelUrls: urls })
       updateCredits(await workspaceApi.getBalance())
       clearFusionDraft()
@@ -154,18 +150,15 @@ export default function ModelFusionPage() {
       } catch { /* 静默失败，不影响主流程 */ }
       addNotification({ type: 'success', message: '模特合成完成！已同步到素材库' })
     } catch (err) {
-      setError(getErrorMessage(err, '模特合成失败'))
+      setGen({ error: getErrorMessage(err, '模特合成失败') })
     } finally {
-      setSubmitting(false)
+      setGen({ submitting: false })
     }
   }
 
   // ─── 参数生成提交 ───
   const handleGenerate = async () => {
-    setSubmitting(true)
-    setError('')
-    setResultUrl('')
-    setResultUrls([])
+    setGen({ submitting: true, error: '', resultUrl: '', resultUrls: [] })
     try {
       const data = await workspaceApi.generateModelPortrait(
         genConfig as unknown as Record<string, unknown>,
@@ -173,11 +166,10 @@ export default function ModelFusionPage() {
         genExtraPrompt.trim() || undefined
       )
       if (!data.resultUrls?.length) {
-        setError('AI 未返回生成结果，请重试')
+        setGen({ error: 'AI 未返回生成结果，请重试' })
         return
       }
-      setResultUrl(data.resultUrls[0])
-      setResultUrls(data.resultUrls)
+      setGen({ resultUrl: data.resultUrls[0], resultUrls: data.resultUrls })
       setFusionResult({ resultUrl: data.resultUrls[0], modelUrls: [] })
       updateCredits(await workspaceApi.getBalance())
       // 自动保存到素材库
@@ -191,23 +183,31 @@ export default function ModelFusionPage() {
       } catch { /* 静默失败，不影响主流程 */ }
       addNotification({ type: 'success', message: '模特生成完成！已同步到素材库' })
     } catch (err) {
-      setError(getErrorMessage(err, '参数生成模特失败'))
+      setGen({ error: getErrorMessage(err, '参数生成模特失败') })
     } finally {
-      setSubmitting(false)
+      setGen({ submitting: false })
     }
   }
 
   // ─── 下载 ───
-  const handleDownload = (url?: string) => {
+  const handleDownload = async (url?: string) => {
     const src = url || resultUrl
     if (!src) return
-    const link = document.createElement('a')
-    link.href = src
-    link.download = `model-${tab}-${Date.now()}.png`
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    try {
+      const response = await fetch(src)
+      const blob = await response.blob()
+      const downloadUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `model-${tab}-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(downloadUrl)
+    } catch {
+      // 降级：直接打开新标签页
+      window.open(src, '_blank')
+    }
   }
 
   // ─── 发送到快速工作台（把模特图注入到 quickWorkspaceDraft.modelImageUrl） ───
@@ -236,8 +236,8 @@ export default function ModelFusionPage() {
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-[#faf7f4] overflow-hidden">
       {/* 顶部导航 */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[rgba(139,115,85,0.08)]"
-        style={{ background: 'rgba(255,253,250,0.95)', backdropFilter: 'blur(20px)' }}
+      <div className="flex items-center gap-2.5 px-4 py-3"
+        style={{ background: 'rgba(250,247,244,0.95)', backdropFilter: 'blur(20px)' }}
       >
         <button
           type="button"
@@ -247,14 +247,13 @@ export default function ModelFusionPage() {
         >
           <ChevronLeft className="w-4 h-4 text-[#8b7355]" />
         </button>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
+        <div className="w-8 h-8 rounded-lg hidden md:flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
           <Users className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-[16px] font-bold tracking-tight text-[#2d2422]">模特工厂</h1>
-          <p className="text-[11px] text-[#9b8e82] truncate">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
+          <p className="hidden md:block text-[11px] text-[#9b8e82] truncate">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
         </div>
-        <TutorialButton id="model-fusion" steps={TUTORIALS['model-fusion']} />
       </div>
 
       {/* ═══════════════ 左右分栏布局 ═══════════════ */}
@@ -275,8 +274,8 @@ export default function ModelFusionPage() {
                 <button
                   key={t.key}
                   type="button"
-                  onClick={() => { setTab(t.key); setError('') }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all"
+                  onClick={() => { setTab(t.key); setGen({ error: '' }) }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[14px] text-[13px] font-semibold transition-all"
                   style={{
                     background: active ? 'white' : 'transparent',
                     color: active ? '#c67b5c' : '#8b7355',
@@ -300,7 +299,7 @@ export default function ModelFusionPage() {
       {tab === 'generate' && (
         <>
           {/* 基础属性 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">基础属性</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">决定模特的整体气质方向</p>
@@ -314,7 +313,7 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 身体特征 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">身体特征</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">肤色、体型、身高等身体属性</p>
@@ -327,7 +326,7 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 面部与发型 */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部与发型</h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">脸型、发型、发色、妆容等精细控制</p>
@@ -342,7 +341,7 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 补充提示词（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-4">
               <h3 className="text-[15px] font-bold text-[#2d2422]">补充提示词 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
@@ -381,7 +380,7 @@ export default function ModelFusionPage() {
           </div>
 
           {/* 参考图（可选） */}
-          <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-3 md:p-5 shadow-sm">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
               <h3 className="text-[15px] font-bold text-[#2d2422]">面部参考图 <span className="text-[12px] font-normal text-[#b0a59a]">（可选）</span></h3>
               <p className="text-[12px] text-[#9b8e82] mt-1">上传一张人脸照片，AI 会参考该面部特征来生成模特，使结果更贴近你想要的长相</p>
@@ -395,10 +394,10 @@ export default function ModelFusionPage() {
               className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-3.5 md:py-5 px-6 md:px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               type="button"
               onClick={() => { void handleGenerate() }}
-              disabled={submitting}
+              disabled={submitting || creditsLow}
             >
               <div>{submitting ? '生成中...' : '生成模特'}</div>
-              <div className="text-xs font-normal opacity-85 mt-1">消耗 1 积分 · AI 生成全新模特</div>
+              <div className="text-xs font-normal opacity-85 mt-1">{creditsLow ? '积分不足，无法生成' : '消耗 1 积分 · AI 生成全新模特'}</div>
             </button>
           </div>
         </>
@@ -413,7 +412,7 @@ export default function ModelFusionPage() {
               { label: 'B', value: model2, setter: setModel2, idx: 1 },
               { label: 'C', value: model3, setter: setModel3, idx: 2 },
             ] as const).map((item) => (
-              <div key={item.label} className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+              <div key={item.label} className="fashion-glass rounded-2xl p-6">
                 <div className="mb-5">
                   <h3 className="text-base font-semibold text-gray-800">模特 {item.label}</h3>
                   <p className="text-[13px] text-gray-400 m-0">上传第{item.label === 'A' ? '一' : item.label === 'B' ? '二' : '三'}张模特参考图</p>
@@ -438,7 +437,7 @@ export default function ModelFusionPage() {
           </div>
 
           {modelCount > 1 && (
-            <div className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-5 shadow-sm">
+            <div className="fashion-glass rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Sliders className="w-4 h-4 text-[#c67b5c]" />
                 <h3 className="text-sm font-semibold text-[#2d2422]">融合策略</h3>
@@ -477,10 +476,10 @@ export default function ModelFusionPage() {
               className="flex flex-col items-center justify-center max-w-[320px] w-full mx-auto py-3.5 md:py-5 px-6 md:px-8 bg-gradient-to-r from-[#c67b5c] via-[#d4a882] to-[#c67b5c] text-white border-none rounded-2xl text-lg font-bold cursor-pointer transition-all shadow-[0_4px_20px_rgba(198,123,92,0.35)] hover:shadow-[0_8px_32px_rgba(198,123,92,0.5)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
               type="button"
               onClick={() => { void handleFuse() }}
-              disabled={!canFuse || submitting}
+              disabled={!canFuse || submitting || creditsLow}
             >
               <div>{submitting ? '合成中...' : '合成模特'}</div>
-              <div className="text-xs font-normal opacity-85 mt-1">消耗 1 积分 · 融合 {modelCount} 位模特</div>
+              <div className="text-xs font-normal opacity-85 mt-1">{creditsLow ? '积分不足，无法合成' : !canFuse && activeIndices.length === 1 ? '至少需要 2 张参考图' : `消耗 1 积分 · 融合 ${modelCount} 位模特`}</div>
             </button>
           </div>
         </>
@@ -491,7 +490,7 @@ export default function ModelFusionPage() {
 
         {/* ─── 右栏：结果面板（sticky） ─── */}
         <aside className="lg:sticky lg:top-4 self-start w-full">
-          <div className="bg-white/75 backdrop-blur-xl border border-white/60 rounded-2xl p-3 md:p-5 shadow-sm min-h-[320px] md:min-h-[520px] flex flex-col">
+          <div className="fashion-glass rounded-2xl p-3 md:p-5 min-h-[320px] md:min-h-[520px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[14px] font-semibold text-[#2d2422] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
@@ -604,7 +603,7 @@ export default function ModelFusionPage() {
               }}
             />
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-              <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>这个款真好看！！！</span>
+              <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>AI Model Preview</span>
             </div>
             <button
               className="absolute -top-2 -right-2 w-8 h-8 bg-white shadow-lg text-[#666] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#333] active:scale-90 transition-all z-10"

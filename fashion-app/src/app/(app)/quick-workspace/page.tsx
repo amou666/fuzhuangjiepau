@@ -1,18 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Sparkles, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check, Camera, Smartphone, Layers } from 'lucide-react'
+import { Loader2, Wand2, Image as ImageIcon, Users, Download, RefreshCw, Star, X, Check, Camera, Smartphone, Layers, Grid3X3 } from 'lucide-react'
 import { ImageUploader } from '@/lib/components/common/ImageUploader'
+import { LookBookPanel } from '@/lib/components/lookbook/LookBookPanel'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useTaskStore } from '@/lib/stores/taskStore'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { useDraftStore } from '@/lib/stores/draftStore'
+import { useGenerationStore } from '@/lib/stores/generationStore'
 import { getErrorMessage } from '@/lib/utils/api'
 import type { FavoriteType, QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
 import { CAMERA_PRESETS, PHONE_PRESETS, isValidDeviceId } from '@/lib/device-presets'
-import { TutorialButton } from '@/lib/components/common/TutorialModal'
-import { TUTORIALS } from '@/lib/tutorials'
+
 
 const ASPECT_OPTIONS: { value: QuickWorkspaceAspectRatio; label: string }[] = [
   { value: '3:4', label: '3:4（竖向人像）' },
@@ -48,28 +49,66 @@ export default function QuickWorkspacePage() {
   const setQuickDraft = useDraftStore((s) => s.setQuickWorkspaceDraft)
   const clearQuickDraft = useDraftStore((s) => s.clearQuickWorkspaceDraft)
 
-  const [mode, setMode] = useState<QuickWorkspaceMode>(quickDraft?.mode || 'background')
-  const [clothingUrl, setClothingUrl] = useState(quickDraft?.clothingUrl || '')
-  const [clothingBackUrl, setClothingBackUrl] = useState(quickDraft?.clothingBackUrl || '')
-  const [modelImageUrl, setModelImageUrl] = useState(quickDraft?.modelImageUrl || '')
-  const [sceneImageUrl, setSceneImageUrl] = useState(quickDraft?.sceneImageUrl || '')
-  const [extraPrompt, setExtraPrompt] = useState(quickDraft?.extraPrompt || '')
-  const [aspectRatio, setAspectRatio] = useState<QuickWorkspaceAspectRatio>(quickDraft?.aspectRatio || '3:4')
-  const [framing, setFraming] = useState<QuickWorkspaceFraming>(quickDraft?.framing || 'auto')
-  const [device, setDevice] = useState<string>(
-    quickDraft?.device && isValidDeviceId(quickDraft.device) ? quickDraft.device : 'phone'
-  )
+  // 所有状态初始为默认值，避免 SSR/客户端 hydration 不匹配
+  // （draft store 在服务端为空，但客户端可能已有值，导致初始渲染不一致）
+  const [mode, setMode] = useState<QuickWorkspaceMode>('background')
+  const [clothingUrl, setClothingUrl] = useState('')
+  const [clothingBackUrl, setClothingBackUrl] = useState('')
+  const [modelImageUrl, setModelImageUrl] = useState('')
+  const [sceneImageUrl, setSceneImageUrl] = useState('')
+  const [extraPrompt, setExtraPrompt] = useState('')
+  const [aspectRatio, setAspectRatio] = useState<QuickWorkspaceAspectRatio>('3:4')
+  const [framing, setFraming] = useState<QuickWorkspaceFraming>('auto')
+  const [device, setDevice] = useState<string>('phone')
+  const [lookbookMode, setLookbookMode] = useState(false)
+
+  // 客户端挂载后从 draft store 恢复数据
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (quickDraft) {
+      setMode(quickDraft.mode || 'background')
+      setClothingUrl(quickDraft.clothingUrl || '')
+      setClothingBackUrl(quickDraft.clothingBackUrl || '')
+      setModelImageUrl(quickDraft.modelImageUrl || '')
+      setSceneImageUrl(quickDraft.sceneImageUrl || '')
+      setExtraPrompt(quickDraft.extraPrompt || '')
+      setAspectRatio(quickDraft.aspectRatio || '3:4')
+      setFraming(quickDraft.framing || 'auto')
+      setDevice(quickDraft?.device && isValidDeviceId(quickDraft.device) ? quickDraft.device : 'phone')
+    }
+    setHydrated(true)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // 使用全局 store 保存生成状态，切换页面时不会丢失
+  const qwGen = useGenerationStore((s) => s.quickWorkspace)
+  const setQwGen = useGenerationStore((s) => s.setQuickWorkspaceGen)
+  // 初始化：如果全局 store 有残留的 submitting 状态，恢复到本地
+  const [initialHydrated, setInitialHydrated] = useState(false)
+  useEffect(() => {
+    if (!initialHydrated) {
+      if (qwGen.submitting) setSubmitting(qwGen.submitting)
+      if (qwGen.error) setError(qwGen.error)
+      setInitialHydrated(true)
+    }
+  }, [initialHydrated, qwGen])
+  // 同步本地状态到全局 store
+  useEffect(() => {
+    setQwGen({ submitting, error })
+  }, [submitting, error, setQwGen])
 
   const [favDialog, setFavDialog] = useState<null | { type: FavoriteType; imageUrl: string; backUrl?: string; defaultName: string }>(null)
   const [favName, setFavName] = useState('')
   const [favSaving, setFavSaving] = useState(false)
+  const [clearConfirm, setClearConfirm] = useState(false)
 
   const canSaveFullConfig = !!clothingUrl && !!modelImageUrl && !!sceneImageUrl
 
   const isFirstPersistRef = useRef(true)
   useEffect(() => {
+    // hydration 完成前不持久化
+    if (!hydrated) return
     if (isFirstPersistRef.current) {
       isFirstPersistRef.current = false
       return
@@ -85,7 +124,7 @@ export default function QuickWorkspacePage() {
       framing,
       device,
     })
-  }, [mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt, aspectRatio, framing, device, setQuickDraft])
+  }, [hydrated, mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt, aspectRatio, framing, device, setQuickDraft])
 
   const pollTask = useTaskStore((s) => s.pollTask)
   const currentTask = useTaskStore((s) => s.currentTask)
@@ -93,11 +132,32 @@ export default function QuickWorkspacePage() {
   const setCurrentTask = useTaskStore((s) => s.setCurrentTask)
   const clearTask = useTaskStore((s) => s.clearTask)
   const updateCredits = useAuthStore((s) => s.updateCredits)
+  const user = useAuthStore((s) => s.user)
+  const credits = user?.credits ?? 0
   const addNotification = useNotificationStore((s) => s.add)
 
   const canSubmit = useMemo(() => {
-    return !!clothingUrl && !!modelImageUrl && !!sceneImageUrl && !submitting && !isPolling
-  }, [clothingUrl, modelImageUrl, sceneImageUrl, submitting, isPolling])
+    return !!clothingUrl && !!modelImageUrl && !!sceneImageUrl && !submitting && !isPolling && credits >= 1
+  }, [clothingUrl, modelImageUrl, sceneImageUrl, submitting, isPolling, credits])
+
+  // #2 轮询状态恢复：如果页面加载时存在进行中的任务，自动恢复轮询
+  useEffect(() => {
+    if (!hydrated) return
+    const task = useTaskStore.getState().currentTask
+    if (task && !isTerminal(task.status) && !useTaskStore.getState().isPolling) {
+      void pollTask(task.id).then((finished) => {
+        if (finished?.status === 'COMPLETED') {
+          addNotification({ type: 'success', message: '快速工作台生图完成' })
+          void workspaceApi.getBalance().then(updateCredits).catch(() => undefined)
+        } else if (finished?.status === 'FAILED') {
+          addNotification({ type: 'error', message: finished.errorMsg || '生成失败' })
+        }
+      })
+    }
+    function isTerminal(status: string) {
+      return status === 'COMPLETED' || status === 'FAILED'
+    }
+  }, [hydrated, pollTask, addNotification, updateCredits])
 
   const handleReset = useCallback(() => {
     clearTask()
@@ -223,42 +283,61 @@ export default function QuickWorkspacePage() {
     setFraming('auto')
     setDevice('phone')
     setMode('background')
+    setLookbookMode(false)
     setError('')
   }, [clearTask, clearQuickDraft])
 
   const status = currentTask?.status
-  const showLoading = submitting || isPolling || (status && status !== 'COMPLETED' && status !== 'FAILED' && status !== 'DONE')
-  const resultUrl = currentTask?.resultUrl && (currentTask.status === 'COMPLETED' || currentTask.status === 'DONE') ? currentTask.resultUrl : ''
+  const showLoading = submitting || isPolling || (status && status !== 'COMPLETED' && status !== 'FAILED')
+  const resultUrl = currentTask?.resultUrl && currentTask.status === 'COMPLETED' ? currentTask.resultUrl : ''
   const failed = status === 'FAILED'
 
   return (
     <div className="w-full min-h-full">
-      <div className="max-w-[1400px] mx-auto md:px-10 md:py-8">
+      <div className="max-w-[1400px] mx-auto">
         {/* Mobile header */}
         <div className="md:hidden flex items-center gap-2.5 mb-5">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
           >
             <Wand2 className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">快速工作台</h1>
-          <TutorialButton id="quick-workspace" steps={TUTORIALS['quick-workspace']} />
+          <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">工作台</h1>
         </div>
         {/* Desktop header */}
-        <header className="hidden md:block mb-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-bold text-[#2d2422]">工作台</h1>
-            <div className="ml-auto"><TutorialButton id="quick-workspace" steps={TUTORIALS['quick-workspace']} /></div>
+        <div className="hidden md:flex items-end justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #c67b5c 0%, #d4a882 100%)' }}
+              >
+                <Wand2 className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">工作台</h1>
+            </div>
+            <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
           </div>
-          <p className="text-[13px] text-[#8b7355] mt-1">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
-        </header>
+          <div className="hidden md:flex items-center gap-3 text-[11px] text-[#b0a59a] tracking-widest uppercase" />
+        </div>
+
+        {/* 移动端：生成中/有结果时在顶部显示进度提示（独立于grid，不影响布局） */}
+        {!lookbookMode && (showLoading || resultUrl) && (
+          <div className="lg:hidden mb-4 p-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(198,123,92,0.06)', border: '1px solid rgba(198,123,92,0.15)' }}>
+            {showLoading && !resultUrl && <Loader2 className="w-4 h-4 animate-spin text-[#c67b5c] flex-shrink-0" />}
+            {resultUrl && <img src={resultUrl} alt="结果" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />}
+            <span className="text-[12px] text-[#8b7355] font-medium">
+              {showLoading && !resultUrl ? 'AI 正在合成图像...' : failed ? '生成失败，请重试' : '生成完成！向下滚动查看结果'}
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-4 md:gap-6">
           {/* 左：配置 */}
           <div className="flex flex-col gap-4 md:gap-5">
             {/* Mode */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
               <div className="text-[12px] font-semibold text-[#8b7355] mb-3">① 选择模式</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {MODES.map((m) => {
@@ -287,7 +366,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Model */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">② 选择模特</div>
                 <FavButton disabled={!modelImageUrl} onClick={() => openFavDialog('model')} />
@@ -296,7 +375,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Clothing */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">③ 上传衣服</div>
                 <FavButton disabled={!clothingUrl} onClick={() => openFavDialog('clothing')} />
@@ -314,7 +393,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Scene */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">
                   ④ 上传{mode === 'background' ? '干净背景图' : '含原人物的场景图'}
@@ -332,7 +411,7 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Output options */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-3 md:p-5">
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
               <div className="text-[12px] font-semibold text-[#8b7355] mb-3">⑤ 输出设置</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -453,21 +532,53 @@ export default function QuickWorkspacePage() {
             </section>
 
             {/* Extra prompt */}
-            <section className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5">
+            <section className="fashion-glass rounded-2xl p-5">
               <div className="text-[12px] font-semibold text-[#8b7355] mb-2">⑥ 附加提示（可选）</div>
               <textarea
                 value={extraPrompt}
                 onChange={(e) => setExtraPrompt(e.target.value)}
-                placeholder="例：侧身回眸、手插口袋、更偏冷色调..."
+                placeholder="添加你想要的姿势、色调等描述..."
                 rows={3}
                 className="w-full px-3 py-2 rounded-lg text-[13px] bg-white border border-[rgba(139,115,85,0.12)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[#2d2422] resize-none"
               />
             </section>
 
-            {error && (
+            {/* 套图模式切换 */}
+            <section className="fashion-glass rounded-2xl p-3 md:p-5">
+              <button
+                type="button"
+                onClick={() => setLookbookMode(!lookbookMode)}
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Grid3X3 className="w-4 h-4 text-[#c67b5c]" />
+                  <span className="text-[12px] font-semibold text-[#8b7355]">套图模式</span>
+                </div>
+                <div
+                  className="w-10 h-5.5 rounded-full transition-all relative"
+                  style={{
+                    background: lookbookMode ? 'linear-gradient(135deg, #c67b5c, #d4a882)' : 'rgba(139,115,85,0.15)',
+                  }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all shadow-sm"
+                    style={{ left: lookbookMode ? '22px' : '2px' }}
+                  />
+                </div>
+              </button>
+              {lookbookMode && (
+                <div className="mt-2 text-[11px] text-[#8b7355] leading-relaxed">
+                  同一件衣服、同一个模特，生成多张不同姿势/场景的套图。适合一季 Look Book 拍摄。
+                </div>
+              )}
+            </section>
+
+            {error && !lookbookMode && (
               <div className="px-4 py-3 rounded-xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-[12px] text-[#c47070]">{error}</div>
             )}
 
+            {/* 普通模式：一键生成按钮 + 操作栏 */}
+            {!lookbookMode && (
             <div className="flex flex-col gap-3">
               <button
                 type="button"
@@ -477,8 +588,11 @@ export default function QuickWorkspacePage() {
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {submitting || isPolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                {submitting ? '提交中...' : isPolling ? 'AI 合成中...' : '一键生成'}
+                {submitting ? '提交中...' : isPolling ? 'AI 合成中...' : credits < 1 ? '积分不足' : '一键生成'}
               </button>
+              {credits < 1 && !submitting && !isPolling && (
+                <div className="text-center text-[11px] text-[#c47070] font-medium">积分余额不足，无法生成。请联系管理员充值。</div>
+              )}
               <div className="flex items-center gap-3 flex-wrap">
                 <button
                   type="button"
@@ -506,7 +620,7 @@ export default function QuickWorkspacePage() {
                 )}
                 <button
                   type="button"
-                  onClick={handleClearAll}
+                  onClick={() => setClearConfirm(true)}
                   className="h-10 px-4 rounded-xl border border-[rgba(139,115,85,0.2)] text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
                   title="清空所有已上传的图片和表单"
                 >
@@ -514,11 +628,29 @@ export default function QuickWorkspacePage() {
                 </button>
               </div>
             </div>
+            )}
+
+            {/* 套图模式：LookBookPanel */}
+            {lookbookMode && (
+              <LookBookPanel
+                clothingUrl={clothingUrl}
+                clothingBackUrl={clothingBackUrl}
+                modelImageUrl={modelImageUrl}
+                sceneImageUrl={sceneImageUrl}
+                mode={mode}
+                aspectRatio={aspectRatio}
+                framing={framing}
+                device={device}
+                extraPrompt={extraPrompt}
+                credits={credits}
+              />
+            )}
           </div>
 
-          {/* 右：结果 */}
+          {/* 右：结果（仅普通模式） */}
+          {!lookbookMode && (
           <div className="lg:sticky lg:top-4 self-start w-full">
-            <div className="bg-white/70 backdrop-blur rounded-2xl border border-[rgba(139,115,85,0.1)] p-5 min-h-[520px] flex flex-col">
+            <div className="fashion-glass rounded-2xl p-5 min-h-[520px] flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[12px] font-semibold text-[#8b7355]">生成结果</div>
                 {currentTask && (
@@ -554,19 +686,72 @@ export default function QuickWorkspacePage() {
 
               {resultUrl && (
                 <div className="mt-3 flex items-center gap-2">
-                  <a
-                    href={resultUrl}
-                    download
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(resultUrl)
+                        const blob = await response.blob()
+                        const downloadUrl = URL.createObjectURL(blob)
+                        const link = document.createElement('a')
+                        link.href = downloadUrl
+                        link.download = `workspace-${Date.now()}.png`
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                        URL.revokeObjectURL(downloadUrl)
+                      } catch {
+                        window.open(resultUrl, '_blank')
+                      }
+                    }}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg border border-[rgba(139,115,85,0.18)] text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
                   >
                     <Download className="w-4 h-4" />下载
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
+
+      {/* 清空表单确认弹窗 */}
+      {clearConfirm && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          onClick={() => setClearConfirm(false)}
+        >
+          <div
+            className="w-full max-w-[380px] bg-white rounded-2xl shadow-2xl border border-white/60 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                <X className="w-5 h-5 text-red-500" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#2d2422]">确认清空表单</h3>
+            </div>
+            <p className="text-[13px] text-[#9b8e82] mb-5 leading-relaxed">将清空所有已上传的图片、参数和生成结果，此操作无法恢复。</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setClearConfirm(false)}
+                className="flex-1 h-10 rounded-xl border border-[rgba(139,115,85,0.2)] text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => { handleClearAll(); setClearConfirm(false) }}
+                className="flex-1 h-10 rounded-xl text-[12px] font-medium bg-red-500 text-white hover:bg-red-600 transition-all"
+              >
+                确认清空
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 收藏到素材库 Dialog */}
       {favDialog && (

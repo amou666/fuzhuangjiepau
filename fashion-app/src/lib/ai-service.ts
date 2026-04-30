@@ -560,10 +560,12 @@ Return only the generated image in base64 without markdown or explanation.`
       aspectRatio?: '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
       framing?: 'auto' | 'half' | 'full'
       device?: string
+      /** 套图批量变体，启用后注入一致性锁定 */
+      batchVariation?: 'pose' | 'scene' | 'both'
     },
     userApiKey?: string
   ): Promise<string> {
-    const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt } = input
+    const { mode, clothingUrl, clothingBackUrl, modelImageUrl, sceneImageUrl, extraPrompt, batchVariation } = input
     const aspectRatio = input.aspectRatio || '3:4'
     const framing = input.framing || 'auto'
     const devicePreset = getDevicePreset(input.device)
@@ -595,6 +597,24 @@ Return only the generated image in base64 without markdown or explanation.`
     // 角色标签法：不再用图[1]图[2]数字索引，改用固定角色名，不受图片数量影响
     const clothingRef = clothingBackUrl ? '【衣服正面】和【衣服反面】' : '【衣服正面】'
 
+    // 套图批量一致性锁定：确保同一批生成的多张图之间穿搭一致，只变姿势/场景
+    const batchLockBlock = batchVariation
+      ? [
+          '',
+          '【套图一致性锁定 — 本图属于一组多张套图之一，必须严格遵守以下规则】',
+          '- 零配饰：不得添加手提包/斜挎包/珠宝/手表/墨镜/帽子/围巾/手套，双手空空。',
+          '- 下装：如果衣服未覆盖下半身，只穿简约深色中性裤装或牛仔裤。',
+          '- 鞋子：如果脚部可见，只穿简约中性鞋（白色运动鞋或裸色平底鞋），否则不出镜。',
+          batchVariation === 'pose' || batchVariation === 'both'
+            ? '- 姿势：按提示词中指定的姿势生成，与本组其他图的姿势不同。'
+            : '',
+          batchVariation === 'scene' || batchVariation === 'both'
+            ? '- 场景：按提示词中的场景描述生成，与本组其他图的场景不同。'
+            : '',
+          '- 服装、模特面部、发型、肤色必须与本组其他图完全一致。',
+        ].filter(Boolean).join('\n')
+      : ''
+
     const userPrompt = mode === 'background'
       ? [
           `让【模特】穿上${clothingRef}的衣服，放入【场景】中。真实，自然，和谐。`,
@@ -610,6 +630,7 @@ Return only the generated image in base64 without markdown or explanation.`
           `- ${framingHintZh}`,
           deviceBlock,
           extraPrompt ? `- 用户补充：${extraPrompt}` : '',
+          batchLockBlock,
           '',
           '直接返回最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
@@ -620,13 +641,18 @@ Return only the generated image in base64 without markdown or explanation.`
           '- 衣服必须和【衣服正面】' + (clothingBackUrl ? '以及【衣服反面】' : '') + '完全一致',
           '- 保留【参考图】的姿态和场景，删除原人物',
           '- 背景可做微调（光影方向/色温可变，摆件可换，整体氛围保持）',
-          '- 下装：如果参考图人物穿着下装，新人物的下装款式和颜色可做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样',
-          '- 配饰：换不同款式，但类型对应（有包→有包，有帽→有帽）',
+          batchVariation
+            ? '- 下装：简约深色中性裤装，不得添加任何配饰（套图模式）'
+            : '- 下装：如果参考图人物穿着下装，新人物的下装款式和颜色可做轻微调整（换不同版型/颜色/长度），不要和参考图一模一样',
+          batchVariation
+            ? '- 配饰：零配饰，双手空空（套图模式）'
+            : '- 配饰：换不同款式，但类型对应（有包→有包，有帽→有帽）',
           '- 真实成人比例（7.5头身），双脚着地',
           `- 输出比例：${aspectHint}`,
           `- ${framingHintZh}`,
           deviceBlock,
           extraPrompt ? `- 用户补充：${extraPrompt}` : '',
+          batchLockBlock,
           '',
           universalAntiFakeFace,
           '',
@@ -1192,7 +1218,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         `Generate a photorealistic fashion image of the SAME garment shown in the reference image, but change ONLY the color/hue to "${color.name}" (${color.hex}).`,
         `CRITICAL CONSTRAINTS: (1) 100% PRESERVE all fiber textures, weave patterns, stitch details, and surface characteristics of the original material; (2) 100% PRESERVE all highlights, shadows, and depth — only shift the hue and saturation; (3) 100% PRESERVE the garment silhouette, fit, drape, and all structural details; (4) The new color "${color.name}" must look natural on this specific fabric type with realistic color absorption/reflection properties; (5) Background and model (if any) remain identical.`,
         constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
-        'Maintain premium editorial quality with natural textile rendering.',
+        'Maintain premium editorial quality with natural textile rendering. Ultra HD, enhanced material details.',
         'Return only the final image as base64 data without markdown.',
       ].filter(Boolean).join(' ')
 
@@ -1207,7 +1233,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         messages: [
           {
             role: 'system',
-            content: 'You are an expert fashion image recoloring model. You receive a garment image and must regenerate it with a new color while preserving 100% of the material texture, fabric details, highlights, shadows, and garment structure. Only the color/hue changes. Return only the generated image in base64 without markdown or explanation.',
+            content: 'You are an expert fashion image recoloring model. You receive a garment image and must regenerate it with a new color while preserving 100% of the material texture, fabric details, highlights, shadows, and garment structure. Only the color/hue changes. Ultra HD, enhanced material details. Return only the generated image in base64 without markdown or explanation.',
           },
           { role: 'user', content },
         ],
@@ -1255,7 +1281,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         `Generate a photorealistic fashion image of the SAME garment shown in the reference image, but ADD this craft/detail element: "${element}".`,
         `CRITICAL CONSTRAINTS: (1) The garment silhouette (outline, shape, fit) must remain 100% IDENTICAL to the original; (2) The original fabric, color, and base design must remain intact; (3) ONLY add the specified element "${element}" as an additional detail; (4) The added element must look naturally integrated — matching the garment's style, fabric, and quality level; (5) Maintain all original stitching, seams, and construction details.`,
         constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
-        'Premium editorial quality with realistic textile and hardware rendering.',
+        'Premium editorial quality with realistic textile and hardware rendering. Ultra HD, enhanced material details.',
         'Return only the final image as base64 data without markdown.',
       ].filter(Boolean).join(' ')
 
@@ -1270,7 +1296,7 @@ Be precise about the category — a dress is a dress, a knit sweater is knitwear
         messages: [
           {
             role: 'system',
-            content: 'You are an expert fashion detail enhancement model. You receive a garment image and must add a specific craft/design element while keeping the original silhouette 100% identical. The added element must look naturally integrated with the garment. Return only the generated image in base64 without markdown or explanation.',
+            content: 'You are an expert fashion detail enhancement model. You receive a garment image and must add a specific craft/design element while keeping the original silhouette 100% identical. The added element must look naturally integrated with the garment. Ultra HD, enhanced material details. Return only the generated image in base64 without markdown or explanation.',
           },
           { role: 'user', content },
         ],
@@ -1376,7 +1402,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
           `CATEGORY LOCK: the result must remain a "${categoryLabel}". Do NOT change garment category.`,
           `TOPOLOGY CHANGE SCOPE: apply ONLY the mutation described above. Do not introduce additional random details (no new pockets, trims, or hardware unless the mutation explicitly requires them).`,
           constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
-          `Render as a clean premium product photo on a neutral studio background, flat-lay or ghost-mannequin style consistent with the reference, with natural textile rendering that makes the locked material instantly recognizable.`,
+          `Render as a clean premium product photo on a neutral studio background, flat-lay or ghost-mannequin style consistent with the reference, with natural textile rendering that makes the locked material instantly recognizable. Ultra HD, enhanced material details.`,
           'Return only the final image as base64 data without markdown.',
         ].filter(Boolean).join(' ')
 
@@ -1391,7 +1417,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
           messages: [
             {
               role: 'system',
-              content: `You are a senior pattern-maker and fashion redesign model. Your ONE job: re-draft the paper pattern of a garment using the EXACT SAME bolt of fabric. The fiber, weight, weave, color, sheen, and drape of the output MUST be pixel-level identical to the reference. You only change cut/construction topology (length, collar, sleeves, closure, fit, hem). You never change the material, never change the garment category, never add random decorative details. Output a clean premium product image. Return only the generated image in base64 without markdown or explanation.`,
+              content: `You are a senior pattern-maker and fashion redesign model. Your ONE job: re-draft the paper pattern of a garment using the EXACT SAME bolt of fabric. The fiber, weight, weave, color, sheen, and drape of the output MUST be pixel-level identical to the reference. You only change cut/construction topology (length, collar, sleeves, closure, fit, hem). You never change the material, never change the garment category, never add random decorative details. Output a clean premium product image. Ultra HD, enhanced material details. Return only the generated image in base64 without markdown or explanation.`,
             },
             { role: 'user', content },
           ],
@@ -1447,7 +1473,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
       const direction = directions[i]
       const prompt = [
         `Generate a photorealistic fashion image of a completely NEW garment inspired by the reference image, following this trend direction: "${direction}".`,
-        `CRITICAL RULES: (1) The new garment must be ORIGINAL — AI can change the structure, silhouette, and garment type freely; (2) It must align with Western/European mass-market fashion aesthetics; (3) Maintain premium editorial quality with realistic textile rendering; (4) The result should look like a real product photo, not a sketch or illustration.${userModifier}`,
+        `CRITICAL RULES: (1) The new garment must be ORIGINAL — AI can change the structure, silhouette, and garment type freely; (2) It must align with Western/European mass-market fashion aesthetics; (3) Maintain premium editorial quality with realistic textile rendering; (4) The result should look like a real product photo, not a sketch or illustration. Ultra HD, enhanced material details.${userModifier}`,
         constraintHint ? `USER DESIGN CONSTRAINTS: ${opts.constraints}` : '',
         'Return only the final image as base64 data without markdown.',
       ].filter(Boolean).join(' ')
@@ -1463,7 +1489,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
         messages: [
           {
             role: 'system',
-            content: 'You are an expert fashion trend generation model with full creative freedom. You receive a reference garment and a trend direction. Create a completely new garment that embodies the specified trend. You may change the garment structure, silhouette, and design freely. The result must look like a premium fashion product photo. Return only the generated image in base64 without markdown or explanation.',
+            content: 'You are an expert fashion trend generation model with full creative freedom. You receive a reference garment and a trend direction. Create a completely new garment that embodies the specified trend. You may change the garment structure, silhouette, and design freely. The result must look like a premium fashion product photo. Ultra HD, enhanced material details. Return only the generated image in base64 without markdown or explanation.',
           },
           { role: 'user', content },
         ],

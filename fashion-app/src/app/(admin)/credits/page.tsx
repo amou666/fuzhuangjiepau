@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api/admin';
 import type { CreditLog, Customer } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
-import { Wallet, ArrowUpCircle, UserCircle, Coins, TrendingUp, TrendingDown, History } from 'lucide-react';
+import { Wallet, ArrowUpCircle, UserCircle, Coins, TrendingUp, TrendingDown, History, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function CreditsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -13,6 +13,8 @@ export default function CreditsPage() {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [amount, setAmount] = useState(20);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const applyData = (customerData: Customer[], logData: CreditLog[]) => {
     setCustomers(customerData);
@@ -51,6 +53,9 @@ export default function CreditsPage() {
     };
   }, []);
 
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const pagedLogs = logs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const handleRecharge = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
@@ -86,7 +91,7 @@ export default function CreditsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <article className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+        <article className="fashion-glass rounded-2xl p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ArrowUpCircle className="w-4 h-4 text-amber-500" />
             积分充值
@@ -131,7 +136,7 @@ export default function CreditsPage() {
             </button>
           </form>
         </article>
-        <article className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+        <article className="fashion-glass rounded-2xl p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <UserCircle className="w-4 h-4 text-indigo-500" />
             客户余额概览
@@ -149,7 +154,7 @@ export default function CreditsPage() {
         </article>
       </div>
 
-      <section className="bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl p-6 shadow-sm">
+      <section className="fashion-glass rounded-2xl p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <History className="w-4 h-4 text-blue-500" />
           积分日志
@@ -166,7 +171,7 @@ export default function CreditsPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {pagedLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-blue-500/[0.03] transition-colors">
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{log.user?.email ?? '-'}</td>
                   <td className="px-4 py-3 border-b border-gray-100">
@@ -183,6 +188,30 @@ export default function CreditsPage() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+            <span className="text-[13px] text-gray-500">共 {logs.length} 条记录</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-600" />
+              </button>
+              <span className="text-[13px] text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                <ChevronRight className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

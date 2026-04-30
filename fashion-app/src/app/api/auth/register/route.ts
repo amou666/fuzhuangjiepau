@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, password } = body ?? {}
 
-    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || password.length < 6) {
-      return NextResponse.json({ message: '请输入有效的邮箱和至少 6 位密码' }, { status: 400 })
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || password.length < 6 || password.length > 128) {
+      return NextResponse.json({ message: '请输入有效的邮箱和 6-128 位密码' }, { status: 400 })
     }
 
     const normalizedEmail = email.toLowerCase().trim()
@@ -33,11 +33,10 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password)
     const id = uuidv4()
-    const apiKey = uuidv4()
 
     db.prepare(
       'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, normalizedEmail, passwordHash, 'CUSTOMER', apiKey, 0)
+    ).run(id, normalizedEmail, passwordHash, 'CUSTOMER', null, 0)
 
     const user = db.prepare('SELECT id, email, role, apiKey, credits, isActive, createdAt FROM User WHERE id = ?').get(id) as any
 
