@@ -33,7 +33,7 @@ const TOOLS = [
   },
   {
     id: 'production-sheet',
-    title: '生产单',
+    title: '自动生产单',
     description: '上传服装图片，AI 自动识别款式信息和 S 码尺寸，生成全码规格单',
     icon: FileText,
     href: '/production-sheet',
