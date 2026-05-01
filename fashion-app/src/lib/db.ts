@@ -1,8 +1,12 @@
 import Database from 'better-sqlite3'
 import path from 'path'
+import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 
 const DB_PATH = path.resolve(process.cwd(), 'data', 'fashion.db')
+
+// 自动创建数据库目录
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
 
 const db = new Database(DB_PATH)
 
