@@ -67,7 +67,7 @@ export function ComparePanel({ tasks, onClose }: ComparePanelProps) {
             return (
               <div
                 key={task.id}
-                className="relative aspect-[3/4] rounded-xl overflow-hidden bg-black/40"
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-black/40"
               >
                 <LazyImage src={currentImg} alt="" />
                 {imgs.length > 1 && (

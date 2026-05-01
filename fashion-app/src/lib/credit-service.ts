@@ -1,4 +1,5 @@
 import { db } from './db'
+import { queries } from './db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export class CreditService {
@@ -6,10 +7,10 @@ export class CreditService {
     if (amount <= 0) throw new Error('充值积分必须大于 0')
 
     return db.transaction(() => {
-      const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-      if (!user) throw new Error('用户不存在')
+      const credits = queries.user.findCredits(userId)
+      if (credits === undefined) throw new Error('用户不存在')
 
-      const newBalance = user.credits + amount
+      const newBalance = credits + amount
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
       db.prepare(
         'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
@@ -23,12 +24,12 @@ export class CreditService {
     if (amount <= 0) throw new Error('扣减积分必须大于 0')
 
     return db.transaction(() => {
-      const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-      if (!user || user.credits < amount) {
+      const credits = queries.user.findCredits(userId)
+      if (credits === undefined || credits < amount) {
         return null
       }
 
-      const newBalance = user.credits - amount
+      const newBalance = credits - amount
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
       db.prepare(
         'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'
@@ -49,19 +50,17 @@ export class CreditService {
 
     return db.transaction(() => {
       const lockReason = `task:${refundKey}`
-      const existing = db
-        .prepare('SELECT id FROM CreditLog WHERE userId = ? AND reason = ? LIMIT 1')
-        .get(userId, lockReason) as any
+      const exists = queries.creditLog.existsDedupEntry(userId, lockReason)
 
-      if (existing) {
+      if (exists) {
         const balance = this.getBalance(userId)
         return { refunded: false, balance }
       }
 
-      const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-      if (!user) throw new Error('用户不存在')
+      const credits = queries.user.findCredits(userId)
+      if (credits === undefined) throw new Error('用户不存在')
 
-      const newBalance = user.credits + amount
+      const newBalance = credits + amount
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
 
       // 先写幂等锁日志，再写可读业务日志
@@ -78,8 +77,7 @@ export class CreditService {
   }
 
   static getBalance(userId: string): number {
-    const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-    return user?.credits ?? 0
+    return queries.user.findCredits(userId) ?? 0
   }
 
   static getHistory(

@@ -4,6 +4,7 @@ import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
 import { CreditService } from '@/lib/credit-service'
+import { queries } from '@/lib/db-queries'
 import { decryptApiKey } from '@/lib/utils/security'
 
 export async function POST(request: NextRequest) {
@@ -37,14 +38,14 @@ export async function POST(request: NextRequest) {
 
     const creditCost = 1
 
-    const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < creditCost) {
+    const userInfo = queries.user.findCreditsAndApiKey(payload.userId)
+    if (!userInfo || userInfo.credits < creditCost) {
       return NextResponse.json({ message: `积分不足（需要 ${creditCost} 积分）` }, { status: 403 })
     }
-    if (!user.apiKey) {
+    if (!userInfo.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key' }, { status: 403 })
     }
-    const apiKey = decryptApiKey(user.apiKey)
+    const apiKey = decryptApiKey(userInfo.apiKey)
     if (!apiKey) {
       return NextResponse.json({ message: 'AI API Key 解密失败' }, { status: 500 })
     }

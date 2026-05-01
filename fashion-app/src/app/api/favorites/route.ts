@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
+import type { FavoriteRow } from '@/lib/types'
 import { v4 as uuidv4 } from 'uuid'
 
 const VALID_TYPES = ['clothing', 'model', 'scene', 'full']
@@ -14,14 +16,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
 
-    let rows: any[]
+    let rows: FavoriteRow[]
     if (type && VALID_TYPES.includes(type)) {
-      rows = db.prepare('SELECT * FROM Favorite WHERE userId = ? AND type = ? ORDER BY createdAt DESC').all(payload.userId, type)
+      rows = queries.favorite.findByUserAndType(payload.userId, type)
     } else {
-      rows = db.prepare('SELECT * FROM Favorite WHERE userId = ? ORDER BY createdAt DESC').all(payload.userId)
+      rows = queries.favorite.findByUser(payload.userId)
     }
 
-    const favorites = rows.map((r: any) => {
+    const favorites = rows.map((r) => {
       let data = {}
       try { data = JSON.parse(r.data || '{}') } catch { /* corrupted data fallback */ }
       return { ...r, data }
@@ -63,9 +65,9 @@ export async function POST(request: NextRequest) {
       'INSERT INTO Favorite (id, userId, type, name, data, previewUrl) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(id, payload.userId, type, name.trim(), JSON.stringify(data), previewUrl || null)
 
-    const row = db.prepare('SELECT * FROM Favorite WHERE id = ?').get(id) as any
+    const row = queries.favorite.findById(id)
     let parsedData = {}
-    try { parsedData = JSON.parse(row.data || '{}') } catch { /* fallback */ }
+    try { parsedData = JSON.parse(row?.data || '{}') } catch { /* fallback */ }
     return NextResponse.json({
       favorite: { ...row, data: parsedData },
     }, { status: 201 })

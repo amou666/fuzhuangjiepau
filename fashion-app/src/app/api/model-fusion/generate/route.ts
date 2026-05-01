@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 import { AIService } from '@/lib/ai-service'
 import { decryptApiKey } from '@/lib/utils/security'
@@ -26,22 +27,19 @@ export async function POST(request: NextRequest) {
 
     const trimmedExtraPrompt = typeof extraPrompt === 'string' ? extraPrompt.trim().slice(0, 800) : ''
 
-    const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < 1) {
+    const userInfo = queries.user.findCreditsAndApiKey(payload.userId)
+    if (!userInfo || userInfo.credits < 1) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
-    if (!user.apiKey) {
+    if (!userInfo.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
-    const apiKey = decryptApiKey(user.apiKey)
-    if (!apiKey) {
-      return NextResponse.json({ message: 'AI API Key 解密失败，请联系管理员重新设置' }, { status: 500 })
-    }
+    const apiKey = decryptApiKey(userInfo.apiKey)
 
     const deductResult = db.transaction(() => {
-      const currentUser = db.prepare('SELECT credits FROM User WHERE id = ?').get(payload.userId) as any
-      if (!currentUser || currentUser.credits < 1) return null
-      const newCredits = currentUser.credits - 1
+      const credits = queries.user.findCredits(payload.userId)
+      if (credits === undefined || credits < 1) return null
+      const newCredits = credits! - 1
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newCredits, payload.userId)
       db.prepare(
         'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'

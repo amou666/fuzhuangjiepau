@@ -1,4 +1,5 @@
 import { db } from './db'
+import { queries } from './db-queries'
 import { hashPassword } from './auth'
 import { config } from './config'
 import { v4 as uuidv4 } from 'uuid'
@@ -7,24 +8,24 @@ import path from 'path'
 
 export async function ensureBaseUsers() {
   // 创建管理员
-  const admin = db.prepare('SELECT id FROM User WHERE email = ?').get(config.adminEmail) as any
+  const admin = queries.user.findByEmail(config.adminEmail)
   if (!admin) {
     const id = uuidv4()
     const passwordHash = await hashPassword(config.adminPassword)
     db.prepare(
-      'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, config.adminEmail, passwordHash, 'ADMIN', null, 9999)
+      'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, NULL, ?)'
+    ).run(id, config.adminEmail, passwordHash, 'ADMIN', 9999)
     console.log(`✅ Created admin: ${config.adminEmail}`)
   }
 
   // 创建演示用户
-  const demo = db.prepare('SELECT id FROM User WHERE email = ?').get(config.demoEmail) as any
+  const demo = queries.user.findByEmail(config.demoEmail)
   if (!demo) {
     const id = uuidv4()
     const passwordHash = await hashPassword(config.demoPassword)
     db.prepare(
-      'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, config.demoEmail, passwordHash, 'CUSTOMER', null, 100)
+      'INSERT INTO User (id, email, password, role, apiKey, credits) VALUES (?, ?, ?, ?, NULL, ?)'
+    ).run(id, config.demoEmail, passwordHash, 'CUSTOMER', 100)
     console.log(`✅ Created demo user: ${config.demoEmail}`)
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function PATCH(
@@ -19,7 +20,7 @@ export async function PATCH(
       return NextResponse.json({ message: '缺少 isActive 参数' }, { status: 400 })
     }
 
-    const user = db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any
+    const user = queries.user.findById(id)
     if (!user) {
       return NextResponse.json({ message: '用户不存在' }, { status: 404 })
     }

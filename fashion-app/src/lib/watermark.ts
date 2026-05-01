@@ -1,4 +1,4 @@
-import { db } from './db'
+import { queries } from './db-queries'
 
 interface WatermarkConfig {
   enabled: boolean
@@ -15,19 +15,19 @@ export function getWatermarkConfig(): WatermarkConfig {
   if (cachedConfig && Date.now() - cacheTime < 30_000) return cachedConfig
 
   try {
-    const row = db.prepare('SELECT * FROM WatermarkConfig WHERE id = ?').get('global') as any
-    if (!row) return { enabled: false, text: '', position: 'bottom-right', opacity: 0.3, fontSize: 16 }
+    const row = queries.watermark.findGlobal()
+    if (!row) return { enabled: false, text: '', position: 'bottom-right', opacity: 0.3, fontSize: 14 }
     cachedConfig = {
       enabled: !!row.enabled,
       text: row.text || '',
       position: row.position || 'bottom-right',
       opacity: row.opacity ?? 0.3,
-      fontSize: row.fontSize ?? 16,
+      fontSize: row.fontSize ?? 14,
     }
     cacheTime = Date.now()
     return cachedConfig
   } catch {
-    return { enabled: false, text: '', position: 'bottom-right', opacity: 0.3, fontSize: 16 }
+    return { enabled: false, text: '', position: 'bottom-right', opacity: 0.3, fontSize: 14 }
   }
 }
 

@@ -1,6 +1,7 @@
 import { db } from './db'
 import { AIService } from './ai-service'
 import { CreditService } from './credit-service'
+import { queries } from './db-queries'
 import type { ModelConfig, SceneConfig } from './types'
 import { safeJsonParse } from './utils/json'
 import { decryptApiKey } from './utils/security'
@@ -24,12 +25,12 @@ function pushTaskNotification(userId: string, type: 'success' | 'failed', taskId
 
 export async function processGenerationTask(taskId: string) {
   try {
-    const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(taskId) as any
+    const task = queries.task.findById(taskId)
     if (!task) return
 
     // 获取用户的 AI API Key
-    const user = db.prepare('SELECT apiKey FROM User WHERE id = ?').get(task.userId) as any
-    const userApiKey = user?.apiKey ? decryptApiKey(user.apiKey) : undefined
+    const apiKey = queries.user.findApiKey(task.userId)
+    const userApiKey = apiKey ? decryptApiKey(apiKey) : undefined
 
     // 更新状态：处理中
     db.prepare("UPDATE GenerationTask SET status = ?, updatedAt = datetime('now') WHERE id = ?").run('PROCESSING', taskId)
@@ -45,7 +46,8 @@ export async function processGenerationTask(taskId: string) {
       const sceneImageUrl = sceneConfig.imageUrl || ''
       const modelImageUrl = modelConfig.imageUrl || ''
       if (!sceneImageUrl) throw new Error('缺少场景图片')
-      if (!modelImageUrl) throw new Error('缺少模特图片')
+      // 背景模式下模特图必填，融合模式下可选
+      if (quickMode === 'background' && !modelImageUrl) throw new Error('缺少模特图片')
 
       const quickFraming: 'auto' | 'half' | 'full' = sceneConfig.quickFraming === 'full' || sceneConfig.quickFraming === 'half' ? sceneConfig.quickFraming : 'auto'
       const quickAspect = sceneConfig.aspectRatio || '3:4'
@@ -114,7 +116,7 @@ export async function processGenerationTask(taskId: string) {
 
     // 失败退款（幂等，避免重复退款）
     try {
-      const failedTask = db.prepare('SELECT userId, creditCost, type FROM GenerationTask WHERE id = ?').get(taskId) as any
+      const failedTask = queries.task.findMetaById(taskId)
       if (failedTask && failedTask.creditCost > 0) {
         const refundReason = `任务失败退款 (${taskId.slice(0, 8)})`
         const result = CreditService.refundCreditsOnce(failedTask.userId, failedTask.creditCost, `${taskId}:generation`, refundReason)
@@ -136,10 +138,10 @@ export async function processGenerationTask(taskId: string) {
 export async function processUpscaleTask(taskId: string, imageUrl: string, factor: number, userId?: string) {
   try {
     // 获取用户的 AI API Key
-    const task = db.prepare('SELECT userId FROM GenerationTask WHERE id = ?').get(taskId) as any
-    const taskUserId = userId || task?.userId
-    const user = taskUserId ? db.prepare('SELECT apiKey FROM User WHERE id = ?').get(taskUserId) as any : null
-    const userApiKey = user?.apiKey ? decryptApiKey(user.apiKey) : undefined
+    const taskMeta = queries.task.findMetaById(taskId)
+    const taskUserId = userId || taskMeta?.userId
+    const apiKey = taskUserId ? queries.user.findApiKey(taskUserId) : null
+    const userApiKey = apiKey ? decryptApiKey(apiKey) : undefined
 
     const ai = new AIService()
     const upscaledUrl = await ai.upscaleImage(taskId, imageUrl, factor, userApiKey)
@@ -157,12 +159,12 @@ export async function processUpscaleTask(taskId: string, imageUrl: string, facto
 
     // 失败退款（幂等，避免重复退款）
     try {
-      const task = db.prepare('SELECT userId FROM GenerationTask WHERE id = ?').get(taskId) as any
-      if (task?.userId) {
+      const taskMeta = queries.task.findMetaById(taskId)
+      if (taskMeta?.userId) {
         const refundReason = `放大失败退款 (${taskId.slice(0, 8)})`
-        const result = CreditService.refundCreditsOnce(task.userId, 1, `${taskId}:upscale:${factor}`, refundReason)
+        const result = CreditService.refundCreditsOnce(taskMeta.userId, 1, `${taskId}:upscale:${factor}`, refundReason)
         if (result.refunded) {
-          console.log(`💰 Refunded 1 credit to user ${task.userId} for upscale failure`)
+          console.log(`💰 Refunded 1 credit to user ${taskMeta.userId} for upscale failure`)
         } else {
           console.log(`ℹ️ Skip duplicate upscale refund for task ${taskId}`)
         }

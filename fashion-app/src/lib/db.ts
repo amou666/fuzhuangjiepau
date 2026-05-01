@@ -103,7 +103,7 @@ db.exec(`
     text TEXT NOT NULL DEFAULT '',
     position TEXT NOT NULL DEFAULT 'bottom-right',
     opacity REAL NOT NULL DEFAULT 0.3,
-    fontSize INTEGER NOT NULL DEFAULT 16,
+    fontSize INTEGER NOT NULL DEFAULT 14,
     updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

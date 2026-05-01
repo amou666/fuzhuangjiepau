@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -21,10 +22,10 @@ export async function POST(request: NextRequest) {
     }
 
     const result = db.transaction(() => {
-      const user = db.prepare('SELECT credits FROM User WHERE id = ?').get(userId) as any
-      if (!user) return { error: '用户不存在', status: 404 }
+      const credits = queries.user.findCredits(userId)
+      if (credits === undefined) return { error: '用户不存在', status: 404 }
 
-      const newBalance = user.credits + parsedAmount
+      const newBalance = credits + parsedAmount
       db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, userId)
       db.prepare(
         'INSERT INTO CreditLog (id, userId, delta, balanceAfter, reason) VALUES (?, ?, ?, ?, ?)'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 /** PATCH /api/admin/pose-presets/[id] — 更新姿势预设 */
@@ -40,8 +41,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       'INSERT INTO AdminAuditLog (id, adminId, action, detail) VALUES (?, ?, ?, ?)'
     ).run(uuidv4(), payload.userId, 'update_pose_preset', `更新姿势预设: ${id.slice(0, 8)}`)
 
-    const row = db.prepare('SELECT * FROM PosePreset WHERE id = ?').get(id) as any
-    return NextResponse.json({ posePreset: { ...row, isActive: !!row.isActive } })
+    const row = queries.pose.findById(id)
+    return NextResponse.json({ posePreset: { ...row, isActive: !!row?.isActive } })
   } catch (error) {
     console.error('[Admin PosePreset PATCH Error]', error)
     return NextResponse.json({ message: '更新姿势预设失败' }, { status: 500 })
@@ -56,8 +57,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { payload } = auth
     const { id } = await params
 
-    const existing = db.prepare('SELECT label FROM PosePreset WHERE id = ?').get(id) as any
-    if (!existing) {
+    const label = queries.pose.findLabelById(id)
+    if (!label) {
       return NextResponse.json({ message: '姿势预设不存在' }, { status: 404 })
     }
 
@@ -65,7 +66,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     db.prepare(
       'INSERT INTO AdminAuditLog (id, adminId, action, detail) VALUES (?, ?, ?, ?)'
-    ).run(uuidv4(), payload.userId, 'delete_pose_preset', `删除姿势预设: ${existing.label}`)
+    ).run(uuidv4(), payload.userId, 'delete_pose_preset', `删除姿势预设: ${label}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -8,10 +8,11 @@ import { getErrorMessage } from '@/lib/utils/api'
 import {
   Sparkles, Download, Layers, CheckCircle2, AlertCircle,
   Trash2, RefreshCw, Box, ImageIcon, Sun, ShieldCheck, Zap,
-  ArrowLeft, EyeOff, GitCompareArrows, Camera,
+  ArrowLeft, EyeOff, GitCompareArrows,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { useGenerationStore } from '@/lib/stores/generationStore'
+import { ImageUploadPicker } from '@/lib/components/common/ImageUploadPicker'
 
 // ─── 风格配置 ───
 const BG_MODES = [
@@ -95,11 +96,11 @@ function ImageCompareSlider({ beforeUrl, afterUrl }: { beforeUrl: string; afterU
       </div>
       {/* 分割线 */}
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.3)] z-10"
+        className="absolute top-0 bottom-0 w-0.5 bg-[var(--bg-card)] shadow-[0_0_8px_rgba(0,0,0,0.3)] z-10"
         style={{ left: `${sliderPos}%`, transform: 'translateX(-50%)' }}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
-          <GitCompareArrows className="w-4 h-4 text-[#2d2422]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--bg-card)] rounded-full shadow-lg flex items-center justify-center">
+          <GitCompareArrows className="w-4 h-4 text-[var(--text-primary)]" />
         </div>
       </div>
       {/* 标签 */}
@@ -121,10 +122,8 @@ export default function GhostMannequinPage() {
   const setGen = useGenerationStore((s) => s.setGhostMannequinGen)
   const { isGenerating, progress, genStatus, resultUrl, errorMessage } = genState
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string>('')
   const [selectedBg, setSelectedBg] = useState('studio-white')
-  const [isDragging, setIsDragging] = useState(false)
 
   const [brightness, setBrightness] = useState(100)
   const [showCompare, setShowCompare] = useState(false)
@@ -133,7 +132,6 @@ export default function GhostMannequinPage() {
   const [removeWatermark, setRemoveWatermark] = useState(true)
   const [enhanceDetails, setEnhanceDetails] = useState(true)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const clearProgressTimer = () => {
@@ -143,53 +141,17 @@ export default function GhostMannequinPage() {
     }
   }
 
-  const processFile = async (file: File | undefined) => {
-    if (!file) return
-    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
-      setGen({ errorMessage: '仅支持 PNG / JPG / WEBP / GIF 格式' })
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setGen({ errorMessage: '图片大小不能超过 5MB' })
-      return
-    }
-    setGen({ errorMessage: '' })
-    const url = URL.createObjectURL(file)
-    setSelectedFile(file)
-    setPreviewUrl(url)
-    setGen({ resultUrl: null })
+  const handleImageSelected = (url: string) => {
+    setImageUrl(url)
+    setGen({ resultUrl: null, errorMessage: '' })
     setShowCompare(false)
     setBrightness(100)
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    processFile(file)
-    e.target.value = ''
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    processFile(file)
-  }
-
-  const triggerFileInput = () => fileInputRef.current?.click()
-
   const handleGenerate = async () => {
-    if (!previewUrl || !selectedFile) return
-    if (isGenerating) return
+    if (!imageUrl || isGenerating) return
 
-    setGen({ errorMessage: '', isGenerating: true, progress: 5, genStatus: '正在上传图片...' })
+    setGen({ errorMessage: '', isGenerating: true, progress: 5, genStatus: '正在准备图片...' })
 
     const statusSequence = [
       { p: 20, s: '正在提取服装主体...' },
@@ -210,12 +172,9 @@ export default function GhostMannequinPage() {
     }, 180)
 
     try {
-      // 1. 上传图片
-      const uploadedUrl = await workspaceApi.uploadImage(selectedFile)
-
-      // 2. 调用后端 API
+      // 直接使用已上传的 URL
       const response = await apiClient.post<{ resultUrl: string; taskId: string; credits: number }>('/ghost-mannequin', {
-        imageUrl: uploadedUrl,
+        imageUrl: imageUrl,
         styleId: selectedBg,
         optimizePage,
         removeWatermark,
@@ -227,6 +186,8 @@ export default function GhostMannequinPage() {
       updateCredits(credits)
     } catch (err) {
       setGen({ errorMessage: getErrorMessage(err, '生成失败，请检查图片质量或重试'), genStatus: '失败' })
+      // 失败时同步积分（后端可能已退还）
+      void workspaceApi.getBalance().then(updateCredits).catch(() => undefined)
     } finally {
       clearProgressTimer()
       setGen({ isGenerating: false })
@@ -234,12 +195,12 @@ export default function GhostMannequinPage() {
   }
 
   const handleDownload = () => {
-    const imageUrl = resultUrl || previewUrl
-    if (!imageUrl) return
+    const dlUrl = resultUrl || imageUrl
+    if (!dlUrl) return
 
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.src = imageUrl
+    img.src = dlUrl
     img.onload = () => {
       const canvas = document.createElement('canvas')
       canvas.width = img.naturalWidth || img.width
@@ -255,8 +216,7 @@ export default function GhostMannequinPage() {
   }
 
   const handleReset = () => {
-    setSelectedFile(null)
-    setPreviewUrl(null)
+    setImageUrl('')
     setGen({ resultUrl: null })
     setShowCompare(false)
     setBrightness(100)
@@ -268,25 +228,25 @@ export default function GhostMannequinPage() {
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-[#faf7f4] overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex flex-col bg-[var(--bg-page)] overflow-hidden">
       {/* 顶部导航 */}
       <div className="flex items-center gap-2.5 px-4 py-3"
-        style={{ background: 'rgba(250,247,244,0.95)', backdropFilter: 'blur(20px)' }}
+        style={{ background: 'var(--bg-sidebar)' }}
       >
         <button
           type="button"
           onClick={() => router.push('/tools')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+          className="w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors"
           style={{ background: 'rgba(139,115,85,0.06)' }}
         >
-          <ArrowLeft className="w-4 h-4 text-[#8b7355]" />
+          <ArrowLeft className="w-4 h-4 text-[var(--text-secondary)]" />
         </button>
-        <div className="w-8 h-8 rounded-lg hidden md:flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b7355, #c67b5c)' }}>
+        <div className="w-8 h-8 rounded-2xl hidden md:flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b7355, #c67b5c)' }}>
           <Box className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[16px] font-bold tracking-tight text-[#2d2422]">一键3D图</h1>
-          <p className="hidden md:block text-[11px] text-[#9b8e82] truncate">随手挂拍或人台图，增强细节，自动布局，生成3D隐形模特图</p>
+          <h1 className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">一键3D图</h1>
+          <p className="hidden md:block text-[11px] text-[var(--text-tertiary)] truncate">随手挂拍或人台图，增强细节，自动布局，生成3D隐形模特图</p>
         </div>
       </div>
 
@@ -294,49 +254,30 @@ export default function GhostMannequinPage() {
       <div className="flex-1 flex flex-col lg:flex-row gap-4 md:gap-5 overflow-y-auto lg:overflow-hidden p-4 md:p-5">
         {/* 左侧预览区 */}
         <div className="flex-1 min-h-[280px] lg:min-h-0 overflow-hidden">
+          {!imageUrl ? (
+            <div className="w-full h-full p-2.5 fashion-glass rounded-2xl">
+              <ImageUploadPicker
+                label="服装图片"
+                value={imageUrl}
+                onChange={handleImageSelected}
+                sourceType="clothing"
+                helperText="挂拍/人台图，AI 生成3D隐形模特图"
+                fill
+              />
+            </div>
+          ) : (
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`w-full h-full rounded-2xl relative overflow-hidden flex items-center justify-center transition-all duration-300 ${
-              isDragging
-                ? 'border-[1.5px] border-dashed border-[rgba(198,123,92,0.4)]'
-                : previewUrl
-                  ? 'border-2 border-[rgba(139,115,85,0.08)] bg-white'
-                  : 'border-[1.5px] border-dashed border-[rgba(139,115,85,0.25)]'
-            }`}
-            style={!previewUrl ? {
-              cursor: 'pointer',
-              background: 'rgba(255, 255, 255, 0.70)',
-              backdropFilter: 'blur(20px) saturate(1.2)',
-              boxShadow: '0 2px 8px rgba(139, 115, 85, 0.06)',
-            } : {}}
-            onClick={!previewUrl ? triggerFileInput : undefined}
-            role={!previewUrl ? 'button' : undefined}
-            tabIndex={!previewUrl ? 0 : undefined}
-            onKeyDown={!previewUrl ? (e) => e.key === 'Enter' && triggerFileInput() : undefined}
+            className="w-full h-full rounded-2xl relative overflow-hidden flex items-center justify-center border-2 border-[var(--border-light)] bg-white"
           >
-            {!previewUrl ? (
-              <div className="flex flex-col items-center justify-center py-8 md:py-12 px-4 md:px-5 text-center min-h-[150px] md:min-h-[220px]">
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all"
-                  style={{ background: 'rgba(198,123,92,0.08)' }}
-                >
-                  <Camera className="w-5 h-5 text-[#c67b5c]" />
-                </div>
-                <div className="text-[13px] font-semibold text-[#8b7355] mb-1">点击上传图片</div>
-                <div className="text-[11px] text-[#c9bfb5]">支持拖拽上传 · PNG / JPG / WEBP / GIF，最大 5MB</div>
-              </div>
-            ) : (
               <div className="relative w-full h-full flex items-center justify-center p-4">
                 {showCompare && resultUrl ? (
-                  <ImageCompareSlider beforeUrl={previewUrl} afterUrl={resultUrl} />
+                  <ImageCompareSlider beforeUrl={imageUrl} afterUrl={resultUrl} />
                 ) : (
                   <img
-                    src={resultUrl || previewUrl}
+                    src={resultUrl || imageUrl}
                     alt="Preview"
                     style={{ filter: `brightness(${brightness}%)`, maxHeight: '100%', maxWidth: '100%' }}
-                    className={`object-contain rounded-xl transition-all duration-700 ${isGenerating ? 'blur-md grayscale scale-95 opacity-60' : 'scale-100'}`}
+                    className={`object-contain rounded-2xl transition-all duration-700 ${isGenerating ? 'blur-md grayscale scale-95 opacity-60' : 'scale-100'}`}
                   />
                 )}
 
@@ -350,8 +291,8 @@ export default function GhostMannequinPage() {
                       />
                     </div>
                     <RefreshCw className="w-5 h-5 text-[#c67b5c] animate-spin mb-3" />
-                    <p className="text-[13px] font-semibold text-[#2d2422] tracking-wide">{genStatus}</p>
-                    <p className="text-[11px] text-[#9b8e82] mt-1">{progress}%</p>
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)] tracking-wide">{genStatus}</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)] mt-1">{progress}%</p>
                   </div>
                 )}
 
@@ -361,17 +302,17 @@ export default function GhostMannequinPage() {
                     <>
                       <button
                         onClick={handleDownload}
-                        className="w-10 h-10 bg-[#2d2422] text-white rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all"
+                        className="w-10 h-10 bg-[#2d2422] text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all"
                         title="下载成品"
                       >
                         <Download size={18} />
                       </button>
                       <button
                         onClick={() => setShowCompare((v) => !v)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-all ${
-                          showCompare ? 'bg-[#c67b5c] text-white' : 'bg-white text-[#2d2422]'
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all ${
+                          showCompare ? 'bg-[#c67b5c] text-white' : 'bg-white text-[var(--text-primary)]'
                         }`}
-                        style={{ border: '1px solid rgba(139,115,85,0.1)' }}
+                        style={{ border: '1px solid var(--border-normal)' }}
                         title={showCompare ? '退出对比' : '对比原图/生成图'}
                       >
                         {showCompare ? <EyeOff size={18} /> : <GitCompareArrows size={18} />}
@@ -379,24 +320,24 @@ export default function GhostMannequinPage() {
                     </>
                   )}
                   <button
-                    onClick={triggerFileInput}
-                    className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg text-[#8b7355] hover:text-[#2d2422] transition-all hover:scale-110"
-                    style={{ border: '1px solid rgba(139,115,85,0.1)' }}
+                    onClick={handleReset}
+                    className="w-10 h-10 bg-[var(--bg-card)] rounded-2xl flex items-center justify-center shadow-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all hover:scale-110"
+                    style={{ border: '1px solid var(--border-normal)' }}
                     title="更换图片"
                   >
                     <ImageIcon size={18} />
                   </button>
                   <button
                     onClick={handleReset}
-                    className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg text-[#c9bfb5] hover:text-red-500 transition-all hover:scale-110"
-                    style={{ border: '1px solid rgba(139,115,85,0.1)' }}
+                    className="w-10 h-10 bg-[var(--bg-card)] rounded-2xl flex items-center justify-center shadow-lg text-[var(--text-extreme)] hover:text-red-500 transition-all hover:scale-110"
+                    style={{ border: '1px solid var(--border-normal)' }}
                     title="清空"
                   >
                     <Trash2 size={18} />
                   </button>
                 </div>
                 {/* 移动端底部工具栏 */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex md:hidden items-center gap-2 z-10 bg-white/80 backdrop-blur-md rounded-full px-3 py-2 shadow-lg" style={{ border: '1px solid rgba(139,115,85,0.1)' }}>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex md:hidden items-center gap-2 z-10 bg-white/80 backdrop-blur-md rounded-full px-3 py-2 shadow-lg" style={{ border: '1px solid var(--border-normal)' }}>
                   {resultUrl && !isGenerating && (
                     <>
                       <button
@@ -409,7 +350,7 @@ export default function GhostMannequinPage() {
                       <button
                         onClick={() => setShowCompare((v) => !v)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                          showCompare ? 'bg-[#c67b5c] text-white' : 'bg-[rgba(139,115,85,0.08)] text-[#2d2422]'
+                          showCompare ? 'bg-[#c67b5c] text-white' : 'bg-[var(--bg-active)] text-[var(--text-primary)]'
                         }`}
                         title={showCompare ? '退出对比' : '对比'}
                       >
@@ -418,30 +359,30 @@ export default function GhostMannequinPage() {
                     </>
                   )}
                   <button
-                    onClick={triggerFileInput}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[rgba(139,115,85,0.08)] text-[#8b7355]"
+                    onClick={handleReset}
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--bg-active)] text-[var(--text-secondary)]"
                     title="更换图片"
                   >
                     <ImageIcon size={16} />
                   </button>
                   <button
                     onClick={handleReset}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[rgba(139,115,85,0.08)] text-[#c9bfb5]"
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--bg-active)] text-[var(--text-extreme)]"
                     title="清空"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               </div>
-            )}
           </div>
+          )}
         </div>
 
         {/* 右侧控制面板 */}
         <div className="w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-4 lg:overflow-y-auto">
           {/* 风格选择 */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#b0a59a] mb-4 flex items-center">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] mb-4 flex items-center">
               <Layers size={14} className="mr-2" /> 风格选择
             </h3>
             <div className="space-y-2.5">
@@ -449,19 +390,19 @@ export default function GhostMannequinPage() {
                 <button
                   key={bg.id}
                   onClick={() => setSelectedBg(bg.id)}
-                  className={`w-full flex items-center p-3 rounded-xl border-2 transition-all ${
+                  className={`w-full flex items-center p-3 rounded-2xl border-2 transition-all ${
                     selectedBg === bg.id
                       ? 'border-[#c67b5c] bg-[rgba(198,123,92,0.04)]'
-                      : 'border-transparent hover:bg-[rgba(139,115,85,0.03)]'
+                      : 'border-transparent hover:bg-[var(--bg-muted)]'
                   }`}
                 >
                   <div
-                    className="w-8 h-8 rounded-lg shadow-inner mr-3 shrink-0"
+                    className="w-8 h-8 rounded-2xl shadow-inner mr-3 shrink-0"
                     style={{ backgroundColor: bg.hex, border: '1px solid rgba(0,0,0,0.06)' }}
                   />
                   <div className="text-left">
-                    <p className="text-[13px] font-bold text-[#2d2422]">{bg.name}</p>
-                    <p className="text-[11px] text-[#9b8e82]">{bg.desc}</p>
+                    <p className="text-[13px] font-bold text-[var(--text-primary)]">{bg.name}</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">{bg.desc}</p>
                   </div>
                   {selectedBg === bg.id && <CheckCircle2 className="ml-auto text-[#c67b5c]" size={16} />}
                 </button>
@@ -473,10 +414,10 @@ export default function GhostMannequinPage() {
           {resultUrl && (
             <div className="fashion-glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#b0a59a] flex items-center">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] flex items-center">
                   <Sun size={14} className="mr-2" /> 亮度调节
                 </h3>
-                <span className="text-[11px] font-mono font-bold bg-[rgba(139,115,85,0.06)] px-2 py-0.5 rounded text-[#8b7355]">
+                <span className="text-[11px] font-mono font-bold bg-[var(--bg-active)] px-2 py-0.5 rounded text-[var(--text-secondary)]">
                   {brightness}%
                 </span>
               </div>
@@ -486,9 +427,9 @@ export default function GhostMannequinPage() {
                 max="150"
                 value={brightness}
                 onChange={(e) => setBrightness(Number(e.target.value))}
-                className="w-full h-1.5 bg-[rgba(139,115,85,0.1)] rounded-lg appearance-none cursor-pointer accent-[#c67b5c]"
+                className="w-full h-1.5 bg-[rgba(139,115,85,0.1)] rounded-2xl appearance-none cursor-pointer accent-[#c67b5c]"
               />
-              <div className="flex justify-between text-[10px] text-[#c9bfb5] font-bold uppercase mt-2">
+              <div className="flex justify-between text-[10px] text-[var(--text-extreme)] font-bold uppercase mt-2">
                 <span>暗调</span>
                 <span>标准</span>
                 <span>高亮</span>
@@ -512,7 +453,7 @@ export default function GhostMannequinPage() {
               <div className="flex justify-between items-center">
                 <span className="text-[12px] font-bold text-white">3D 廓形重塑</span>
                 <div className="w-9 h-4 rounded-full flex items-center px-1" style={{ background: 'rgba(255,255,255,0.3)' }}>
-                  <div className="w-2.5 h-2.5 bg-white rounded-full ml-auto" />
+                  <div className="w-2.5 h-2.5 bg-[var(--bg-card)] rounded-full ml-auto" />
                 </div>
               </div>
 
@@ -529,11 +470,11 @@ export default function GhostMannequinPage() {
             <div className="pt-4 mt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <button
                 onClick={handleGenerate}
-                disabled={!previewUrl || isGenerating}
-                className={`w-full py-3.5 rounded-xl font-bold text-[13px] uppercase tracking-wider transition-all relative ${
-                  !previewUrl || isGenerating
+                disabled={!imageUrl || isGenerating}
+                className={`w-full py-3.5 rounded-2xl font-bold text-[13px] uppercase tracking-wider transition-all relative ${
+                  !imageUrl || isGenerating
                     ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                    : 'bg-white text-[#2d2422] hover:bg-[#f5f0ec] shadow-xl active:scale-[0.98]'
+                    : 'bg-white text-[var(--text-primary)] hover:bg-[#f5f0ec] shadow-xl active:scale-[0.98]'
                 }`}
               >
                 {isGenerating ? (
@@ -550,7 +491,7 @@ export default function GhostMannequinPage() {
           </div>
 
           {errorMessage && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-2.5 text-red-600">
+            <div className="p-4 bg-[rgba(196,112,112,0.08)] border border-red-100 rounded-2xl flex items-start gap-2.5 text-red-600">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <p className="text-[12px] font-semibold leading-relaxed">{errorMessage}</p>
             </div>
@@ -558,7 +499,6 @@ export default function GhostMannequinPage() {
         </div>
       </div>
 
-      <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/png,image/jpeg,image/webp,image/gif" />
     </div>
   )
 }

@@ -15,7 +15,7 @@ interface MiniBarChartProps {
 export function MiniBarChart({ data, height = 120, barColor = '#c67b5c' }: MiniBarChartProps) {
   if (data.length === 0) {
     return (
-      <div style={{ fontSize: 11, color: '#c9bfb5', textAlign: 'center', padding: '24px 0' }}>
+      <div style={{ fontSize: 11, color: 'var(--text-extreme)', textAlign: 'center', padding: '24px 0' }}>
         暂无数据
       </div>
     )
@@ -23,7 +23,7 @@ export function MiniBarChart({ data, height = 120, barColor = '#c67b5c' }: MiniB
 
   if (data.every((d) => d.value === 0)) {
     return (
-      <div style={{ fontSize: 11, color: '#c9bfb5', textAlign: 'center', padding: '24px 0' }}>
+      <div style={{ fontSize: 11, color: 'var(--text-extreme)', textAlign: 'center', padding: '24px 0' }}>
         暂无数据
       </div>
     )
@@ -68,7 +68,7 @@ export function MiniBarChart({ data, height = 120, barColor = '#c67b5c' }: MiniB
             <span
               style={{
                 fontSize: 8,
-                color: '#c9bfb5',
+                color: 'var(--text-extreme)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -87,7 +87,7 @@ export function MiniBarChart({ data, height = 120, barColor = '#c67b5c' }: MiniB
                 top: -24,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: '#2d2422',
+                background: 'var(--text-primary)',
                 color: '#fff',
                 fontSize: 9,
                 padding: '2px 6px',

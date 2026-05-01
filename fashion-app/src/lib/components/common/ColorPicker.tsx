@@ -172,7 +172,7 @@ function SVPanel({ hue, saturation, lightness, onChange }: {
   return (
     <div
       ref={panelRef}
-      className="relative w-full aspect-square rounded-xl cursor-crosshair select-none touch-none overflow-hidden"
+      className="relative w-full aspect-square rounded-2xl cursor-crosshair select-none touch-none overflow-hidden"
       style={{
         background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hue}, 100%, 50%))`,
       }}
@@ -252,15 +252,15 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
       {/* 当前色预览 + HEX 输入 + 添加按钮 */}
       <div className="flex items-center gap-2">
         <div
-          className="w-10 h-10 rounded-xl border-2 border-white shadow-md flex-shrink-0"
+          className="w-10 h-10 rounded-2xl border-2 border-white shadow-md flex-shrink-0"
           style={{ backgroundColor: currentHex }}
         />
         <input
           type="text"
           value={hexInput}
           onChange={(e) => handleHexInput(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-xl text-[13px] font-mono text-[#2d2422] outline-none"
-          style={{ background: 'rgba(139,115,85,0.04)', border: '1px solid rgba(139,115,85,0.12)' }}
+          className="flex-1 px-3 py-2 rounded-2xl text-[13px] font-mono text-[var(--text-primary)] outline-none"
+          style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
           placeholder="#C67B5C"
           maxLength={7}
         />
@@ -268,7 +268,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
           type="button"
           onClick={addCurrentColor}
           disabled={selectedColors.length >= maxColors || selectedColors.some(c => c.hex.toLowerCase() === currentHex.toLowerCase())}
-          className="flex items-center gap-1 px-3 py-2 rounded-xl text-[12px] font-semibold text-white transition-all disabled:opacity-40"
+          className="flex items-center gap-1 px-3 py-2 rounded-2xl text-[12px] font-semibold text-white transition-all disabled:opacity-40"
           style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
         >
           <Plus className="w-3.5 h-3.5" /> 添加
@@ -288,7 +288,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
                 type="button"
                 onClick={() => addPresetColor(c.hex, c.name)}
                 disabled={selectedColors.some(sc => sc.hex.toLowerCase() === c.hex.toLowerCase()) || selectedColors.length >= maxColors}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
                 style={{
                   background: 'rgba(99,102,241,0.06)',
                   border: '1px solid rgba(99,102,241,0.15)',
@@ -308,7 +308,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
         <button
           type="button"
           onClick={() => setShowPresets(!showPresets)}
-          className="flex items-center gap-1.5 mb-2 text-[11px] font-bold text-[#9b8e82]"
+          className="flex items-center gap-1.5 mb-2 text-[11px] font-bold text-[var(--text-tertiary)]"
         >
           <span>{showPresets ? '▼' : '▶'}</span> 快捷色卡
         </button>
@@ -320,10 +320,10 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
                 type="button"
                 onClick={() => addPresetColor(c.hex, c.name)}
                 disabled={selectedColors.some(sc => sc.hex.toLowerCase() === c.hex.toLowerCase()) || selectedColors.length >= maxColors}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
                 style={{
-                  background: 'rgba(139,115,85,0.04)',
-                  border: '1px solid rgba(139,115,85,0.1)',
+                  background: 'var(--bg-muted)',
+                  border: '1px solid var(--border-normal)',
                   color: '#5a4a3a',
                 }}
               >
@@ -339,21 +339,21 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
       {selectedColors.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[11px] font-bold text-[#2d2422]">已选颜色</span>
-            <span className="text-[10px] text-[#b0a59a]">({selectedColors.length}/{maxColors})</span>
+            <span className="text-[11px] font-bold text-[var(--text-primary)]">已选颜色</span>
+            <span className="text-[10px] text-[var(--text-quaternary)]">({selectedColors.length}/{maxColors})</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedColors.map((c, i) => (
               <div
                 key={`sel-${i}`}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-semibold transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[12px] font-semibold transition-all"
                 style={{
                   background: 'rgba(99,102,241,0.06)',
                   border: '1px solid rgba(99,102,241,0.15)',
                   color: '#4338ca',
                 }}
               >
-                <span className="w-4 h-4 rounded-lg flex-shrink-0 border border-white shadow-sm" style={{ backgroundColor: c.hex }} />
+                <span className="w-4 h-4 rounded-2xl flex-shrink-0 border border-white shadow-sm" style={{ backgroundColor: c.hex }} />
                 <span>{c.name}</span>
                 <button
                   type="button"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
@@ -8,12 +9,16 @@ export async function GET(request: NextRequest) {
     const auth = requireAdmin(request)
     if (!isAuthed(auth)) return auth
 
-    let config = db.prepare('SELECT * FROM WatermarkConfig WHERE id = ?').get('global') as any
+    let config = queries.watermark.findGlobal()
     if (!config) {
       db.prepare(
-        'INSERT INTO WatermarkConfig (id, enabled, text, position, opacity, fontSize) VALUES (?, 0, ?, ?, 0.3, 16)'
+        'INSERT INTO WatermarkConfig (id, enabled, text, position, opacity, fontSize) VALUES (?, 0, ?, ?, 0.3, 14)'
       ).run('global', '', 'bottom-right')
-      config = db.prepare('SELECT * FROM WatermarkConfig WHERE id = ?').get('global') as any
+      config = queries.watermark.findGlobal()
+    }
+
+    if (!config) {
+      return NextResponse.json({ message: '水印配置初始化失败' }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -44,11 +49,11 @@ export async function PUT(request: NextRequest) {
     if (!existing) {
       db.prepare(
         'INSERT INTO WatermarkConfig (id, enabled, text, position, opacity, fontSize) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run('global', enabled ? 1 : 0, text || '', position || 'bottom-right', opacity ?? 0.3, fontSize ?? 16)
+      ).run('global', enabled ? 1 : 0, text || '', position || 'bottom-right', opacity ?? 0.3, fontSize ?? 14)
     } else {
       db.prepare(
         "UPDATE WatermarkConfig SET enabled = ?, text = ?, position = ?, opacity = ?, fontSize = ?, updatedAt = datetime('now') WHERE id = ?"
-      ).run(enabled ? 1 : 0, text || '', position || 'bottom-right', opacity ?? 0.3, fontSize ?? 16, 'global')
+      ).run(enabled ? 1 : 0, text || '', position || 'bottom-right', opacity ?? 0.3, fontSize ?? 14, 'global')
     }
 
     db.prepare(

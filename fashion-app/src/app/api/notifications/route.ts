@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,13 +9,8 @@ export async function GET(request: NextRequest) {
     if (!isAuthed(auth)) return auth
     const { payload } = auth
 
-    const notifications = db.prepare(
-      `SELECT * FROM Notification WHERE userId = ? OR userId IS NULL ORDER BY createdAt DESC LIMIT 50`
-    ).all(payload.userId)
-
-    const unreadCount = (db.prepare(
-      `SELECT COUNT(*) as count FROM Notification WHERE (userId = ? OR userId IS NULL) AND isRead = 0`
-    ).get(payload.userId) as any).count
+    const notifications = queries.notification.findByUserId(payload.userId)
+    const unreadCount = queries.notification.countUnreadByUserId(payload.userId)
 
     return NextResponse.json({ notifications, unreadCount })
   } catch (error) {

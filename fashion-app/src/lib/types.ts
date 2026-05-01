@@ -173,7 +173,8 @@ export type QuickWorkspaceFraming = 'auto' | 'half' | 'full'
 export interface QuickWorkspacePayload {
   clothingUrl: string
   clothingBackUrl?: string
-  modelImageUrl: string
+  /** 融合模式下可选：不传则保留场景图中的原模特，仅换衣服 */
+  modelImageUrl?: string
   sceneImageUrl: string
   mode: QuickWorkspaceMode
   aspectRatio?: QuickWorkspaceAspectRatio

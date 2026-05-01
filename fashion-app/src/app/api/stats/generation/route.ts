@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { safeJsonParse } from '@/lib/utils/json'
 
 export async function GET(request: NextRequest) {
@@ -12,14 +13,14 @@ export async function GET(request: NextRequest) {
     const userId = payload.userId
 
     // 概览
-    const totalTasks = (db.prepare('SELECT COUNT(*) as count FROM GenerationTask WHERE userId = ?').get(userId) as any).count
-    const successTasks = (db.prepare("SELECT COUNT(*) as count FROM GenerationTask WHERE userId = ? AND status = 'COMPLETED'").get(userId) as any).count
-    const failedTasks = (db.prepare("SELECT COUNT(*) as count FROM GenerationTask WHERE userId = ? AND status = 'FAILED'").get(userId) as any).count
+    const totalTasks = queries.task.countByUserId(userId)
+    const successTasks = queries.task.countByUserIdAndStatus(userId, 'COMPLETED')
+    const failedTasks = queries.task.countByUserIdAndStatus(userId, 'FAILED')
     const pendingTasks = totalTasks - successTasks - failedTasks
     const successRate = totalTasks > 0 ? ((successTasks / totalTasks) * 100).toFixed(1) : '0.0'
 
     // 模特偏好
-    const tasks = db.prepare('SELECT modelConfig FROM GenerationTask WHERE userId = ?').all(userId) as any[]
+    const tasks = queries.task.findModelConfigsByUserId(userId)
 
     const gender: Record<string, number> = {}
     const bodyType: Record<string, number> = {}
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       } catch {}
     }
 
-    const sceneTasks = db.prepare('SELECT sceneConfig FROM GenerationTask WHERE userId = ?').all(userId) as any[]
+    const sceneTasks = queries.task.findSceneConfigsByUserId(userId)
     for (const task of sceneTasks) {
       try {
         const sc = safeJsonParse<Record<string, string>>(task.sceneConfig, {})

@@ -1,5 +1,6 @@
 import { db } from './db'
+import { queries } from './db-queries'
 
 export function getTaskStatus(taskId: string) {
-  return db.prepare('SELECT id, status, resultUrl, upscaledUrl, errorMsg FROM GenerationTask WHERE id = ?').get(taskId) as any
+  return queries.task.findStatusById(taskId)
 }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { createAccessToken, createRefreshToken, comparePassword } from '@/lib/auth'
 import { maskApiKey } from '@/lib/utils/security'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { queries } from '@/lib/db-queries'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim()
-    const user = db.prepare('SELECT * FROM User WHERE email = ?').get(normalizedEmail) as any
+    const user = queries.user.findAuthByEmail(normalizedEmail)
 
     if (!user) {
       return NextResponse.json({ message: '邮箱或密码错误' }, { status: 401 })

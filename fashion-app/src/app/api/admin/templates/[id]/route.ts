@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -42,13 +43,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       'INSERT INTO AdminAuditLog (id, adminId, action, detail) VALUES (?, ?, ?, ?)'
     ).run(uuidv4(), payload.userId, 'update_template', `更新模板: ${id.slice(0, 8)}`)
 
-    const template = db.prepare('SELECT * FROM Template WHERE id = ?').get(id) as any
+    const template = queries.template.findById(id)
     return NextResponse.json({
       template: {
         ...template,
-        modelConfig: JSON.parse(template.modelConfig || '{}'),
-        sceneConfig: JSON.parse(template.sceneConfig || '{}'),
-        isActive: !!template.isActive,
+        modelConfig: JSON.parse(template?.modelConfig || '{}'),
+        sceneConfig: JSON.parse(template?.sceneConfig || '{}'),
+        isActive: !!template?.isActive,
       },
     })
   } catch (error) {
@@ -64,8 +65,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { payload } = auth
     const { id } = await params
 
-    const existing = db.prepare('SELECT name FROM Template WHERE id = ?').get(id) as any
-    if (!existing) {
+    const name = queries.template.findNameById(id)
+    if (!name) {
       return NextResponse.json({ message: '模板不存在' }, { status: 404 })
     }
 
@@ -73,7 +74,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     db.prepare(
       'INSERT INTO AdminAuditLog (id, adminId, action, detail) VALUES (?, ?, ?, ?)'
-    ).run(uuidv4(), payload.userId, 'delete_template', `删除模板: ${existing.name}`)
+    ).run(uuidv4(), payload.userId, 'delete_template', `删除模板: ${name}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

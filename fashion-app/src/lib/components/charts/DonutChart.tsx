@@ -13,7 +13,7 @@ interface DonutChartProps {
 
 export function DonutChart({ data, size = 120 }: DonutChartProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0)
-  if (total === 0) return <div className="text-[11px] text-[#c9bfb5] text-center py-6">暂无数据</div>
+  if (total === 0) return <div className="text-[11px] text-[var(--text-extreme)] text-center py-6">暂无数据</div>
 
   const r = 42
   const cx = 50
@@ -47,16 +47,16 @@ export function DonutChart({ data, size = 120 }: DonutChartProps) {
             className="transition-all duration-500"
           />
         ))}
-        <text x={cx} y={cy - 4} textAnchor="middle" className="text-[18px] font-bold" fill="#2d2422">{total}</text>
-        <text x={cx} y={cy + 10} textAnchor="middle" className="text-[8px]" fill="#b0a59a">总计</text>
+        <text x={cx} y={cy - 4} textAnchor="middle" className="text-[18px] font-bold" fill="var(--text-primary)">{total}</text>
+        <text x={cx} y={cy + 10} textAnchor="middle" className="text-[8px]" fill="var(--text-quaternary)">总计</text>
       </svg>
       <div className="flex flex-col gap-1.5 min-w-0">
         {segments.map((seg, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: seg.color }} />
-            <span className="text-[11px] text-[#8b7355] truncate">{seg.label}</span>
-            <span className="text-[11px] font-semibold text-[#2d2422] ml-auto">{seg.value}</span>
-            <span className="text-[9px] text-[#c9bfb5]">{(seg.pct * 100).toFixed(0)}%</span>
+            <span className="text-[11px] text-[var(--text-secondary)] truncate">{seg.label}</span>
+            <span className="text-[11px] font-semibold text-[var(--text-primary)] ml-auto">{seg.value}</span>
+            <span className="text-[9px] text-[var(--text-extreme)]">{(seg.pct * 100).toFixed(0)}%</span>
           </div>
         ))}
       </div>

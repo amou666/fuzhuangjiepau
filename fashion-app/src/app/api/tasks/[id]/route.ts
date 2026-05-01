@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { safeJsonParse } from '@/lib/utils/json'
+import { queries } from '@/lib/db-queries'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { payload } = auth
 
     const { id } = await params
-    const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
+    const task = queries.task.findById(id)
 
     if (!task) {
       return NextResponse.json({ message: '任务不存在' }, { status: 404 })
@@ -42,7 +43,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { payload } = auth
 
     const { id } = await params
-    const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
+    const task = queries.task.findById(id)
 
     if (!task) {
       return NextResponse.json({ message: '任务不存在' }, { status: 404 })

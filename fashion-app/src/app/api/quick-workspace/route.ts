@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
+import { queries } from '@/lib/db-queries'
 import { safeJsonParse } from '@/lib/utils/json'
 import { decryptApiKey } from '@/lib/utils/security'
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
@@ -44,26 +45,30 @@ export async function POST(request: NextRequest) {
       batchVariation?: 'pose' | 'scene' | 'both'
     }
 
-    if (!clothingUrl || !modelImageUrl || !sceneImageUrl) {
-      return NextResponse.json({ message: '请上传衣服正面、模特图和场景图' }, { status: 400 })
+    if (!clothingUrl || !sceneImageUrl) {
+      return NextResponse.json({ message: '请上传衣服正面和场景图' }, { status: 400 })
     }
+    // 背景模式下模特图为必填
     const quickMode: QuickWorkspaceMode = mode === 'fusion' ? 'fusion' : 'background'
+    if (quickMode === 'background' && !modelImageUrl) {
+      return NextResponse.json({ message: '背景图模式下请上传模特图' }, { status: 400 })
+    }
     const finalAspect: QuickWorkspaceAspectRatio = aspectRatio && VALID_ASPECT.includes(aspectRatio) ? aspectRatio : '3:4'
     const finalFraming: QuickWorkspaceFraming = framing && VALID_FRAMING.includes(framing) ? framing : 'auto'
     const finalDevice: string = isValidDeviceId(device) ? device : 'phone'
 
-    const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < QUICK_CREDIT_COST) {
+    const userInfo = queries.user.findCreditsAndApiKey(payload.userId)
+    if (!userInfo || userInfo.credits < QUICK_CREDIT_COST) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
-    const userApiKey = user?.apiKey ? decryptApiKey(user.apiKey) : undefined
+    const userApiKey = userInfo.apiKey ? decryptApiKey(userInfo.apiKey) : undefined
     if (!userApiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
     const modelConfig = {
-      mode: 'upload',
-      imageUrl: modelImageUrl,
+      mode: 'upload' as const,
+      imageUrl: modelImageUrl || '',
     }
     const sceneConfig = {
       mode: 'preset',
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
 
-    const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(taskId) as any
+    const task = queries.task.findById(taskId)!
 
     processTask(taskId).catch((err) => console.error('[QuickWorkspace Process Error]', err))
 

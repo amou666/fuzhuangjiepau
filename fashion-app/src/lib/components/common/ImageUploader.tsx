@@ -75,7 +75,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
   if (value) {
     return (
       <div className="flex flex-col gap-1">
-        <div className="relative rounded-2xl overflow-hidden border border-[rgba(139,115,85,0.18)] bg-[rgba(139,115,85,0.02)] p-2">
+        <div className="relative rounded-2xl overflow-hidden border border-[var(--border-strong)] bg-[var(--bg-muted)] p-2">
           <img
             src={value}
             alt={label}
@@ -95,7 +95,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        {helperText && <span className="text-[11px] text-[#c9bfb5] leading-relaxed">{helperText}</span>}
+        {helperText && <span className="text-[11px] text-[var(--text-extreme)] leading-relaxed">{helperText}</span>}
       </div>
     );
   }
@@ -136,7 +136,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
               style={{ borderColor: 'rgba(198,123,92,0.2)', borderTopColor: '#c67b5c' }}
             />
           ) : (
-            <Plus className="w-5 h-5 text-[#c9bfb5]" />
+            <Plus className="w-5 h-5 text-[var(--text-extreme)]" />
           )}
         </div>
 
@@ -191,16 +191,16 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
           ) : (
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-              style={{ background: 'rgba(198,123,92,0.08)' }}
+              style={{ background: 'var(--bg-active)' }}
             >
               <Camera className="w-5 h-5 text-[#c67b5c]" />
             </div>
           )}
         </div>
-        <div className="text-[13px] font-semibold text-[#8b7355] mb-1">
+        <div className="text-[13px] font-semibold text-[var(--text-secondary)] mb-1">
           {uploading ? '上传中...' : isDragging ? '松开即可上传' : '点击或拖拽上传图片'}
         </div>
-        <div className="text-[11px] text-[#c9bfb5]">
+        <div className="text-[11px] text-[var(--text-extreme)]">
           {helperText || '支持 PNG / JPG / WEBP / GIF，最大 5MB'}
         </div>
       </div>

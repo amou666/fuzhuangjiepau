@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function GET(request: NextRequest) {
@@ -8,12 +9,10 @@ export async function GET(request: NextRequest) {
     const auth = requireAdmin(request)
     if (!isAuthed(auth)) return auth
 
-    const templates = db.prepare(
-      'SELECT * FROM Template ORDER BY sortOrder ASC, createdAt DESC'
-    ).all()
+    const templates = queries.template.findAll()
 
     return NextResponse.json({
-      templates: templates.map((t: any) => ({
+      templates: templates.map((t) => ({
         ...t,
         modelConfig: JSON.parse(t.modelConfig || '{}'),
         sceneConfig: JSON.parse(t.sceneConfig || '{}'),
@@ -57,14 +56,14 @@ export async function POST(request: NextRequest) {
       'INSERT INTO AdminAuditLog (id, adminId, action, detail) VALUES (?, ?, ?, ?)'
     ).run(uuidv4(), payload.userId, 'create_template', `创建模板: ${name.trim()}`)
 
-    const template = db.prepare('SELECT * FROM Template WHERE id = ?').get(id) as any
+    const template = queries.template.findById(id)
 
     return NextResponse.json({
       template: {
         ...template,
-        modelConfig: JSON.parse(template.modelConfig || '{}'),
-        sceneConfig: JSON.parse(template.sceneConfig || '{}'),
-        isActive: !!template.isActive,
+        modelConfig: JSON.parse(template?.modelConfig || '{}'),
+        sceneConfig: JSON.parse(template?.sceneConfig || '{}'),
+        isActive: !!template?.isActive,
       },
     }, { status: 201 })
   } catch (error) {

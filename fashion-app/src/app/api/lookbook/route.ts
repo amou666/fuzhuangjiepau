@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
 import { CreditService } from '@/lib/credit-service'
+import { queries } from '@/lib/db-queries'
 import { safeJsonParse } from '@/lib/utils/json'
 import { decryptApiKey } from '@/lib/utils/security'
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types'
@@ -48,25 +49,29 @@ export async function POST(request: NextRequest) {
       count?: number
     }
 
-    if (!clothingUrl || !modelImageUrl || !sceneImageUrl) {
-      return NextResponse.json({ message: '请上传衣服正面、模特图和场景图' }, { status: 400 })
+    if (!clothingUrl || !sceneImageUrl) {
+      return NextResponse.json({ message: '请上传衣服正面和场景图' }, { status: 400 })
+    }
+    const quickMode: QuickWorkspaceMode = mode === 'fusion' ? 'fusion' : 'background'
+    // 背景模式下模特图为必填
+    if (quickMode === 'background' && !modelImageUrl) {
+      return NextResponse.json({ message: '背景图模式下请上传模特图' }, { status: 400 })
     }
 
     const finalCount = Math.min(Math.max(count || 3, 1), 8)
     const finalBatchVariation: BatchVariationType = (batchVariation && ['pose', 'scene', 'both'].includes(batchVariation) ? batchVariation : 'pose') as BatchVariationType
     const finalPoseHints: string[] = Array.isArray(poseHints) ? poseHints.filter((h): h is string => Boolean(h)) : []
 
-    const quickMode: QuickWorkspaceMode = mode === 'fusion' ? 'fusion' : 'background'
     const finalAspect: QuickWorkspaceAspectRatio = aspectRatio && VALID_ASPECT.includes(aspectRatio) ? aspectRatio : '3:4'
     const finalFraming: QuickWorkspaceFraming = framing && VALID_FRAMING.includes(framing) ? framing : 'auto'
     const finalDevice: string = isValidDeviceId(device) ? device : 'phone'
 
     // 检查积分是否足够
-    const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < finalCount * CREDIT_COST_PER_IMAGE) {
-      return NextResponse.json({ message: `积分不足，套图生成需要 ${finalCount} 积分，当前余额 ${user?.credits || 0}` }, { status: 403 })
+    const userInfo = queries.user.findCreditsAndApiKey(payload.userId)
+    if (!userInfo || userInfo.credits < finalCount * CREDIT_COST_PER_IMAGE) {
+      return NextResponse.json({ message: `积分不足，套图生成需要 ${finalCount} 积分，当前余额 ${userInfo?.credits || 0}` }, { status: 403 })
     }
-    const userApiKey = user?.apiKey ? decryptApiKey(user.apiKey) : undefined
+    const userApiKey = userInfo.apiKey ? decryptApiKey(userInfo.apiKey) : undefined
     if (!userApiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
@@ -84,8 +89,8 @@ export async function POST(request: NextRequest) {
         const combinedExtraPrompt = [baseExtraPrompt, poseHint ? `Pose requirement: ${poseHint}` : ''].filter(Boolean).join('. ')
 
         const modelConfig = {
-          mode: 'upload',
-          imageUrl: modelImageUrl,
+          mode: 'upload' as const,
+          imageUrl: modelImageUrl || '',
         }
         const sceneConfig = {
           mode: 'preset',

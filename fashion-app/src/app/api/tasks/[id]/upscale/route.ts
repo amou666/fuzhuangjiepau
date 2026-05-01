@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { safeJsonParse } from '@/lib/utils/json'
 import { CreditService } from '@/lib/credit-service'
 
@@ -12,8 +12,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // 2. 获取任务
     const { id } = await params
-    console.log(`[Upscale] start taskId=${id}`)
-    const task = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
+    console.warn(`[Upscale] start taskId=${id}`)
+    const task = queries.task.findById(id)
 
     if (!task) {
       return NextResponse.json({ message: '任务不存在' }, { status: 404 })
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // 4. 检查积分和 API Key
-    const user = db.prepare('SELECT credits, apiKey FROM User WHERE id = ?').get(payload.userId) as any
-    if (!user || user.credits < 1) {
+    const userInfo = queries.user.findCreditsAndApiKey(payload.userId)
+    if (!userInfo || userInfo.credits < 1) {
       return NextResponse.json({ message: '积分不足，请联系管理员充值' }, { status: 403 })
     }
 
-    if (!user.apiKey) {
+    if (!userInfo.apiKey) {
       return NextResponse.json({ message: '未配置 AI API Key，请联系管理员' }, { status: 403 })
     }
 
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // 6. 清空旧的放大结果
+    const { db } = await import('@/lib/db')
     try {
       db.prepare(`UPDATE GenerationTask SET upscaleFactor = ?, upscaledUrl = NULL, errorMsg = NULL, updatedAt = datetime('now') WHERE id = ?`)
         .run(factor, id)
@@ -78,8 +79,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     processUpscale(id, upscaleSourceUrl, factor, payload.userId).catch(err => console.error('[Upscale] 异步放大失败:', err))
 
     // 8. 返回更新后的任务
-    const updatedTask = db.prepare('SELECT * FROM GenerationTask WHERE id = ?').get(id) as any
-    console.log(`[Upscale] 启动成功, taskId=${id}`)
+    const updatedTask = queries.task.findById(id)!
+    console.warn(`[Upscale] 启动成功, taskId=${id}`)
     return NextResponse.json({
       task: {
         ...updatedTask,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from './db'
 import { verifyAccessToken, type JwtPayload } from './auth'
+import { queries } from './db-queries'
 
 export interface AuthResult {
   payload: JwtPayload
@@ -29,14 +29,12 @@ export function requireAuth(request: NextRequest): AuthResult | NextResponse {
   }
 
   // 账号级二次校验：防止禁用 / 删除账号继续使用旧 JWT
-  const user = db
-    .prepare('SELECT isActive FROM User WHERE id = ?')
-    .get(payload.userId) as { isActive: number } | undefined
+  const isActive = queries.user.findIsActive(payload.userId)
 
-  if (!user) {
+  if (isActive === undefined) {
     return NextResponse.json({ message: '账号不存在，请重新登录' }, { status: 401 })
   }
-  if (!user.isActive) {
+  if (!isActive) {
     return NextResponse.json({ message: '账号已被禁用' }, { status: 403 })
   }
 
@@ -58,11 +56,9 @@ export function requireAdmin(request: NextRequest): AdminAuthResult | NextRespon
   }
 
   // requireAuth 已经校验过 isActive，这里只补一次角色校验（role 可能在 JWT 签发后被降级）
-  const user = db
-    .prepare('SELECT role FROM User WHERE id = ?')
-    .get(payload.userId) as { role: string } | undefined
+  const role = queries.user.findRole(payload.userId)
 
-  if (!user || user.role !== 'ADMIN') {
+  if (!role || role !== 'ADMIN') {
     return NextResponse.json({ message: '管理员权限已失效，请重新登录' }, { status: 403 })
   }
 

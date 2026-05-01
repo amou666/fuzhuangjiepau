@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 
 /** GET /api/pose-presets — 前端获取所有启用的姿势预设（按分类分组） */
 export async function GET(request: NextRequest) {
   const auth = requireAuth(request)
   if (!isAuthed(auth)) return auth
   try {
-    const rows = db.prepare(
-      'SELECT * FROM PosePreset WHERE isActive = 1 ORDER BY category, sortOrder ASC'
-    ).all() as Array<Record<string, any>>
+    const rows = queries.pose.findActive()
 
     // 按分类分组
-    const categories: Record<string, { id: string; label: string; desc: string; poses: any[] }> = {
+    const categories: Record<string, { id: string; label: string; desc: string; poses: Array<{ id: string; category: string; label: string; prompt: string; thumbnailUrl: string | null; sortOrder: number }> }> = {
       daily: { id: 'daily', label: '日常', desc: '通用日常动作', poses: [] },
       beach: { id: 'beach', label: '海边', desc: '沙滩海风经典动作', poses: [] },
       street: { id: 'street', label: '街拍', desc: '街头时尚经典动作', poses: [] },

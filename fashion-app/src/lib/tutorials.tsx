@@ -236,7 +236,7 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
     title: '模特工厂',
     description: '参数生成或图片融合，创建全新的 AI 模特形象并发送到工作台',
     icon: <Users className="w-5 h-5 text-white" />,
-    color: '#8b7355',
+    color: '#ec4899',
     steps: TUTORIALS['model-fusion'],
   },
   {
@@ -284,7 +284,7 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
     title: '个人中心',
     description: '查看账号信息、数据统计看板与积分变动记录',
     icon: <Users className="w-5 h-5 text-white" />,
-    color: '#6b5d4f',
+    color: '#8b7355',
     steps: TUTORIALS.profile,
   },
 ]

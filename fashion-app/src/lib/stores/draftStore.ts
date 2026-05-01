@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { QuickWorkspaceAspectRatio, QuickWorkspaceFraming, QuickWorkspaceMode } from '@/lib/types';
+import { isValidDeviceId } from '@/lib/device-presets';
 
 // ─── Redesign Draft ──────────────────────────────────────────
 export type RedesignMode = 'luxury-color' | 'material-element' | 'material-silhouette' | 'commercial-brainstorm';
@@ -45,6 +46,35 @@ export interface QuickWorkspaceDraft {
   extraPrompt: string;
 }
 
+// ─── Quick Workspace Live State ──────────────────────────────
+// 组件不再用 useState + useEffect 恢复，直接从 store 读取，
+// mount 时 0 延迟，SPA 路由切换回来状态完整保留。
+export interface QuickWorkspaceState {
+  mode: QuickWorkspaceMode;
+  clothingUrl: string;
+  clothingBackUrl: string;
+  modelImageUrl: string;
+  sceneImageUrl: string;
+  aspectRatio: QuickWorkspaceAspectRatio;
+  framing: QuickWorkspaceFraming;
+  device: string;
+  extraPrompt: string;
+  lookbookMode: boolean;
+}
+
+const DEFAULT_QW_STATE: QuickWorkspaceState = {
+  mode: 'background',
+  clothingUrl: '',
+  clothingBackUrl: '',
+  modelImageUrl: '',
+  sceneImageUrl: '',
+  aspectRatio: '3:4',
+  framing: 'auto',
+  device: 'phone',
+  extraPrompt: '',
+  lookbookMode: false,
+};
+
 // ─── Store ───────────────────────────────────────────────────
 // 仅在内存中保存，不做 localStorage 持久化：
 //   • 浏览器内 SPA 路由切换 → 模块单例依然存活 → 已上传图片保留
@@ -67,10 +97,16 @@ interface DraftState {
   setFusionResult: (result: FusionResult) => void;
   clearFusionResult: () => void;
 
-  // Quick Workspace
+  // Quick Workspace (legacy draft — kept for backward compat)
   quickWorkspaceDraft: QuickWorkspaceDraft | null;
   setQuickWorkspaceDraft: (draft: QuickWorkspaceDraft) => void;
   clearQuickWorkspaceDraft: () => void;
+
+  // Quick Workspace Live State — 组件直接读写的完整运行时状态
+  qw: QuickWorkspaceState;
+  setQw: <K extends keyof QuickWorkspaceState>(key: K, value: QuickWorkspaceState[K]) => void;
+  setQwBatch: (partial: Partial<QuickWorkspaceState>) => void;
+  resetQw: () => void;
 }
 
 export const useDraftStore = create<DraftState>()((set) => ({
@@ -90,10 +126,31 @@ export const useDraftStore = create<DraftState>()((set) => ({
   setFusionResult: (result) => set({ fusionResult: result }),
   clearFusionResult: () => set({ fusionResult: null }),
 
-  // Quick Workspace
+  // Quick Workspace (legacy draft — 调用时自动同步到 qw)
   quickWorkspaceDraft: null,
-  setQuickWorkspaceDraft: (draft) => set({ quickWorkspaceDraft: draft }),
+  setQuickWorkspaceDraft: (draft) => set((s) => ({
+    quickWorkspaceDraft: draft,
+    // 自动同步到 qw，确保工作台直接读到最新值
+    qw: {
+      ...s.qw,
+      mode: draft.mode ?? s.qw.mode,
+      clothingUrl: draft.clothingUrl ?? s.qw.clothingUrl,
+      clothingBackUrl: draft.clothingBackUrl ?? s.qw.clothingBackUrl,
+      modelImageUrl: draft.modelImageUrl ?? s.qw.modelImageUrl,
+      sceneImageUrl: draft.sceneImageUrl ?? s.qw.sceneImageUrl,
+      aspectRatio: draft.aspectRatio ?? s.qw.aspectRatio,
+      framing: draft.framing ?? s.qw.framing,
+      device: draft.device && isValidDeviceId(draft.device) ? draft.device : s.qw.device,
+      extraPrompt: draft.extraPrompt ?? s.qw.extraPrompt,
+    },
+  })),
   clearQuickWorkspaceDraft: () => set({ quickWorkspaceDraft: null }),
+
+  // Quick Workspace Live State
+  qw: { ...DEFAULT_QW_STATE },
+  setQw: (key, value) => set((s) => ({ qw: { ...s.qw, [key]: value } })),
+  setQwBatch: (partial) => set((s) => ({ qw: { ...s.qw, ...partial } })),
+  resetQw: () => set({ qw: { ...DEFAULT_QW_STATE }, quickWorkspaceDraft: null }),
 }));
 
 // 清理历史遗留的 localStorage 草稿（旧版本曾把图片 URL 持久化到 localStorage）

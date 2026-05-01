@@ -140,7 +140,7 @@ export class AIService {
   }
 
   // 2. 模特描述 - 完整保留
-  async describeModel(clothingUrl: string, modelConfig: ModelConfig, sceneMode?: string, userApiKey?: string): Promise<string> {
+  async describeModel(_clothingUrl: string, modelConfig: ModelConfig, sceneMode?: string, userApiKey?: string): Promise<string> {
     const isReplaceMode = sceneMode === 'replace'
 
     const categoryStyle = getModelCategoryStyleParagraph(modelConfig.category)
@@ -208,10 +208,10 @@ export class AIService {
 
   // 构建街拍 prompt - 完整保留
   buildStreetFashionPrompt(
-    clothingDescription: string,
+    _clothingDescription: string,
     modelDescription: string,
     sceneDescription: string,
-    modelConfig: ModelConfig,
+    _modelConfig: ModelConfig,
     sceneConfig: SceneConfig
   ): string {
     const accessoryGeneral =
@@ -554,7 +554,8 @@ Return only the generated image in base64 without markdown or explanation.`
       mode: 'background' | 'fusion'
       clothingUrl: string
       clothingBackUrl?: string
-      modelImageUrl: string
+      /** 融合模式下可选：不传则保留场景图中的原模特，仅换衣服 */
+      modelImageUrl?: string
       sceneImageUrl: string
       extraPrompt?: string
       aspectRatio?: '3:4' | '1:1' | '4:3' | '16:9' | '9:16'
@@ -634,7 +635,9 @@ Return only the generated image in base64 without markdown or explanation.`
           '',
           '直接返回最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
-      : [
+      : modelImageUrl
+      ? [
+          // 融合模式 + 有模特图：用模特的脸替换参考图中人物的脸
           `让【模特】穿上${clothingRef}的衣服，替换【参考图】中的人物。`,
           '',
           '- 【模特】的脸必须完全替换掉【参考图】中原人物的脸，禁止保留参考图的任何面部特征',
@@ -658,15 +661,43 @@ Return only the generated image in base64 without markdown or explanation.`
           '',
           '直接返回最终图片（base64，无需 markdown 或解释）。',
         ].filter(Boolean).join('\n')
+      : [
+          // 融合模式 + 无模特图：保留参考图中原模特的脸和姿势，只换衣服
+          `让【参考图】中原人物穿上${clothingRef}的衣服。保留原人物的脸、姿势和场景，只替换衣服。`,
+          '',
+          '- 保留【参考图】中原人物的面部、发型、肤色、体型，不得改变原人物的任何面部特征',
+          '- 衣服必须和【衣服正面】' + (clothingBackUrl ? '以及【衣服反面】' : '') + '完全一致，精确还原颜色、面料、纹理、图案、版型',
+          '- 保持【参考图】中人物的姿势和站位不变，只替换穿在身上的衣服',
+          '- 保持【参考图】的场景和背景不变',
+          batchVariation
+            ? '- 下装：如果衣服只是上衣，穿简约深色中性裤装，不得添加任何配饰（套图模式）'
+            : '- 下装：如果参考图人物穿着下装，新衣服未覆盖下半身时，保持原下装或做轻微调整',
+          batchVariation
+            ? '- 配饰：零配饰，双手空空（套图模式）'
+            : '- 配饰：保持原参考图中的配饰',
+          '- 真实成人比例（7.5头身），双脚着地',
+          `- 输出比例：${aspectHint}`,
+          `- ${framingHintZh}`,
+          deviceBlock,
+          extraPrompt ? `- 用户补充：${extraPrompt}` : '',
+          batchLockBlock,
+          '',
+          universalAntiFakeFace,
+          '',
+          '直接返回最终图片（base64，无需 markdown 或解释）。',
+        ].filter(Boolean).join('\n')
 
     const content: ChatMessageContentPart[] = []
 
     // 统一结构：先放角色标签+图片，让AI先看图，最后放文字指令
-    content.push({ type: 'text', text: '【模特】' })
-    content.push({
-      type: 'image_url',
-      image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
-    })
+    // 融合模式无模特图时，跳过模特图片部分
+    if (modelImageUrl) {
+      content.push({ type: 'text', text: '【模特】' })
+      content.push({
+        type: 'image_url',
+        image_url: { url: await this.toDataUrl(modelImageUrl), detail: config.aiImageDetail },
+      })
+    }
     content.push({ type: 'text', text: '【衣服正面】' })
     content.push({
       type: 'image_url',
@@ -688,7 +719,9 @@ Return only the generated image in base64 without markdown or explanation.`
 
     const systemPrompt = mode === 'background'
       ? '你是顶级时尚摄影师。规则：1.严格还原衣服的颜色、面料、纹理、图案、版型；2.模特仅保留脸部身份，禁止复制其姿势、构图、比例；3.场景保持标志性元素，人物放在最自然合理的位置；4.真实相机质感，禁止CGI/塑料感/美颜/插画感/扭曲肢体；5.直接返回base64，不要解释。'
-      : '你是顶级时尚摄影师。规则：1.人脸替换是最高优先级，用模特图的脸替换参考图中人物的脸；2.严格还原衣服的颜色、面料、纹理、图案、版型；3.保留参考图的姿态和场景；4.真实成人比例，双脚着地；5.真实相机质感，禁止CGI/塑料感/美颜/蜡像/扭曲肢体；6.直接返回base64，不要解释。'
+      : modelImageUrl
+      ? '你是顶级时尚摄影师。规则：1.人脸替换是最高优先级，用模特图的脸替换参考图中人物的脸；2.严格还原衣服的颜色、面料、纹理、图案、版型；3.保留参考图的姿态和场景；4.真实成人比例，双脚着地；5.真实相机质感，禁止CGI/塑料感/美颜/蜡像/扭曲肢体；6.直接返回base64，不要解释。'
+      : '你是顶级时尚摄影师。规则：1.保留参考图中原人物的面部、发型、肤色、体型不变；2.严格还原衣服的颜色、面料、纹理、图案、版型；3.保持原人物的姿势和场景不变，只替换穿在身上的衣服；4.真实成人比例，双脚着地；5.真实相机质感，禁止CGI/塑料感/美颜/蜡像/扭曲肢体；6.直接返回base64，不要解释。'
 
     const genPayload: Record<string, unknown> = {
       model: getActiveGenerationModel(),
@@ -1601,7 +1634,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
   }
 
-  // 生成渐变色卡（模拟布料从暗到亮的光照效果）
+  // 生成渐变色卡（模拟布料从暗到亮的光照效果）— 预留，暂未调用
   private generateGradientSwatch(hex: string, lightMin: number, lightMax: number): string {
     // 将 hex 转 HSL，生成 7 级明度渐变
     const hsl = this.hexToHsl(hex)
@@ -1613,7 +1646,7 @@ Cropped Boxy — length + fit: raise hem to high-waist crop, square the shoulder
     }
 
     // 构建水平渐变 + 布料质感噪声
-    const gradientStops = stops.map((c, i) => `${c} ${Math.round((i / (steps - 1)) * 100)}%`).join(', ')
+    stops.map((c, i) => `${c} ${Math.round((i / (steps - 1)) * 100)}%`).join(', ')
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
   <defs>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">

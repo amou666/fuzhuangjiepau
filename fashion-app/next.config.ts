@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   serverExternalPackages: ['better-sqlite3', 'archiver'],
   devIndicators: false,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production'
+      ? { exclude: ['error', 'warn'] }
+      : false,
+  },
   images: {
     remotePatterns: [
       // AI 生成图 CDN — 按需添加更多域名，不再允许所有来源

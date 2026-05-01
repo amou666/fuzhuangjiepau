@@ -27,8 +27,8 @@ export default function LoginPage() {
 
   if (!hydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#faf7f4] px-6">
-        <div className="flex items-center gap-3 text-[#9b8e82]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)] px-6">
+        <div className="flex items-center gap-3 text-[var(--text-tertiary)]">
           <div
             className="h-5 w-5 rounded-full border-2 animate-spin"
             style={{ borderColor: 'rgba(198,123,92,0.2)', borderTopColor: '#c67b5c' }}
@@ -67,25 +67,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-[#faf7f4]">
-      <div className="w-full max-w-[420px] rounded-[32px] border border-[rgba(139,115,85,0.08)] bg-[rgba(255,252,249,0.9)] p-8 shadow-[0_20px_60px_rgba(139,115,85,0.12)] backdrop-blur-sm sm:p-10">
+    <div className="min-h-screen flex items-center justify-center px-6 py-10 bg-[var(--bg-page)]">
+      <div className="w-full max-w-[420px] rounded-[32px] border border-[var(--border-light)] bg-[var(--bg-glass-strong)] p-8 shadow-[0_20px_60px_rgba(139,115,85,0.12)] backdrop-blur-sm sm:p-10">
         <div className="mb-4 text-center">
           <span className="text-[40px] font-bold text-[#c67b5c]" style={{ fontFamily: 'var(--font-parisienne)' }}>
             Amou
           </span>
-          <div className="mt-1 text-[11px] font-medium text-[#9b8e82] tracking-[0.18em]">服装工作室</div>
+          <div className="mt-1 text-[11px] font-medium text-[var(--text-tertiary)] tracking-[0.18em]">服装工作室</div>
         </div>
-        <h1 className="m-0 text-center text-[22px] font-bold tracking-tight text-[#2d2422]">登陆</h1>
-        <p className="mt-2 mb-8 text-center text-[15px] leading-6 text-[#9b8e82]">请输入您的账号和密码</p>
+        <h1 className="m-0 text-center text-[22px] font-bold tracking-tight text-[var(--text-primary)]">登陆</h1>
+        <p className="mt-2 mb-8 text-center text-[15px] leading-6 text-[var(--text-tertiary)]">请输入您的账号和密码</p>
 
         <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="text-[14px] font-semibold text-[#6f5f55]">
+            <label htmlFor="email" className="text-[14px] font-semibold text-[var(--text-secondary)]">
               邮箱
             </label>
             <input
               id="email"
-              className="h-14 w-full rounded-2xl border border-[rgba(139,115,85,0.12)] bg-[#f6efe8] px-4 text-[15px] text-[#2d2422] outline-none transition-all placeholder:text-[#c4b4a7] focus:border-[rgba(198,123,92,0.35)] focus:bg-[#fffaf6] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
+              className="h-14 w-full rounded-2xl border border-[var(--border-normal)] bg-[var(--bg-card)] px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-extreme)] focus:border-[rgba(198,123,92,0.35)] focus:bg-[var(--bg-card-hover)] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
               type="email"
               autoComplete="email"
               value={email}
@@ -95,12 +95,12 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-[14px] font-semibold text-[#6f5f55]">
+            <label htmlFor="password" className="text-[14px] font-semibold text-[var(--text-secondary)]">
               密码
             </label>
             <input
               id="password"
-              className="h-14 w-full rounded-2xl border border-[rgba(139,115,85,0.12)] bg-[#f6efe8] px-4 text-[15px] text-[#2d2422] outline-none transition-all placeholder:text-[#c4b4a7] focus:border-[rgba(198,123,92,0.35)] focus:bg-[#fffaf6] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
+              className="h-14 w-full rounded-2xl border border-[var(--border-normal)] bg-[var(--bg-card)] px-4 text-[15px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-extreme)] focus:border-[rgba(198,123,92,0.35)] focus:bg-[var(--bg-card-hover)] focus:ring-4 focus:ring-[rgba(198,123,92,0.12)]"
               type="password"
               autoComplete="current-password"
               value={password}
@@ -116,7 +116,7 @@ export default function LoginPage() {
           ) : null}
 
           <button
-            className="mt-1 inline-flex h-14 items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(135deg,#c67b5c_0%,#d4a882_100%)] px-6 text-[16px] font-bold text-white transition-all shadow-[0_12px_28px_rgba(198,123,92,0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(198,123,92,0.34)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-1 inline-flex h-14 items-center justify-center gap-2 rounded-full border-none bg-[linear-gradient(135deg,#c67b5c_0%,#d4a882_100%)] px-6 text-[14px] font-bold text-white transition-all shadow-[0_12px_28px_rgba(198,123,92,0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(198,123,92,0.34)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
             disabled={loading}
           >

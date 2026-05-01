@@ -61,11 +61,11 @@ export function TutorialButton({ id, steps }: TutorialModalProps) {
     <>
       <button
         onClick={() => { setOpen(true); setStep(0) }}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[12px] font-medium transition-all"
         style={{
-          color: '#8b7355',
-          background: 'rgba(139,115,85,0.04)',
-          border: '1px solid rgba(139,115,85,0.1)',
+          color: 'var(--text-secondary)',
+          background: 'var(--bg-muted)',
+          border: '1px solid var(--border-normal)',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(139,115,85,0.08)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(139,115,85,0.04)' }}
@@ -81,11 +81,11 @@ export function TutorialButton({ id, steps }: TutorialModalProps) {
       {open && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1100] flex items-center justify-center p-4" onClick={handleClose}>
           <div
-            className="relative w-full max-w-[440px] bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-[440px] bg-[var(--bg-card)] rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Progress bar */}
-            <div className="h-1 bg-[rgba(139,115,85,0.06)]">
+            <div className="h-1 bg-[var(--bg-active)]">
               <div
                 className="h-full transition-all duration-300 rounded-full"
                 style={{
@@ -98,7 +98,7 @@ export function TutorialButton({ id, steps }: TutorialModalProps) {
             {/* Close */}
             <button
               onClick={handleClose}
-              className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-[#b0a59a] hover:bg-[rgba(139,115,85,0.06)] transition-colors z-10"
+              className="absolute top-3 right-3 w-7 h-7 rounded-2xl flex items-center justify-center text-[var(--text-quaternary)] hover:bg-[var(--bg-active)] transition-colors z-10"
             >
               <X className="w-4 h-4" />
             </button>
@@ -107,29 +107,29 @@ export function TutorialButton({ id, steps }: TutorialModalProps) {
             <div className="px-6 pt-6 pb-4">
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
                   style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
                 >
                   {current.icon || <Lightbulb className="w-5 h-5 text-white" />}
                 </div>
                 <div>
-                  <div className="text-[10px] text-[#b0a59a] font-semibold tracking-widest uppercase">
+                  <div className="text-[10px] text-[var(--text-quaternary)] font-semibold tracking-widest uppercase">
                     步骤 {step + 1} / {steps.length}
                   </div>
-                  <h3 className="text-[16px] font-bold text-[#2d2422] leading-tight">{current.title}</h3>
+                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] leading-tight">{current.title}</h3>
                 </div>
               </div>
-              <div className="text-[13px] text-[#6b5d4f] leading-relaxed whitespace-pre-line min-h-[80px]">
+              <div className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-line min-h-[80px]">
                 {current.content}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-[rgba(139,115,85,0.06)]">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-light)]">
               <button
                 onClick={prev}
                 disabled={step === 0}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.06)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-active)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> 上一步
               </button>
@@ -151,7 +151,7 @@ export function TutorialButton({ id, steps }: TutorialModalProps) {
 
               <button
                 onClick={next}
-                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-all"
+                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-2xl text-[12px] font-semibold text-white transition-all"
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {step === steps.length - 1 ? '知道了' : <>下一步 <ChevronRight className="w-3.5 h-3.5" /></>}

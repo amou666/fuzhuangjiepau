@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Wand2, Image as ImageIcon, Download, Check, X, Grid3X3, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Image as ImageIcon, Download, Check, X, Grid3X3, ChevronDown, ChevronUp } from 'lucide-react'
 import { workspaceApi } from '@/lib/api/workspace'
 import { useTaskStore } from '@/lib/stores/taskStore'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -22,6 +22,7 @@ import {
 export interface LookBookPanelProps {
   clothingUrl: string
   clothingBackUrl: string
+  /** 融合模式下可选：不传则保留场景图中的原模特，仅换衣服 */
   modelImageUrl: string
   sceneImageUrl: string
   mode: QuickWorkspaceMode
@@ -103,8 +104,9 @@ export function LookBookPanel({
   }, [])
 
   const canSubmit = useMemo(() => {
-    return !!clothingUrl && !!modelImageUrl && !!sceneImageUrl && !submitting && credits >= count
-  }, [clothingUrl, modelImageUrl, sceneImageUrl, submitting, credits, count])
+    const modelOk = mode === 'fusion' || !!modelImageUrl
+    return !!clothingUrl && modelOk && !!sceneImageUrl && !submitting && credits >= count
+  }, [clothingUrl, modelImageUrl, sceneImageUrl, mode, submitting, credits, count])
 
   // ─── 姿势选择 ───
   const togglePose = useCallback((poseId: string) => {
@@ -133,7 +135,7 @@ export function LookBookPanel({
       const res = await workspaceApi.createLookBookBatch({
         clothingUrl,
         clothingBackUrl: clothingBackUrl || undefined,
-        modelImageUrl,
+        modelImageUrl: modelImageUrl || undefined,
         sceneImageUrl,
         mode,
         aspectRatio,
@@ -194,6 +196,8 @@ export function LookBookPanel({
       }
     } catch (err) {
       setError(getErrorMessage(err, '套图提交失败，请重试'))
+      // 失败时同步积分（后端可能已退还）
+      void workspaceApi.getBalance().then(updateCredits).catch(() => undefined)
     } finally {
       setSubmitting(false)
     }
@@ -243,7 +247,7 @@ export function LookBookPanel({
         {/* 变体类型 */}
         <div className="mb-4">
           <div className="text-[11px] font-semibold text-[#8b7355] mb-2">变化维度</div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {BATCH_VARIATION_OPTIONS.map((opt) => {
               const active = variation === opt.value
               return (

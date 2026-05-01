@@ -5,7 +5,10 @@ import path from 'path'
 const generateRandomPassword = () => crypto.randomBytes(16).toString('base64').slice(0, 24)
 const generateRandomSecret = () => crypto.randomBytes(32).toString('hex')
 
-const adminPassword = process.env.ADMIN_PASSWORD || 'admin123456'
+const DEFAULT_ADMIN_PASSWORD = 'admin123456'
+const MIN_JWT_SECRET_LENGTH = 32
+
+const adminPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD
 const demoPassword = process.env.DEMO_PASSWORD || generateRandomPassword()
 const jwtSecret = process.env.JWT_SECRET || generateRandomSecret()
 const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || generateRandomSecret()
@@ -53,13 +56,38 @@ export function getUploadPath() {
 
 // ─── 生产环境安全检查 ───
 if (process.env.NODE_ENV === 'production') {
+  const errors: string[] = []
+
   if (!process.env.JWT_SECRET) {
-    console.warn('⚠️  JWT_SECRET 未设置，使用随机密钥。服务重启后所有登录态将失效！请在环境变量中配置固定值。')
+    errors.push('JWT_SECRET 未设置，使用随机密钥。服务重启后所有登录态将失效！')
+  } else if (process.env.JWT_SECRET.length < MIN_JWT_SECRET_LENGTH) {
+    errors.push(`JWT_SECRET 长度不足 ${MIN_JWT_SECRET_LENGTH} 字符，存在被暴力破解风险！`)
   }
+
   if (!process.env.JWT_REFRESH_SECRET) {
-    console.warn('⚠️  JWT_REFRESH_SECRET 未设置，使用随机密钥。服务重启后 refresh token 将失效！')
+    errors.push('JWT_REFRESH_SECRET 未设置，使用随机密钥。服务重启后 refresh token 将失效！')
+  } else if (process.env.JWT_REFRESH_SECRET.length < MIN_JWT_SECRET_LENGTH) {
+    errors.push(`JWT_REFRESH_SECRET 长度不足 ${MIN_JWT_SECRET_LENGTH} 字符，存在被暴力破解风险！`)
   }
-  if (!process.env.ADMIN_PASSWORD) {
-    console.warn('⚠️  ADMIN_PASSWORD 未设置，使用默认密码 admin123456，存在安全风险！请尽快修改。')
+
+  if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+    errors.push(`ADMIN_PASSWORD 使用默认值 "${DEFAULT_ADMIN_PASSWORD}"，存在严重安全风险！请立即修改。`)
+  }
+
+  if (!process.env.AI_API_KEY) {
+    errors.push('AI_API_KEY 未设置，AI 生图功能将不可用。')
+  }
+
+  if (errors.length > 0) {
+    console.error('\n⛔ ── 生产环境安全检查失败 ──')
+    errors.forEach((msg, i) => console.error(`  ${i + 1}. ${msg}`))
+    console.error('请在 .env.local 中配置以上环境变量后重启服务。\n')
+
+    // 强密码和密钥问题直接拒绝启动
+    if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD ||
+        (process.env.JWT_SECRET && process.env.JWT_SECRET.length < MIN_JWT_SECRET_LENGTH)) {
+      console.error('❌ 因存在严重安全隐患，服务拒绝启动。请修复上述问题后重试。\n')
+      process.exit(1)
+    }
   }
 }

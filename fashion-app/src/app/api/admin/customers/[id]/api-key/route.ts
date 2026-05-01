@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { encryptApiKey, maskApiKey } from '@/lib/utils/security'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -20,7 +21,7 @@ export async function PATCH(
       return NextResponse.json({ message: 'API Key 不能为空' }, { status: 400 })
     }
 
-    const user = db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any
+    const user = queries.user.findById(id)
     if (!user) {
       return NextResponse.json({ message: '用户不存在' }, { status: 404 })
     }
@@ -39,11 +40,11 @@ export async function PATCH(
       'INSERT INTO AdminAuditLog (id, adminId, action, targetUserId, detail) VALUES (?, ?, ?, ?, ?)'
     ).run(uuidv4(), payload.userId, 'update_api_key', id, `更新用户 ${user.email} 的 API Key`)
 
-    const updatedUser = db.prepare('SELECT id, email, role, apiKey, credits, isActive, createdAt FROM User WHERE id = ?').get(id) as any
+    const updatedUser = queries.user.findById(id)
     return NextResponse.json({
       customer: {
         ...updatedUser,
-        apiKey: maskApiKey(updatedUser?.apiKey),
+        apiKey: maskApiKey(updatedUser?.apiKey ?? null),
       },
     })
   } catch (error) {

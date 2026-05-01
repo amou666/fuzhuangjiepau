@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAdmin, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const batchRecharge = db.transaction(() => {
       for (const uid of userIds) {
-        const user = db.prepare('SELECT id, email, credits FROM User WHERE id = ?').get(uid) as any
+        const user = queries.user.findSimpleById(uid)
         if (!user) continue
         const newBalance = user.credits + amount
         db.prepare(`UPDATE User SET credits = ?, updatedAt = datetime('now') WHERE id = ?`).run(newBalance, uid)

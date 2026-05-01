@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +13,8 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20))
     const offset = (page - 1) * limit
 
-    const total = (db.prepare('SELECT COUNT(*) as count FROM CreditLog WHERE userId = ?').get(payload.userId) as any).count
-    const logs = db.prepare(
-      'SELECT * FROM CreditLog WHERE userId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?'
-    ).all(payload.userId, limit, offset)
+    const total = queries.creditLog.countByUserId(payload.userId)
+    const logs = queries.creditLog.findHistoryByUserId(payload.userId, limit, offset)
 
     return NextResponse.json({
       logs,

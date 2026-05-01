@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { requireAuth, isAuthed } from '@/lib/api-auth'
+import { queries } from '@/lib/db-queries'
 import { getUploadPath } from '@/lib/config'
 import { safeJsonParse } from '@/lib/utils/json'
 import archiver from 'archiver'
@@ -25,10 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '单次最多打包 50 个任务' }, { status: 400 })
     }
 
-    const placeholders = taskIds.map(() => '?').join(',')
-    const tasks = db.prepare(
-      `SELECT * FROM GenerationTask WHERE id IN (${placeholders}) AND userId = ?`
-    ).all(...taskIds, payload.userId) as any[]
+    const tasks = queries.task.findByIdsAndUserId(taskIds, payload.userId)
 
     if (tasks.length === 0) {
       return NextResponse.json({ message: '未找到可下载的任务' }, { status: 404 })

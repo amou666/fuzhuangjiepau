@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Drama, Wand2, Sparkles, FileText, Palette, Box } from 'lucide-react'
 
 const TOOLS = [
@@ -43,40 +43,38 @@ const TOOLS = [
 ]
 
 export default function ToolsPage() {
-  const router = useRouter()
-
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="md:hidden flex items-center gap-2.5 -mb-2">
         <div
-          className="hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="hidden w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #8b7355 0%, #c67b5c 100%)' }}
         >
           <Wand2 className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">工具</h1>
+        <h1 className="hidden text-[18px] font-bold tracking-tight text-[var(--text-primary)] flex-1">工具</h1>
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #8b7355 0%, #c67b5c 100%)' }}
           >
             <Wand2 className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">工具</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">工具</h1>
         </div>
-        <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">AI 辅助工具集合，提升你的创作效率</p>
+        <p className="text-[13px] text-[var(--text-tertiary)] ml-[52px] tracking-wide">AI 辅助工具集合，提升你的创作效率</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
         {TOOLS.map((tool) => {
           const Icon = tool.icon
           return (
-            <button
+            <Link
               key={tool.id}
-              type="button"
-              onClick={() => router.push(tool.href)}
+              href={tool.href}
+              prefetch={true}
               className="group fashion-glass rounded-2xl p-4 md:p-6 text-left transition-all hover:shadow-[0_4px_16px_rgba(198,123,92,0.12)] active:scale-[0.98]"
             >
               <div
@@ -85,9 +83,9 @@ export default function ToolsPage() {
               >
                 <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
               </div>
-              <h3 className="text-[15px] md:text-[16px] font-bold text-[#2d2422] mb-1.5">{tool.title}</h3>
-              <p className="text-[11px] md:text-[12px] text-[#9b8e82] leading-relaxed">{tool.description}</p>
-            </button>
+              <h3 className="text-[15px] md:text-[14px] font-bold text-[var(--text-primary)] mb-1.5">{tool.title}</h3>
+              <p className="text-[11px] md:text-[12px] text-[var(--text-tertiary)] leading-relaxed">{tool.description}</p>
+            </Link>
           )
         })}
       </div>
@@ -95,10 +93,10 @@ export default function ToolsPage() {
       {/* 更多工具占位 */}
       <div className="fashion-glass rounded-2xl p-8 md:p-12 text-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(139,115,85,0.06)' }}>
-          <Sparkles className="w-6 h-6 text-[#b0a59a]" style={{ opacity: 0.5 }} />
+          <Sparkles className="w-6 h-6 text-[var(--text-quaternary)]" style={{ opacity: 0.5 }} />
         </div>
-        <h3 className="text-[14px] font-semibold text-[#b0a59a] mb-1">更多工具即将上线</h3>
-        <p className="text-[12px] text-[#c9bfb5]">我们正在开发更多 AI 辅助工具，敬请期待</p>
+        <h3 className="text-[14px] font-semibold text-[var(--text-quaternary)] mb-1">更多工具即将上线</h3>
+        <p className="text-[12px] text-[var(--text-extreme)]">我们正在开发更多 AI 辅助工具，敬请期待</p>
       </div>
     </div>
   )
