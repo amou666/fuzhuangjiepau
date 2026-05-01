@@ -18,9 +18,9 @@ export default function HistoryPage() {
           >
             <Clock className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">历史记录</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#2d2422]">历史记录</h1>
         </div>
-        <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">查看你的所有生图任务、状态与结果图片</p>
+        <p className="text-sm text-[#9b8e82] ml-[52px] tracking-wide">查看你的所有生图任务、状态与结果图片</p>
       </div>
 
       {/* 交互内容 */}

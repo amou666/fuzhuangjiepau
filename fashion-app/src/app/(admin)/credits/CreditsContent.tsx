@@ -98,7 +98,7 @@ export default function CreditsContent() {
           </h2>
           <form className="flex flex-col gap-4 mt-4" onSubmit={handleRecharge}>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="credit-customer" className="text-[13px] font-semibold text-gray-700">选择客户</label>
+              <label htmlFor="credit-customer" className="text-sm font-semibold text-gray-700">选择客户</label>
               <select
                 id="credit-customer"
                 className="w-full px-3.5 py-2.5 bg-white/75 border border-black/10 rounded-[10px] text-sm text-gray-800 transition-all focus:outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 backdrop-blur-sm"
@@ -111,7 +111,7 @@ export default function CreditsContent() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="credit-amount" className="text-[13px] font-semibold text-gray-700 flex items-center gap-1.5">
+              <label htmlFor="credit-amount" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                 <Coins className="w-3.5 h-3.5 text-gray-400" /> 充值积分
               </label>
               <input
@@ -160,7 +160,7 @@ export default function CreditsContent() {
           积分日志
         </h2>
         <div className="overflow-x-auto mt-4">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">客户</th>
@@ -190,7 +190,7 @@ export default function CreditsContent() {
         </div>
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-            <span className="text-[13px] text-gray-500">共 {logs.length} 条记录</span>
+            <span className="text-sm text-gray-500">共 {logs.length} 条记录</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -200,7 +200,7 @@ export default function CreditsContent() {
               >
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
               </button>
-              <span className="text-[13px] text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
+              <span className="text-sm text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
               <button
                 type="button"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}

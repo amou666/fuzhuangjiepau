@@ -393,7 +393,7 @@ export default function ProductionSheetContent() {
         >
           <button
             onClick={() => setIsExportMode(false)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold text-[var(--text-primary)] transition-all"
             style={{ background: 'rgba(139,115,85,0.06)', border: '1px solid var(--border-normal)' }}
           >
             <ArrowLeft size={16} /> 返回编辑
@@ -401,7 +401,7 @@ export default function ProductionSheetContent() {
           <button
             onClick={downloadImage}
             disabled={isProcessing}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[13px] font-bold text-white transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
             style={{ background: isProcessing ? '#b0a59a' : 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: isProcessing ? 'none' : '0 4px 16px rgba(198,123,92,0.35)' }}
           >
             {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
@@ -423,7 +423,7 @@ export default function ProductionSheetContent() {
         </div>
 
         {/* 移动端滚动提示 */}
-        <div className="md:hidden text-center py-2 text-[11px] text-[var(--text-tertiary)] flex-shrink-0">
+        <div className="md:hidden text-center py-2 text-xs text-[var(--text-tertiary)] flex-shrink-0">
           ← 左右滑动查看完整预览 →
         </div>
       </div>
@@ -449,8 +449,8 @@ export default function ProductionSheetContent() {
           <FileText className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">生产单</h1>
-          <p className="hidden md:block text-[11px] text-[var(--text-tertiary)] truncate">上传服装图片，AI 自动识别款式信息和尺寸，生成全码规格单</p>
+          <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">生产单</h1>
+          <p className="hidden md:block text-xs text-[var(--text-tertiary)] truncate">上传服装图片，AI 自动识别款式信息和尺寸，生成全码规格单</p>
         </div>
       </div>
 
@@ -464,10 +464,10 @@ export default function ProductionSheetContent() {
               {/* 上传区 */}
               <div className="fashion-glass rounded-2xl p-4 md:p-5">
                 <div className="mb-3">
-                  <h3 className="text-[15px] font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <h3 className="text-base font-bold text-[var(--text-primary)] flex items-center gap-2">
                     <Layers className="w-4 h-4 text-[#c67b5c]" /> 样照/生产单原图
                   </h3>
-                  <p className="text-[12px] text-[var(--text-tertiary)] mt-1">上传欧美女装图片，AI 自动解析款式与 S 码尺寸</p>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">上传欧美女装图片，AI 自动解析款式与 S 码尺寸</p>
                 </div>
                 <ImageUploadPicker
                   label="样照"
@@ -480,32 +480,32 @@ export default function ProductionSheetContent() {
 
               {/* 款式参数 */}
               <div className="fashion-glass rounded-2xl p-4 md:p-5">
-                <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border-light)]">
-                  <FileText size={16} className="text-[#c67b5c]" /> 款式参数 <span className="text-[11px] font-normal text-[var(--text-quaternary)]">（支持手动微调）</span>
+                <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 mb-4 pb-3 border-b border-[var(--border-light)]">
+                  <FileText size={16} className="text-[#c67b5c]" /> 款式参数 <span className="text-xs font-normal text-[var(--text-quaternary)]">（支持手动微调）</span>
                 </h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">款式名称</label>
+                    <label className="text-xs font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">款式名称</label>
                     <input
-                      className="w-full px-3 py-2.5 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] outline-none transition-all"
+                      className="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold text-[var(--text-primary)] outline-none transition-all"
                       style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
                       value={productData.name}
                       onChange={(e) => setProductData({ ...productData, name: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">主面料材质</label>
+                    <label className="text-xs font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">主面料材质</label>
                     <input
-                      className="w-full px-3 py-2.5 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] outline-none transition-all"
+                      className="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold text-[var(--text-primary)] outline-none transition-all"
                       style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
                       value={productData.material}
                       onChange={(e) => setProductData({ ...productData, material: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">辅料配件描述</label>
+                    <label className="text-xs font-semibold text-[var(--text-quaternary)] tracking-wide uppercase mb-1.5 block">辅料配件描述</label>
                     <textarea
-                      className="w-full px-3 py-2.5 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] outline-none transition-all resize-none"
+                      className="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold text-[var(--text-primary)] outline-none transition-all resize-none"
                       style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
                       rows={2}
                       value={productData.accessories}
@@ -520,12 +520,12 @@ export default function ProductionSheetContent() {
                 <button
                   type="button"
                   onClick={() => setShowHistory(!showHistory)}
-                  className="w-full flex items-center justify-between text-[14px] font-bold text-[var(--text-primary)]"
+                  className="w-full flex items-center justify-between text-sm font-bold text-[var(--text-primary)]"
                 >
                   <span className="flex items-center gap-2">
                     <History size={16} className="text-[#c67b5c]" /> 历史记录
                     {history.length > 0 && (
-                      <span className="text-[10px] font-bold text-[var(--text-tertiary)] bg-[var(--bg-active)] px-1.5 py-0.5 rounded">{history.length}</span>
+                      <span className="text-xs font-bold text-[var(--text-tertiary)] bg-[var(--bg-active)] px-1.5 py-0.5 rounded">{history.length}</span>
                     )}
                   </span>
                   <ChevronLeft size={16} className={`text-[var(--text-quaternary)] transition-transform ${showHistory ? '-rotate-90' : 'rotate-0'}`} />
@@ -534,7 +534,7 @@ export default function ProductionSheetContent() {
                 {showHistory && (
                   <div className="mt-3 space-y-2 max-h-[360px] overflow-y-auto">
                     {history.length === 0 ? (
-                      <p className="text-[12px] text-[var(--text-quaternary)] text-center py-6">暂无历史记录</p>
+                      <p className="text-xs text-[var(--text-quaternary)] text-center py-6">暂无历史记录</p>
                     ) : (
                       history.map(record => (
                         <div
@@ -550,8 +550,8 @@ export default function ProductionSheetContent() {
                             style={{ border: '1px solid var(--border-normal)' }}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-bold text-[var(--text-primary)] truncate">{record.productData.name}</div>
-                            <div className="text-[10px] text-[var(--text-quaternary)] flex items-center gap-1 mt-0.5">
+                            <div className="text-xs font-bold text-[var(--text-primary)] truncate">{record.productData.name}</div>
+                            <div className="text-xs text-[var(--text-quaternary)] flex items-center gap-1 mt-0.5">
                               <Clock size={9} /> {new Date(record.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
@@ -579,7 +579,7 @@ export default function ProductionSheetContent() {
                     <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#c67b5c] animate-spin" />
                   </div>
                   <p className="font-bold text-[var(--text-primary)] text-lg mb-1">AI 正在解析欧美女装样照...</p>
-                  <p className="text-[12px] text-[var(--text-tertiary)]">提取表格尺寸数据并按规则进行全码数推导</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">提取表格尺寸数据并按规则进行全码数推导</p>
                 </div>
               ) : showTable ? (
                 <div className="space-y-5">
@@ -587,9 +587,9 @@ export default function ProductionSheetContent() {
                   <div className="flex justify-between items-center px-1">
                     <div>
                       <h2 className="text-lg font-bold text-[var(--text-primary)]">AI 自动生成全码规格单</h2>
-                      <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Base S: 支持编辑，修改后全码联动</p>
+                      <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Base S: 支持编辑，修改后全码联动</p>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-bold text-white"
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold text-white"
                       style={{ background: 'linear-gradient(135deg, #8b7355, #c67b5c)' }}
                     >
                       <CheckCircle2 size={12} /> 数据解析完成
@@ -602,11 +602,11 @@ export default function ProductionSheetContent() {
                       <table className="w-full text-sm min-w-[480px] md:min-w-0 md:table-fixed">
                         <thead>
                           <tr className="bg-[#2d2422] text-white">
-                            <th className="p-2 md:p-4 text-left font-bold opacity-60 uppercase text-[10px] tracking-widest w-[100px] md:w-[180px]">测量部位</th>
+                            <th className="p-2 md:p-4 text-left font-bold opacity-60 uppercase text-xs tracking-widest w-[100px] md:w-[180px]">测量部位</th>
                             {productData.specs.map(s => (
                               <th key={s.size} className={`p-2 md:p-4 text-center font-bold text-sm md:text-sm ${s.size === 'S' ? 'bg-[#c67b5c]' : ''}`}>
                                 {s.size}
-                                {s.size === 'S' && <span className="text-[9px] block opacity-70 font-normal">可编辑</span>}
+                                {s.size === 'S' && <span className="text-xs block opacity-70 font-normal">可编辑</span>}
                               </th>
                             ))}
                           </tr>
@@ -621,7 +621,7 @@ export default function ProductionSheetContent() {
                           ]).map(row => (
                             <tr key={row.k} className="hover:bg-[var(--bg-muted)] transition-colors">
                               <td className="p-2 md:p-4 font-bold text-[var(--text-primary)] whitespace-nowrap">
-                                {row.l} <span className="text-[10px] text-[var(--text-quaternary)] ml-1 font-normal uppercase hidden lg:inline">{row.e}</span>
+                                {row.l} <span className="text-xs text-[var(--text-quaternary)] ml-1 font-normal uppercase hidden lg:inline">{row.e}</span>
                               </td>
                               {productData.specs.map(s => (
                                 <td key={s.size} className={`p-1.5 md:p-2 text-center text-xs md:text-sm min-w-[56px] md:min-w-0 ${s.size === 'S' ? 'bg-[var(--bg-active)]' : 'font-bold text-[var(--text-primary)]'}`}>
@@ -672,8 +672,8 @@ export default function ProductionSheetContent() {
                       <Scissors size={18} className="text-[#c67b5c]" />
                     </div>
                     <div>
-                      <h4 className="text-[11px] font-bold text-[#c67b5c] mb-1 uppercase tracking-widest">欧美女装联动逻辑 (Smart Sync)</h4>
-                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-medium">
+                      <h4 className="text-xs font-bold text-[#c67b5c] mb-1 uppercase tracking-widest">欧美女装联动逻辑 (Smart Sync)</h4>
+                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-medium">
                         修改 <span className="text-[#c67b5c] underline">S 码数值</span> 会立即重新计算：
                         衣长递增 S→M(+1), M→L(+1), L→XL(+2)。
                         其余部位胸宽、肩宽、下摆均匀按 ±2cm 档差分布，袖长 ±1cm。
@@ -689,7 +689,7 @@ export default function ProductionSheetContent() {
                     <ImageIcon size={32} className="text-[var(--text-quaternary)]" />
                   </div>
                   <p className="text-[var(--text-primary)] font-bold text-center px-6">请在左侧上传欧美女装图片解析</p>
-                  <p className="text-[10px] text-[var(--text-quaternary)] mt-2 px-10 text-center uppercase tracking-widest font-semibold">
+                  <p className="text-xs text-[var(--text-quaternary)] mt-2 px-10 text-center uppercase tracking-widest font-semibold">
                     Western Style Garment Recognition & Grading Engine
                   </p>
                 </div>

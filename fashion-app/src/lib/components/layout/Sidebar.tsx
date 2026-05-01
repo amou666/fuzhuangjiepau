@@ -95,7 +95,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
     <nav className="flex flex-col gap-1">
       <span
         className={cn(
-          'text-[10px] font-semibold uppercase tracking-[0.2em] px-3 py-2',
+          'text-xs font-semibold uppercase tracking-[0.2em] px-3 py-2',
           collapsed && 'sr-only'
         )}
         style={{ color: 'var(--text-extreme)' }}
@@ -112,7 +112,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
             prefetch={true}
             onClick={closeMobile}
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-2xl text-[14px] font-bold transition-all duration-200',
+              'flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200',
               collapsed && 'justify-center px-0'
             )}
             style={isActive ? {
@@ -150,7 +150,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
         </div>
       ) : (
         <>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-80 mb-1 relative">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80 mb-1 relative">
             积分余额
           </div>
           <div className="text-2xl font-bold tracking-tight relative">{credits}</div>
@@ -181,8 +181,8 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
       </div>
       {!collapsed && (
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user.email}</div>
-          <div className="text-[11px]" style={{ color: 'var(--text-quaternary)' }}>
+          <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user.email}</div>
+          <div className="text-xs" style={{ color: 'var(--text-quaternary)' }}>
             {user.role === 'ADMIN' ? '管理员' : '客户'}
           </div>
         </div>
@@ -211,12 +211,12 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
           />
           <div className="leading-none">
             <span
-              className="block text-[17px] font-bold"
+              className="block text-lg font-bold"
               style={{ fontFamily: 'var(--font-parisienne)', color: 'var(--text-primary)' }}
             >
               Amou
             </span>
-            <span className="block mt-0.5 text-[9px] font-medium tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>服装工作室</span>
+            <span className="block mt-0.5 text-xs font-medium tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>服装工作室</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -268,12 +268,12 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
             {!collapsed && (
               <div className="min-w-0 leading-none">
                 <span
-                  className="text-[20px] font-bold block"
+                  className="text-xl font-bold block"
                   style={{ fontFamily: 'var(--font-parisienne)', color: 'var(--text-primary)' }}
                 >
                   Amou
                 </span>
-                <span className="block mt-1 text-[10px] font-medium tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>服装工作室</span>
+                <span className="block mt-1 text-xs font-medium tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>服装工作室</span>
               </div>
             )}
           </div>
@@ -318,7 +318,7 @@ export function Sidebar({ variant, menuItems, onLogout }: SidebarProps) {
             <button
               onClick={onLogout}
               className={cn(
-                'flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-2xl text-[13px] font-medium transition-all duration-200',
+                'flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200',
                 collapsed && 'px-2'
               )}
               style={{
@@ -373,7 +373,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-2xl text-[13px] font-medium transition-all duration-300 hover:scale-[1.01]"
+      className="flex items-center gap-3 w-full px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 hover:scale-[1.01]"
       style={{
         color: isDark ? 'var(--icon-hover)' : 'var(--icon-default)',
         background: 'var(--bg-muted)',
@@ -540,7 +540,7 @@ export function AppSidebarLayout({ children }: { children: React.ReactNode }) {
               style={{ color: isActive ? 'var(--icon-hover)' : 'var(--text-quaternary)' }}
             >
               <Icon className={cn('w-[16px] h-[16px]', isActive && 'text-primary')} />
-              <span className={cn('text-[9px] font-medium', isActive && 'font-semibold text-primary')}>{item.label}</span>
+              <span className={cn('text-xs font-medium', isActive && 'font-semibold text-primary')}>{item.label}</span>
             </Link>
           )
         })}

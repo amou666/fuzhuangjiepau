@@ -260,8 +260,8 @@ export default function ModelFusionContent() {
           <Users className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">模特工厂</h1>
-          <p className="hidden md:block text-[11px] text-[var(--text-tertiary)] truncate">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
+          <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">模特工厂</h1>
+          <p className="hidden md:block text-xs text-[var(--text-tertiary)] truncate">通过参数描述或多张参考图，生成全新的 AI 模特形象</p>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ export default function ModelFusionContent() {
                   key={t.key}
                   type="button"
                   onClick={() => { setTab(t.key); setGen({ error: '', resultUrl: '', resultUrls: [] }) }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[14px] text-[13px] font-semibold transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[14px] text-sm font-semibold transition-all"
                   style={{
                     background: active ? 'white' : 'transparent',
                     color: active ? '#c67b5c' : 'var(--text-secondary)',
@@ -293,7 +293,7 @@ export default function ModelFusionContent() {
                 >
                   <Icon className="w-4 h-4" />
                   <span>{t.label}</span>
-                  <span className="hidden sm:inline text-[11px] font-normal opacity-60">· {t.desc}</span>
+                  <span className="hidden sm:inline text-xs font-normal opacity-60">· {t.desc}</span>
                 </button>
               )
             })}
@@ -310,8 +310,8 @@ export default function ModelFusionContent() {
           {/* 基础属性 */}
           <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)]">基础属性</h3>
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">决定模特的整体气质方向</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">基础属性</h3>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">决定模特的整体气质方向</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-3">
               <SelectField label="风格类别" value={genConfig.category} options={categoryOptions} onChange={v => updateGenConfig({ category: v })} hint="决定整体气质和造型风格" />
@@ -324,8 +324,8 @@ export default function ModelFusionContent() {
           {/* 身体特征 */}
           <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)]">身体特征</h3>
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">肤色、体型、身高等身体属性</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">身体特征</h3>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">肤色、体型、身高等身体属性</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-3">
               <SelectField label="肤色" value={genConfig.skinTone} options={skinOptions} onChange={v => updateGenConfig({ skinTone: v })} />
@@ -337,8 +337,8 @@ export default function ModelFusionContent() {
           {/* 面部与发型 */}
           <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)]">面部与发型</h3>
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">脸型、发型、发色、妆容等精细控制</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">面部与发型</h3>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">脸型、发型、发色、妆容等精细控制</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-3">
               <SelectField label="脸型" value={genConfig.faceShape ?? ''} options={faceShapeOptions} onChange={v => updateGenConfig({ faceShape: v })} />
@@ -352,8 +352,8 @@ export default function ModelFusionContent() {
           {/* 补充提示词（可选） */}
           <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-4">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)]">补充提示词 <span className="text-[12px] font-normal text-[var(--text-quaternary)]">（可选）</span></h3>
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">补充提示词 <span className="text-xs font-normal text-[var(--text-quaternary)]">（可选）</span></h3>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">用自然语言补充额外需求，比如「戴银色细框眼镜」「浅笑嘴角微翘」「背景换成米白毛毯」等。保持简短，避免和上方参数冲突。</p>
             </div>
             <div className="flex flex-wrap gap-2 mb-3">
               {PRESET_PROMPTS.map(preset => {
@@ -363,7 +363,7 @@ export default function ModelFusionContent() {
                     key={preset.key}
                     type="button"
                     onClick={() => setGenExtraPrompt(active ? '' : preset.text)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[12px] font-medium transition-all border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all border"
                     style={{
                       background: active ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.03)',
                       borderColor: active ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.1)',
@@ -381,9 +381,9 @@ export default function ModelFusionContent() {
               onChange={e => setGenExtraPrompt(e.target.value.slice(0, 500))}
               placeholder="例：戴一副极细银框眼镜；耳朵戴一只小珍珠耳钉；表情自然带一丝浅笑。"
               rows={3}
-              className="w-full px-4 py-3 rounded-2xl text-[13px] text-[var(--text-primary)] bg-[var(--bg-muted)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.4)] focus:bg-[var(--bg-card)] transition-all resize-none placeholder:text-[var(--text-extreme)]"
+              className="w-full px-4 py-3 rounded-2xl text-sm text-[var(--text-primary)] bg-[var(--bg-muted)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.4)] focus:bg-[var(--bg-card)] transition-all resize-none placeholder:text-[var(--text-extreme)]"
             />
-            <div className="mt-1.5 text-right text-[11px] text-[var(--text-quaternary)] tabular-nums">
+            <div className="mt-1.5 text-right text-xs text-[var(--text-quaternary)] tabular-nums">
               {genExtraPrompt.length} / 500
             </div>
           </div>
@@ -391,8 +391,8 @@ export default function ModelFusionContent() {
           {/* 参考图（可选） */}
           <div className="fashion-glass rounded-2xl p-3 md:p-5">
             <div className="mb-3 md:mb-5">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)]">面部参考图 <span className="text-[12px] font-normal text-[var(--text-quaternary)]">（可选）</span></h3>
-              <p className="text-[12px] text-[var(--text-tertiary)] mt-1">上传一张人脸照片，AI 会参考该面部特征来生成模特，使结果更贴近你想要的长相</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">面部参考图 <span className="text-xs font-normal text-[var(--text-quaternary)]">（可选）</span></h3>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1">上传一张人脸照片，AI 会参考该面部特征来生成模特，使结果更贴近你想要的长相</p>
             </div>
             <ImageUploadPicker label="面部参考" value={referenceUrl} onChange={setReferenceUrl} sourceType="model" />
           </div>
@@ -423,15 +423,15 @@ export default function ModelFusionContent() {
             ] as const).map((item) => (
               <div key={item.label} className="fashion-glass rounded-2xl p-3 md:p-5">
                 <div className="mb-3 md:mb-4">
-                  <h3 className="text-[15px] font-bold text-[var(--text-primary)]">模特 {item.label}</h3>
-                  <p className="text-[12px] text-[var(--text-tertiary)] mt-1">上传第{item.label === 'A' ? '一' : item.label === 'B' ? '二' : '三'}张模特参考图</p>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">模特 {item.label}</h3>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">上传第{item.label === 'A' ? '一' : item.label === 'B' ? '二' : '三'}张模特参考图</p>
                 </div>
                 <ImageUploadPicker label={`模特${item.label}`} value={item.value} onChange={item.setter} sourceType="model" />
                 {item.value && modelCount > 1 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] text-[var(--text-tertiary)] font-medium tracking-wide">权重</span>
-                      <span className="text-[12px] font-bold text-[#c67b5c] tabular-nums">{weights[item.idx]}%</span>
+                      <span className="text-xs text-[var(--text-tertiary)] font-medium tracking-wide">权重</span>
+                      <span className="text-xs font-bold text-[#c67b5c] tabular-nums">{weights[item.idx]}%</span>
                     </div>
                     <input
                       type="range" min={10} max={90} step={5}
@@ -470,8 +470,8 @@ export default function ModelFusionContent() {
                         <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[var(--text-quaternary)]'}`} />
                       </div>
                       <div>
-                        <div className={`text-[13px] font-semibold ${isActive ? 'text-[#c67b5c]' : 'text-[var(--text-primary)]'}`}>{s.label}</div>
-                        <div className="text-[11px] text-[var(--text-quaternary)]">{s.desc}</div>
+                        <div className={`text-sm font-semibold ${isActive ? 'text-[#c67b5c]' : 'text-[var(--text-primary)]'}`}>{s.label}</div>
+                        <div className="text-xs text-[var(--text-quaternary)]">{s.desc}</div>
                       </div>
                     </button>
                   )
@@ -501,12 +501,12 @@ export default function ModelFusionContent() {
         <aside className="lg:sticky lg:top-4 self-start w-full">
           <div className="fashion-glass rounded-2xl p-3 md:p-5 min-h-[320px] md:min-h-[520px] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 {tab === 'generate' ? '生成结果' : '合成结果'}
               </h3>
               {submitting && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[rgba(198,123,92,0.1)] text-[#c67b5c] font-medium">
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[rgba(198,123,92,0.1)] text-[#c67b5c] font-medium">
                   <Loader2 className="w-3 h-3 animate-spin" /> 生成中
                 </span>
               )}
@@ -519,15 +519,15 @@ export default function ModelFusionContent() {
                     <div className="absolute inset-0 rounded-full border-4 border-[rgba(198,123,92,0.15)]" />
                     <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#c67b5c] animate-spin" />
                   </div>
-                  <div className="text-[13px] text-[var(--text-primary)] font-semibold mb-1">
+                  <div className="text-sm text-[var(--text-primary)] font-semibold mb-1">
                     {tab === 'generate' ? 'AI 正在生成模特...' : 'AI 正在融合模特...'}
                   </div>
-                  <div className="text-[11px] text-[var(--text-secondary)]">大约需要 10~30 秒，请稍候</div>
+                  <div className="text-xs text-[var(--text-secondary)]">大约需要 10~30 秒，请稍候</div>
                 </div>
               ) : resultUrls.length === 0 ? (
                 <div className="text-center text-[var(--text-quaternary)]">
                   <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-60" />
-                  <div className="text-[12px]">
+                  <div className="text-xs">
                     {tab === 'generate' ? '填写左侧参数后点击「生成模特」' : '上传参考图后点击「合成模特」'}
                   </div>
                 </div>
@@ -549,11 +549,11 @@ export default function ModelFusionContent() {
             {!submitting && resultUrls.length > 0 && (
               <div className="mt-4 flex flex-col gap-2">
                 {resultUrls.length > 1 && (
-                  <div className="text-[11px] text-[var(--text-secondary)]">共 {resultUrls.length} 张，点击图片可放大预览</div>
+                  <div className="text-xs text-[var(--text-secondary)]">共 {resultUrls.length} 张，点击图片可放大预览</div>
                 )}
                 <div className="flex gap-2">
                   <button
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl text-[12px] font-medium text-[var(--text-secondary)] transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl text-xs font-medium text-[var(--text-secondary)] transition-all"
                     style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
                     type="button"
                     onClick={() => handleDownload(resultUrls[0])}
@@ -561,12 +561,12 @@ export default function ModelFusionContent() {
                     <Download className="w-3.5 h-3.5" /> 下载
                   </button>
                   <button
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl text-[12px] font-semibold text-white transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-1 h-10 rounded-2xl text-[11px] font-semibold text-white transition-all"
                     style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
                     type="button"
                     onClick={() => handleSendToWorkspace(resultUrls[0])}
                   >
-                    <Send className="w-3.5 h-3.5" /> 发送到快速工作台
+                    <Send className="w-3 h-3" /> 发送到快速工作台
                   </button>
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function ModelFusionContent() {
               }}
             />
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-              <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>AI Model Preview</span>
+              <span className="text-xs text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>AI Model Preview</span>
             </div>
             <button
               className="absolute -top-2 -right-2 w-8 h-8 bg-[var(--bg-card)] shadow-lg text-[#666] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#333] active:scale-90 transition-all z-10"
@@ -627,7 +627,7 @@ export default function ModelFusionContent() {
               <Download className="w-4 h-4" />
             </button>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-[12px] pointer-events-none sm:hidden">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-xs pointer-events-none sm:hidden">
             点击空白区域关闭
           </div>
         </div>
@@ -685,7 +685,7 @@ function SelectField({ label, value, options, onChange, hint }: {
           <button
             key={opt.value}
             type="button"
-            className="w-full px-3 py-2 text-left text-[13px] transition-colors truncate"
+            className="w-full px-3 py-2 text-left text-sm transition-colors truncate"
             style={{
               color: opt.value === value ? '#c67b5c' : 'var(--text-primary)',
               background: opt.value === value ? 'rgba(198,123,92,0.06)' : 'transparent',
@@ -702,7 +702,7 @@ function SelectField({ label, value, options, onChange, hint }: {
 
   return (
     <div className="flex flex-col gap-1 min-w-0">
-      <label className="text-[11px] font-semibold text-[var(--text-quaternary)] tracking-[0.1em] uppercase truncate">{label}</label>
+      <label className="text-xs font-semibold text-[var(--text-quaternary)] tracking-[0.1em] uppercase truncate">{label}</label>
       {/* 移动端：自定义下拉 */}
       <div className="md:hidden relative">
         <button
@@ -723,7 +723,7 @@ function SelectField({ label, value, options, onChange, hint }: {
       <select className="hidden md:block" style={selectStyle} value={value} onChange={e => onChange(e.target.value)}>
         {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
-      {hint && <span className="text-[10px] text-[var(--text-extreme)] leading-relaxed">{hint}</span>}
+      {hint && <span className="text-xs text-[var(--text-extreme)] leading-relaxed">{hint}</span>}
     </div>
   )
 }

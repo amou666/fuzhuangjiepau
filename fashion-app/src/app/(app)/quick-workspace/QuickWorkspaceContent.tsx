@@ -55,7 +55,7 @@ const ModeSelector = memo(function ModeSelector({
 }) {
   return (
     <section className="fashion-glass rounded-2xl p-3 md:p-5">
-      <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)] mb-3">① 选择模式</div>
+      <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)] mb-3">① 选择模式</div>
       <div className="grid grid-cols-2 gap-3">
         {MODES.map((m) => {
           const Icon = m.icon
@@ -73,9 +73,9 @@ const ModeSelector = memo(function ModeSelector({
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-4 h-4 text-[#c67b5c]" />
-                <span className="text-[14px] md:text-[13px] font-semibold text-[var(--text-primary)]">{m.label}</span>
+                <span className="text-sm md:text-sm font-semibold text-[var(--text-primary)]">{m.label}</span>
               </div>
-              <div className="text-[12px] md:text-[11px] text-[var(--text-secondary)] leading-relaxed hidden sm:block">{m.desc}</div>
+              <div className="text-xs md:text-xs text-[var(--text-secondary)] leading-relaxed hidden sm:block">{m.desc}</div>
             </button>
           )
         })}
@@ -98,7 +98,7 @@ const ModelUploader = memo(function ModelUploader({
   return (
     <section className="fashion-glass rounded-2xl p-3 md:p-5">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)]">② 选择模特{mode === 'fusion' && <span className="text-[var(--text-extreme)] ml-1">（可选）</span>}</div>
+        <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)]">② 选择模特{mode === 'fusion' && <span className="text-[var(--text-extreme)] ml-1">（可选）</span>}</div>
         <FavButton disabled={!modelImageUrl} onClick={onFav} />
       </div>
       <ImageUploadPicker label="模特照片" value={modelImageUrl} onChange={onSetModelImageUrl} sourceType="model" helperText={mode === 'fusion' && !modelImageUrl ? '不传则保留场景图中的原模特，仅换衣服' : '清晰的半身/全身照作为面部锚点'} />
@@ -122,16 +122,16 @@ const ClothingUploader = memo(function ClothingUploader({
   return (
     <section className="fashion-glass rounded-2xl p-3 md:p-5">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)]">③ 上传衣服</div>
+        <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)]">③ 上传衣服</div>
         <FavButton disabled={!clothingUrl} onClick={onFav} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="text-[12px] md:text-[11px] font-semibold text-[var(--text-secondary)] mb-2">正面 <span className="text-[#c47070]">*</span></div>
+          <div className="text-xs md:text-xs font-semibold text-[var(--text-secondary)] mb-2">正面 <span className="text-[#c47070]">*</span></div>
           <ImageUploadPicker label="衣服正面" value={clothingUrl} onChange={onSetClothingUrl} sourceType="clothing" helperText="服装主视图，清晰无遮挡" />
         </div>
         <div>
-          <div className="text-[12px] md:text-[11px] font-semibold text-[var(--text-secondary)] mb-2">反面 <span className="text-[var(--text-extreme)]">(可选)</span></div>
+          <div className="text-xs md:text-xs font-semibold text-[var(--text-secondary)] mb-2">反面 <span className="text-[var(--text-extreme)]">(可选)</span></div>
           <ImageUploadPicker label="衣服反面" value={clothingBackUrl} onChange={onSetClothingBackUrl} sourceType="clothingBack" helperText="若有反面细节请上传" />
         </div>
       </div>
@@ -155,7 +155,7 @@ const SceneUploader = memo(function SceneUploader({
   return (
     <section className="fashion-glass rounded-2xl p-3 md:p-5">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)]">
+        <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)]">
           ④ 上传{mode === 'background' ? '干净背景图' : '含原人物的场景图'}
         </div>
         <FavButton disabled={!sceneImageUrl} onClick={onFav} />
@@ -203,14 +203,14 @@ const OutputSettings = memo(function OutputSettings({
 
   return (
     <section className="fashion-glass rounded-2xl p-3 md:p-5">
-      <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)] mb-3">⑤ 输出设置</div>
+      <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)] mb-3">⑤ 输出设置</div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[11px] md:text-[10px] font-semibold text-[var(--text-secondary)] mb-1.5">图片比例</label>
+          <label className="block text-xs md:text-xs font-semibold text-[var(--text-secondary)] mb-1.5">图片比例</label>
           <select
             value={aspectRatio}
             onChange={(e) => onSetAspectRatio(e.target.value as QuickWorkspaceAspectRatio)}
-            className="w-full h-9 px-3 rounded-xl text-[11px] md:text-[10px] font-medium bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] appearance-none cursor-pointer"
+            className="w-full h-9 px-3 rounded-xl text-xs md:text-xs font-medium bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] appearance-none cursor-pointer"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b7355' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
           >
             {ASPECT_OPTIONS.map((opt) => (
@@ -219,11 +219,11 @@ const OutputSettings = memo(function OutputSettings({
           </select>
         </div>
         <div>
-          <label className="block text-[11px] md:text-[10px] font-semibold text-[var(--text-secondary)] mb-1.5">构图</label>
+          <label className="block text-xs md:text-xs font-semibold text-[var(--text-secondary)] mb-1.5">构图</label>
           <select
             value={framing}
             onChange={(e) => onSetFraming(e.target.value as QuickWorkspaceFraming)}
-            className="w-full h-9 px-3 rounded-xl text-[11px] md:text-[10px] font-medium bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] appearance-none cursor-pointer"
+            className="w-full h-9 px-3 rounded-xl text-xs md:text-xs font-medium bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] appearance-none cursor-pointer"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b7355' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
           >
             {FRAMING_OPTIONS.map((opt) => (
@@ -236,14 +236,14 @@ const OutputSettings = memo(function OutputSettings({
       {/* 拍摄模式 */}
       <div className="mt-4 pt-4 border-t border-[var(--border-light)]">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <div className="text-[11px] md:text-[10px] font-semibold text-[var(--text-secondary)]">拍摄模式</div>
-          <div className="text-[10px] md:text-[9px] text-[var(--text-quaternary)]">不同模式对应不同焦距、景深、光线氛围与构图节奏</div>
+          <div className="text-xs md:text-xs font-semibold text-[var(--text-secondary)]">拍摄模式</div>
+          <div className="text-xs md:text-xs text-[var(--text-quaternary)]">不同模式对应不同焦距、景深、光线氛围与构图节奏</div>
         </div>
 
         {/* 单反 */}
         <div className="mb-1.5 flex items-center gap-1.5">
           <Camera className="w-3 h-3 text-[var(--text-secondary)]" />
-          <span className="text-[11px] md:text-[10px] font-semibold text-[var(--text-secondary)]">单反</span>
+          <span className="text-xs md:text-xs font-semibold text-[var(--text-secondary)]">单反</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 mb-3">
           {cameraPresetButtons.map((p) => (
@@ -258,11 +258,11 @@ const OutputSettings = memo(function OutputSettings({
               }}
             >
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[12px] md:text-[11px] font-semibold text-[var(--text-primary)]">{p.label}</span>
+                <span className="text-xs md:text-xs font-semibold text-[var(--text-primary)]">{p.label}</span>
                 {p.active && <Check className="w-3 h-3 text-[#c67b5c]" />}
               </div>
-              <div className="text-[10px] md:text-[9px] text-[#c67b5c] font-mono mb-0.5">{p.specLine}</div>
-              <div className="text-[10px] md:text-[9px] text-[var(--text-secondary)] leading-relaxed">{p.desc}</div>
+              <div className="text-xs md:text-xs text-[#c67b5c] font-mono mb-0.5">{p.specLine}</div>
+              <div className="text-xs md:text-xs text-[var(--text-secondary)] leading-relaxed">{p.desc}</div>
             </button>
           ))}
         </div>
@@ -270,7 +270,7 @@ const OutputSettings = memo(function OutputSettings({
         {/* 手机 */}
         <div className="mb-1.5 flex items-center gap-1.5">
           <Smartphone className="w-3 h-3 text-[var(--text-secondary)]" />
-          <span className="text-[11px] md:text-[10px] font-semibold text-[var(--text-secondary)]">手机</span>
+          <span className="text-xs md:text-xs font-semibold text-[var(--text-secondary)]">手机</span>
         </div>
         <div className="grid grid-cols-1 gap-1.5">
           {phonePresetButtons.map((p) => (
@@ -285,11 +285,11 @@ const OutputSettings = memo(function OutputSettings({
               }}
             >
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[12px] md:text-[11px] font-semibold text-[var(--text-primary)]">{p.label}</span>
+                <span className="text-xs md:text-xs font-semibold text-[var(--text-primary)]">{p.label}</span>
                 {p.active && <Check className="w-3 h-3 text-[#c67b5c]" />}
               </div>
-              <div className="text-[10px] md:text-[9px] text-[#c67b5c] font-mono mb-0.5">{p.specLine}</div>
-              <div className="text-[10px] md:text-[9px] text-[var(--text-secondary)] leading-relaxed">{p.desc}</div>
+              <div className="text-xs md:text-xs text-[#c67b5c] font-mono mb-0.5">{p.specLine}</div>
+              <div className="text-xs md:text-xs text-[var(--text-secondary)] leading-relaxed">{p.desc}</div>
             </button>
           ))}
         </div>
@@ -307,13 +307,13 @@ const ExtraPromptSection = memo(function ExtraPromptSection({
 }) {
   return (
     <section className="fashion-glass rounded-2xl p-5">
-      <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)] mb-2">⑥ 附加提示（可选）</div>
+      <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)] mb-2">⑥ 附加提示（可选）</div>
       <textarea
         value={extraPrompt}
         onChange={(e) => onSetExtraPrompt(e.target.value)}
         placeholder="添加你想要的姿势、色调等描述..."
         rows={3}
-        className="w-full px-3 py-2 rounded-2xl text-[14px] md:text-[13px] bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] resize-none"
+        className="w-full px-3 py-2 rounded-2xl text-sm md:text-sm bg-[var(--bg-card)] border border-[var(--border-normal)] outline-none focus:border-[rgba(198,123,92,0.35)] text-[var(--text-primary)] resize-none"
       />
     </section>
   )
@@ -335,7 +335,7 @@ const LookbookToggle = memo(function LookbookToggle({
       >
         <div className="flex items-center gap-2">
           <Grid3X3 className="w-4 h-4 text-[#c67b5c]" />
-          <span className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)]">套图模式</span>
+          <span className="text-sm md:text-xs font-semibold text-[var(--text-secondary)]">套图模式</span>
         </div>
         <div
           className="w-10 h-5.5 rounded-full transition-all relative"
@@ -350,7 +350,7 @@ const LookbookToggle = memo(function LookbookToggle({
         </div>
       </button>
       {lookbookMode && (
-        <div className="mt-2 text-[12px] md:text-[11px] text-[var(--text-secondary)] leading-relaxed">
+        <div className="mt-2 text-xs md:text-xs text-[var(--text-secondary)] leading-relaxed">
           同一件衣服、同一个模特，生成多张不同姿势/场景的套图。适合一季 Look Book 拍摄。
         </div>
       )}
@@ -376,9 +376,9 @@ const ResultPanel = memo(function ResultPanel({
     <div className="lg:sticky lg:top-4 self-start w-full">
       <div className="fashion-glass rounded-2xl p-5 min-h-[520px] flex flex-col">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[13px] md:text-[12px] font-semibold text-[var(--text-secondary)]">生成结果</div>
+          <div className="text-sm md:text-xs font-semibold text-[var(--text-secondary)]">生成结果</div>
           {currentTask && (
-            <span className="text-[11px] md:text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-active)] text-[var(--text-secondary)]">{status}</span>
+            <span className="text-xs md:text-xs px-2 py-0.5 rounded-full bg-[var(--bg-active)] text-[var(--text-secondary)]">{status}</span>
           )}
         </div>
 
@@ -386,7 +386,7 @@ const ResultPanel = memo(function ResultPanel({
           {showLoading && !resultUrl && (
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-[#c67b5c] mx-auto mb-3" />
-              <div className="text-[13px] md:text-[12px] text-[var(--text-secondary)] font-medium">
+              <div className="text-sm md:text-xs text-[var(--text-secondary)] font-medium">
                 {status === 'GENERATING' ? 'AI 正在合成图像...' : '任务准备中...'}
               </div>
             </div>
@@ -394,13 +394,13 @@ const ResultPanel = memo(function ResultPanel({
           {!showLoading && !resultUrl && !failed && (
             <div className="text-center text-[var(--text-extreme)]">
               <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-60" />
-              <div className="text-[13px] md:text-[12px]">完成左侧配置后点击「一键生成」</div>
+              <div className="text-sm md:text-xs">完成左侧配置后点击「一键生成」</div>
             </div>
           )}
           {failed && (
             <div className="text-center text-[#c47070]">
-              <div className="text-[14px] md:text-[13px] font-semibold mb-1">生成失败</div>
-              <div className="text-[12px] md:text-[11px] opacity-80">{currentTask?.errorMsg || '请重试或联系管理员'}</div>
+              <div className="text-sm md:text-sm font-semibold mb-1">生成失败</div>
+              <div className="text-xs md:text-xs opacity-80">{currentTask?.errorMsg || '请重试或联系管理员'}</div>
             </div>
           )}
           {resultUrl && (
@@ -413,7 +413,7 @@ const ResultPanel = memo(function ResultPanel({
             <button
               type="button"
               onClick={onDownload}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl border border-[var(--border-strong)] text-[13px] md:text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl border border-[var(--border-strong)] text-sm md:text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
             >
               <Download className="w-4 h-4" />下载
             </button>
@@ -682,7 +682,7 @@ export default function QuickWorkspaceContent() {
           >
             <Wand2 className="w-4 h-4 text-white" />
           </div>
-          <h1 className="hidden text-[18px] font-bold tracking-tight text-[var(--text-primary)] flex-1">工作台</h1>
+          <h1 className="hidden text-lg font-bold tracking-tight text-[var(--text-primary)] flex-1">工作台</h1>
         </div>
 
         {/* 移动端：生成中/有结果时在顶部显示进度提示 */}
@@ -690,7 +690,7 @@ export default function QuickWorkspaceContent() {
           <div className="lg:hidden mb-4 p-3 rounded-2xl flex items-center gap-3" style={{ background: 'var(--bg-active)', border: '1px solid rgba(198,123,92,0.15)' }}>
             {showLoading && !resultUrl && <Loader2 className="w-4 h-4 animate-spin text-[#c67b5c] flex-shrink-0" />}
             {resultUrl && <img src={resultUrl} alt="结果" className="w-8 h-8 rounded-2xl object-cover flex-shrink-0" />}
-            <span className="text-[13px] md:text-[12px] text-[var(--text-secondary)] font-medium">
+            <span className="text-sm md:text-xs text-[var(--text-secondary)] font-medium">
               {showLoading && !resultUrl ? 'AI 正在合成图像...' : failed ? '生成失败，请重试' : '生成完成！向下滚动查看结果'}
             </span>
           </div>
@@ -708,7 +708,7 @@ export default function QuickWorkspaceContent() {
             <LookbookToggle lookbookMode={lookbookMode} onToggle={toggleLookbookMode} />
 
             {error && !lookbookMode && (
-              <div className="px-4 py-3 rounded-2xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-[13px] md:text-[12px] text-[#c47070]">{error}</div>
+              <div className="px-4 py-3 rounded-2xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-sm md:text-xs text-[#c47070]">{error}</div>
             )}
 
             {/* 普通模式：一键生成按钮 + 操作栏 */}
@@ -718,14 +718,14 @@ export default function QuickWorkspaceContent() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl text-[15px] md:text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-2xl text-base md:text-sm font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {submitting || isPolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 {submitting ? '提交中...' : isPolling ? 'AI 合成中...' : credits < 1 ? '积分不足' : '一键生成'}
               </button>
               {credits < 1 && !submitting && !isPolling && (
-                <div className="text-center text-[12px] md:text-[11px] text-[#c47070] font-medium">积分余额不足，无法生成。请联系管理员充值。</div>
+                <div className="text-center text-xs md:text-xs text-[#c47070] font-medium">积分余额不足，无法生成。请联系管理员充值。</div>
               )}
               <div className="flex items-center gap-3 flex-wrap">
                 <button
@@ -733,7 +733,7 @@ export default function QuickWorkspaceContent() {
                   onClick={() => openFavDialog('full')}
                   disabled={!canSaveFullConfig}
                   title={canSaveFullConfig ? '把当前服装 + 模特 + 场景 + 参数整套打包到素材库' : '请先上传 服装 / 模特 / 场景 三张图'}
-                  className="h-10 px-4 rounded-2xl border text-[13px] md:text-[12px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                  className="h-10 px-4 rounded-2xl border text-sm md:text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                   style={{
                     borderColor: canSaveFullConfig ? 'rgba(198,123,92,0.35)' : 'rgba(139,115,85,0.15)',
                     color: canSaveFullConfig ? '#c67b5c' : 'var(--text-quaternary)',
@@ -747,7 +747,7 @@ export default function QuickWorkspaceContent() {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="h-10 px-4 rounded-2xl border border-[rgba(139,115,85,0.2)] text-[13px] md:text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
+                    className="h-10 px-4 rounded-2xl border border-[rgba(139,115,85,0.2)] text-sm md:text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
                   >
                     <RefreshCw className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />重置结果
                   </button>
@@ -755,7 +755,7 @@ export default function QuickWorkspaceContent() {
                 <button
                   type="button"
                   onClick={() => setClearConfirm(true)}
-                  className="h-10 px-4 rounded-2xl border border-[rgba(139,115,85,0.2)] text-[13px] md:text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
+                  className="h-10 px-4 rounded-2xl border border-[rgba(139,115,85,0.2)] text-sm md:text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]"
                   title="清空所有已上传的图片和表单"
                 >
                   清空表单
@@ -870,7 +870,7 @@ function FavDialogInner({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             {favDialog.type === 'full' ? <Layers className="w-4 h-4 text-[#c67b5c]" /> : <Star className="w-4 h-4 text-[#c67b5c]" />}
-            <h3 className="text-[15px] md:text-[14px] font-semibold text-[var(--text-primary)]">
+            <h3 className="text-base md:text-sm font-semibold text-[var(--text-primary)]">
               {favDialog.type === 'full' ? '收藏完整配置到素材库' : `收藏${favDialog.type === 'clothing' ? '服装' : favDialog.type === 'model' ? '模特' : '场景'}到素材库`}
             </h3>
           </div>
@@ -886,7 +886,7 @@ function FavDialogInner({
 
         {favDialog.type === 'full' && (
           <div className="mb-3 p-3 rounded-2xl bg-[rgba(198,123,92,0.05)] border border-[rgba(198,123,92,0.12)]">
-            <div className="text-[12px] md:text-[11px] font-semibold text-[var(--text-secondary)] mb-1.5">本次打包内容</div>
+            <div className="text-xs md:text-xs font-semibold text-[var(--text-secondary)] mb-1.5">本次打包内容</div>
             <div className="grid grid-cols-3 gap-2 mb-2">
               {[
                 { label: '服装', url: clothingUrl },
@@ -898,14 +898,14 @@ function FavDialogInner({
                     {it.url ? (
                       <img src={it.url} alt={it.label} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[11px] md:text-[10px] text-[var(--text-extreme)]">无</div>
+                      <div className="w-full h-full flex items-center justify-center text-xs md:text-xs text-[var(--text-extreme)]">无</div>
                     )}
                   </div>
-                  <div className="text-[11px] md:text-[10px] text-[var(--text-secondary)]">{it.label}</div>
+                  <div className="text-xs md:text-xs text-[var(--text-secondary)]">{it.label}</div>
                 </div>
               ))}
             </div>
-            <div className="text-[11px] md:text-[10px] text-[var(--text-secondary)] leading-relaxed">
+            <div className="text-xs md:text-xs text-[var(--text-secondary)] leading-relaxed">
               <span className="mr-2">模式：{mode === 'background' ? '背景图' : '融合'}</span>
               <span className="mr-2">比例：{aspectRatio}</span>
               <span className="mr-2">构图：{framing === 'auto' ? '自动' : framing === 'half' ? '半身' : '全身'}</span>
@@ -921,14 +921,14 @@ function FavDialogInner({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <label className="block text-[12px] md:text-[11px] font-medium text-[var(--text-secondary)] mb-1.5">名称</label>
+            <label className="block text-xs md:text-xs font-medium text-[var(--text-secondary)] mb-1.5">名称</label>
             <input
               type="text"
               value={favName}
               onChange={(e) => setFavName(e.target.value)}
               placeholder={favDialog.defaultName}
               disabled={favSaving}
-              className="w-full h-10 px-3 rounded-2xl border border-[var(--border-strong)] bg-white text-[14px] md:text-[13px] text-[var(--text-primary)] outline-none focus:border-[rgba(198,123,92,0.4)] focus:ring-2 focus:ring-[rgba(198,123,92,0.08)] disabled:opacity-60"
+              className="w-full h-10 px-3 rounded-2xl border border-[var(--border-strong)] bg-white text-sm md:text-sm text-[var(--text-primary)] outline-none focus:border-[rgba(198,123,92,0.4)] focus:ring-2 focus:ring-[rgba(198,123,92,0.08)] disabled:opacity-60"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !favSaving) {
                   void handleSaveFavorite()
@@ -944,7 +944,7 @@ function FavDialogInner({
             type="button"
             onClick={closeFavDialog}
             disabled={favSaving}
-            className="flex-1 h-10 rounded-2xl border border-[rgba(139,115,85,0.2)] text-[13px] md:text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] disabled:opacity-40"
+            className="flex-1 h-10 rounded-2xl border border-[rgba(139,115,85,0.2)] text-sm md:text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] disabled:opacity-40"
           >
             取消
           </button>
@@ -952,7 +952,7 @@ function FavDialogInner({
             type="button"
             onClick={() => { void handleSaveFavorite() }}
             disabled={favSaving || !favName.trim()}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl text-[13px] md:text-[12px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-2xl text-sm md:text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
           >
             {favSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
@@ -975,7 +975,7 @@ function FavButton({ disabled, onClick }: { disabled?: boolean; onClick: () => v
       disabled={disabled}
       onClick={onClick}
       title={disabled ? '先上传图片再收藏' : '收藏到素材库'}
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl text-[12px] md:text-[11px] font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl text-xs md:text-xs font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
         background: disabled ? 'rgba(139,115,85,0.04)' : 'rgba(198,123,92,0.08)',
         color: disabled ? 'var(--text-quaternary)' : '#c67b5c',

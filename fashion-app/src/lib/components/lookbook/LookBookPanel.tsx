@@ -239,14 +239,14 @@ export function LookBookPanel({
     <div className="flex flex-col gap-4">
       {/* ── 套图配置区 ── */}
       <section className="fashion-glass rounded-2xl p-3 md:p-5">
-        <div className="text-[12px] font-semibold text-[#8b7355] mb-3 flex items-center gap-1.5">
+        <div className="text-xs font-semibold text-[#8b7355] mb-3 flex items-center gap-1.5">
           <Grid3X3 className="w-3.5 h-3.5" />
           套图模式
         </div>
 
         {/* 变体类型 */}
         <div className="mb-4">
-          <div className="text-[11px] font-semibold text-[#8b7355] mb-2">变化维度</div>
+          <div className="text-xs font-semibold text-[#8b7355] mb-2">变化维度</div>
           <div className="grid grid-cols-3 gap-2">
             {BATCH_VARIATION_OPTIONS.map((opt) => {
               const active = variation === opt.value
@@ -261,8 +261,8 @@ export function LookBookPanel({
                     background: active ? 'rgba(198,123,92,0.06)' : 'rgba(255,255,255,0.5)',
                   }}
                 >
-                  <div className="text-[12px] font-semibold text-[#2d2422] mb-0.5">{opt.label}</div>
-                  <div className="text-[10px] text-[#8b7355] leading-relaxed">{opt.desc}</div>
+                  <div className="text-xs font-semibold text-[#2d2422] mb-0.5">{opt.label}</div>
+                  <div className="text-xs text-[#8b7355] leading-relaxed">{opt.desc}</div>
                 </button>
               )
             })}
@@ -271,7 +271,7 @@ export function LookBookPanel({
 
         {/* 生成数量 */}
         <div className="mb-4">
-          <div className="text-[11px] font-semibold text-[#8b7355] mb-2">生成数量</div>
+          <div className="text-xs font-semibold text-[#8b7355] mb-2">生成数量</div>
           <div className="flex gap-2">
             {BATCH_COUNT_OPTIONS.map((opt) => {
               const active = count === opt.value
@@ -282,7 +282,7 @@ export function LookBookPanel({
                   type="button"
                   onClick={() => setCount(opt.value)}
                   disabled={insufficient}
-                  className="px-4 py-2 rounded-lg text-[12px] font-medium transition-all border disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-lg text-xs font-medium transition-all border disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
                     background: active ? 'linear-gradient(135deg, #c67b5c, #d4a882)' : 'rgba(139,115,85,0.03)',
                     color: active ? '#fff' : '#8b7355',
@@ -290,13 +290,13 @@ export function LookBookPanel({
                   }}
                 >
                   {opt.label}
-                  <span className="ml-1 text-[10px] opacity-70">{opt.creditCost} 积分</span>
+                  <span className="ml-1 text-xs opacity-70">{opt.creditCost} 积分</span>
                 </button>
               )
             })}
           </div>
           {credits < count && (
-            <div className="mt-1.5 text-[10px] text-[#c47070]">积分不足，需要 {count} 积分，当前 {credits} 积分</div>
+            <div className="mt-1.5 text-xs text-[#c47070]">积分不足，需要 {count} 积分，当前 {credits} 积分</div>
           )}
         </div>
 
@@ -306,12 +306,12 @@ export function LookBookPanel({
             <button
               type="button"
               onClick={() => setShowPosePicker(!showPosePicker)}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8b7355] mb-2 hover:text-[#c67b5c] transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#8b7355] mb-2 hover:text-[#c67b5c] transition-colors"
             >
               选择姿势预设
               {showPosePicker ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               {selectedPoses.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[rgba(198,123,92,0.1)] text-[#c67b5c] text-[10px]">
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[rgba(198,123,92,0.1)] text-[#c67b5c] text-xs">
                   {selectedPoses.length}
                 </span>
               )}
@@ -321,10 +321,10 @@ export function LookBookPanel({
                 {posesLoading ? (
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="w-4 h-4 animate-spin text-[#c67b5c] mr-2" />
-                    <span className="text-[11px] text-[#8b7355]">加载姿势预设...</span>
+                    <span className="text-xs text-[#8b7355]">加载姿势预设...</span>
                   </div>
                 ) : poseCategories.length === 0 ? (
-                  <div className="text-center py-6 text-[11px] text-[#b0a59a]">暂无姿势预设，请联系管理员添加</div>
+                  <div className="text-center py-6 text-xs text-[#b0a59a]">暂无姿势预设，请联系管理员添加</div>
                 ) : (
                   <>
                     {/* 分类 Tab */}
@@ -337,7 +337,7 @@ export function LookBookPanel({
                             key={cat.id}
                             type="button"
                             onClick={() => setActiveCategory(cat.id)}
-                            className="px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border inline-flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border inline-flex items-center gap-1"
                             style={{
                               background: active ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.02)',
                               color: active ? '#c67b5c' : '#8b7355',
@@ -346,7 +346,7 @@ export function LookBookPanel({
                           >
                             {cat.label}
                             {catSelectedCount > 0 && (
-                              <span className="px-1 py-0 rounded-full bg-[rgba(198,123,92,0.12)] text-[#c67b5c] text-[9px] leading-[14px] min-w-[14px] text-center">
+                              <span className="px-1 py-0 rounded-full bg-[rgba(198,123,92,0.12)] text-[#c67b5c] text-xs leading-[14px] min-w-[14px] text-center">
                                 {catSelectedCount}
                               </span>
                             )}
@@ -358,7 +358,7 @@ export function LookBookPanel({
                     {/* 当前分类的姿势列表 */}
                     {(() => {
                       const cat = poseCategories.find((c) => c.id === activeCategory)
-                      if (!cat || cat.poses.length === 0) return <div className="text-[11px] text-[#b0a59a] py-3">该分类暂无姿势</div>
+                      if (!cat || cat.poses.length === 0) return <div className="text-xs text-[#b0a59a] py-3">该分类暂无姿势</div>
                       return (
                         <div className="grid grid-cols-3 gap-2">
                           {cat.poses.map((pose) => {
@@ -388,7 +388,7 @@ export function LookBookPanel({
                                 )}
                                 <div className="flex items-center gap-0.5">
                                   {active && <Check className="w-2.5 h-2.5 text-[#c67b5c] flex-shrink-0" />}
-                                  <span className={`text-[10px] font-medium leading-tight truncate ${active ? 'text-[#c67b5c]' : 'text-[#2d2422]'}`}>
+                                  <span className={`text-xs font-medium leading-tight truncate ${active ? 'text-[#c67b5c]' : 'text-[#2d2422]'}`}>
                                     {pose.label}
                                   </span>
                                 </div>
@@ -408,14 +408,14 @@ export function LookBookPanel({
 
       {/* ── 提交按钮 ── */}
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-[12px] text-[#c47070]">{error}</div>
+        <div className="px-4 py-3 rounded-xl bg-[rgba(196,112,112,0.08)] border border-[rgba(196,112,112,0.2)] text-xs text-[#c47070]">{error}</div>
       )}
 
       <button
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
-        className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
       >
         {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Grid3X3 className="w-4 h-4" />}
@@ -439,14 +439,14 @@ export function LookBookPanel({
       {results.length > 0 && (
         <section className="fashion-glass rounded-2xl p-3 md:p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[12px] font-semibold text-[#8b7355]">
+            <div className="text-xs font-semibold text-[#8b7355]">
               套图结果 {allDone && `(${completedCount}/${results.length})`}
             </div>
             {completedCount > 1 && (
               <button
                 type="button"
                 onClick={handleBatchDownload}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-[rgba(139,115,85,0.18)] text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-[rgba(139,115,85,0.18)] text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)]"
               >
                 <Download className="w-3 h-3" />批量下载
               </button>
@@ -461,13 +461,13 @@ export function LookBookPanel({
               >
                 {/* 姿势标签 */}
                 {item.poseLabel && (
-                  <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-black/50 text-[10px] text-white backdrop-blur-sm">
+                  <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-black/50 text-xs text-white backdrop-blur-sm">
                     {item.poseLabel}
                   </div>
                 )}
 
                 {/* 序号 */}
-                <div className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-black/50 text-[10px] text-white flex items-center justify-center backdrop-blur-sm">
+                <div className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-black/50 text-xs text-white flex items-center justify-center backdrop-blur-sm">
                   {i + 1}
                 </div>
 
@@ -483,7 +483,7 @@ export function LookBookPanel({
                       <button
                         type="button"
                         onClick={() => handleDownload(item.resultUrl!, i)}
-                        className="px-3 py-1.5 rounded-lg bg-white/90 text-[11px] font-medium text-[#2d2422] hover:bg-white transition-colors inline-flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-white/90 text-xs font-medium text-[#2d2422] hover:bg-white transition-colors inline-flex items-center gap-1"
                       >
                         <Download className="w-3 h-3" />下载
                       </button>
@@ -493,15 +493,15 @@ export function LookBookPanel({
                   <div className="w-full aspect-[3/4] flex items-center justify-center text-[#c47070]">
                     <div className="text-center px-3">
                       <X className="w-5 h-5 mx-auto mb-1" />
-                      <div className="text-[10px]">生成失败</div>
-                      {item.error && <div className="text-[9px] opacity-70 mt-0.5">{item.error}</div>}
+                      <div className="text-xs">生成失败</div>
+                      {item.error && <div className="text-xs opacity-70 mt-0.5">{item.error}</div>}
                     </div>
                   </div>
                 ) : (
                   <div className="w-full aspect-[3/4] flex items-center justify-center">
                     <div className="text-center">
                       <Loader2 className="w-5 h-5 animate-spin text-[#c67b5c] mx-auto mb-1" />
-                      <div className="text-[10px] text-[#8b7355]">
+                      <div className="text-xs text-[#8b7355]">
                         {item.status === 'pending' ? '等待中...' : '生成中...'}
                       </div>
                     </div>
@@ -518,8 +518,8 @@ export function LookBookPanel({
         <div className="fashion-glass rounded-2xl p-5 min-h-[280px] flex items-center justify-center">
           <div className="text-center text-[#c9bfb5]">
             <Grid3X3 className="w-10 h-10 mx-auto mb-2 opacity-60" />
-            <div className="text-[12px]">配置好姿势和数量后点击「生成套图」</div>
-            <div className="text-[10px] mt-1 opacity-70">同一件衣服，多个角度/动作的成片组</div>
+            <div className="text-xs">配置好姿势和数量后点击「生成套图」</div>
+            <div className="text-xs mt-1 opacity-70">同一件衣服，多个角度/动作的成片组</div>
           </div>
         </div>
       )}

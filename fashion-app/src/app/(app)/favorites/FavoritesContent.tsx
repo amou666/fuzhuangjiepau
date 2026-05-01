@@ -250,8 +250,8 @@ export default function FavoritesContent() {
             <Check className="w-4 h-4 text-green-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-[#3a2a1e] truncate">{applyMsg}</div>
-            <div className="text-[11px] text-[#c67b5c] font-medium">点击前往工作台 →</div>
+            <div className="text-sm font-semibold text-[#3a2a1e] truncate">{applyMsg}</div>
+            <div className="text-xs text-[#c67b5c] font-medium">点击前往工作台 →</div>
           </div>
           <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}>
             <ArrowRight className="w-4 h-4 text-white" />
@@ -265,7 +265,7 @@ export default function FavoritesContent() {
         >
           <Star className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden text-[18px] font-bold tracking-tight text-[#2d2422] flex-1">收藏夹</h1>
+        <h1 className="hidden text-lg font-bold tracking-tight text-[#2d2422] flex-1">收藏夹</h1>
 
       </div>
 
@@ -276,7 +276,7 @@ export default function FavoritesContent() {
             <button
               key={key}
               type="button"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold transition-all border cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer whitespace-nowrap flex-shrink-0"
               style={activeTab === key ? {
                 background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
                 color: '#fff',
@@ -292,7 +292,7 @@ export default function FavoritesContent() {
               <Icon className="w-3.5 h-3.5" />
               {label}
               {key !== 'all' && (
-                <span className="text-[10px] opacity-70">
+                <span className="text-xs opacity-70">
                   ({favorites.filter((f) => f.type === key).length})
                 </span>
               )}
@@ -347,12 +347,12 @@ export default function FavoritesContent() {
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(212,160,106,0.08)' }}>
             <Star className="w-7 h-7 text-[#d4a06a]" style={{ opacity: 0.5 }} />
           </div>
-          <h3 className="text-[15px] font-semibold text-[#b0a59a] mb-1">暂无收藏</h3>
-          <p className="text-[13px] text-[#c9bfb5] mb-4">点击右上角「上传素材」添加，或在快速工作台 / 模特工厂生成后收藏</p>
+          <h3 className="text-base font-semibold text-[#b0a59a] mb-1">暂无收藏</h3>
+          <p className="text-sm text-[#c9bfb5] mb-4">点击右上角「上传素材」添加，或在快速工作台 / 模特工厂生成后收藏</p>
           <button
             type="button"
             onClick={() => openUploadDialog()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-white transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all"
             style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: '0 2px 12px rgba(198,123,92,0.3)' }}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -381,7 +381,7 @@ export default function FavoritesContent() {
                         <div key={idx} className="relative overflow-hidden" style={{ background: bgColor }}>
                           <LazyImage src={fi.url} alt={fi.label} />
                           {fi.label && (
-                            <span className="absolute bottom-1 left-1 px-1 py-0.5 rounded text-[8px] font-semibold text-white" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                            <span className="absolute bottom-1 left-1 px-1 py-0.5 rounded text-[10px] font-semibold text-white" style={{ background: 'rgba(0,0,0,0.5)' }}>
                               {fi.label}
                             </span>
                           )}
@@ -401,7 +401,7 @@ export default function FavoritesContent() {
                   )}
                   {/* 类型标签 */}
                   <span
-                    className="absolute top-2 left-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold backdrop-blur-sm"
+                    className="absolute top-2 left-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold backdrop-blur-sm"
                     style={
                       fav.type === 'clothing' ? { background: 'rgba(176,128,96,0.85)', color: '#fff' }
                       : fav.type === 'model' ? { background: 'rgba(198,123,92,0.85)', color: '#fff' }
@@ -426,12 +426,12 @@ export default function FavoritesContent() {
                 </div>
                 {/* 信息区 */}
                 <div className="p-2 md:p-3 flex flex-col gap-1.5 flex-1">
-                  <div className="text-[12px] md:text-[13px] font-semibold text-[#2d2422] line-clamp-1">{fav.name}</div>
-                  <div className="text-[10px] md:text-[11px] text-[#b0a59a] line-clamp-1">{getConfigSummary(fav)}</div>
-                  <div className="text-[10px] text-[#c9bfb5]">{formatDateTime(fav.createdAt)}</div>
+                  <div className="text-xs md:text-sm font-semibold text-[#2d2422] line-clamp-1">{fav.name}</div>
+                  <div className="text-xs md:text-xs text-[#b0a59a] line-clamp-1">{getConfigSummary(fav)}</div>
+                  <div className="text-xs text-[#c9bfb5]">{formatDateTime(fav.createdAt)}</div>
                   <button
                     type="button"
-                    className="mt-1 w-full inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold text-[#c67b5c] bg-[rgba(198,123,92,0.06)] border border-[rgba(198,123,92,0.12)] hover:bg-[rgba(198,123,92,0.1)] active:scale-95 transition-all"
+                    className="mt-1 w-full inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold text-[#c67b5c] bg-[rgba(198,123,92,0.06)] border border-[rgba(198,123,92,0.12)] hover:bg-[rgba(198,123,92,0.1)] active:scale-95 transition-all"
                     onClick={() => handleApply(fav)}
                   >
                     <ArrowRight className="w-3 h-3" /> 发送
@@ -456,7 +456,7 @@ export default function FavoritesContent() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-[#c67b5c]" />
-                <h3 className="text-[14px] font-semibold text-[#2d2422]">上传素材到素材库</h3>
+                <h3 className="text-sm font-semibold text-[#2d2422]">上传素材到素材库</h3>
               </div>
               <button
                 type="button"
@@ -471,7 +471,7 @@ export default function FavoritesContent() {
 
             {/* 类型选择 */}
             <div className="mb-4">
-              <div className="text-[11px] font-medium text-[#8b7355] mb-2">素材类型</div>
+              <div className="text-xs font-medium text-[#8b7355] mb-2">素材类型</div>
               <div className="grid grid-cols-3 gap-2">
                 {UPLOAD_TYPES.map((t) => {
                   const Icon = t.icon
@@ -491,8 +491,8 @@ export default function FavoritesContent() {
                       <span style={{ color: active ? t.accent : '#b0a59a' }}>
                         <Icon className="w-5 h-5" />
                       </span>
-                      <span className="text-[12px] font-semibold" style={{ color: active ? t.accent : '#8b7355' }}>{t.label}</span>
-                      <span className="text-[10px] text-[#b0a59a] leading-tight text-center">{t.desc}</span>
+                      <span className="text-xs font-semibold" style={{ color: active ? t.accent : '#8b7355' }}>{t.label}</span>
+                      <span className="text-xs text-[#b0a59a] leading-tight text-center">{t.desc}</span>
                     </button>
                   )
                 })}
@@ -501,13 +501,13 @@ export default function FavoritesContent() {
 
             {/* 图片上传 */}
             <div className="mb-4">
-              <div className="text-[11px] font-medium text-[#8b7355] mb-2">图片</div>
+              <div className="text-xs font-medium text-[#8b7355] mb-2">图片</div>
               <ImageUploader label="素材图" value={uploadImageUrl} onChange={setUploadImageUrl} />
             </div>
 
             {/* 名称输入 */}
             <div className="mb-5">
-              <label className="block text-[11px] font-medium text-[#8b7355] mb-1.5">
+              <label className="block text-xs font-medium text-[#8b7355] mb-1.5">
                 名称 <span className="text-[#c9bfb5]">（选填，留空自动命名）</span>
               </label>
               <input
@@ -517,7 +517,7 @@ export default function FavoritesContent() {
                 placeholder="起个好记的名字"
                 disabled={uploadSaving}
                 maxLength={40}
-                className="w-full h-10 px-3 rounded-lg border border-[rgba(139,115,85,0.15)] bg-white text-[11px] font-bold text-[#2d2422] outline-none focus:border-[rgba(198,123,92,0.4)] focus:ring-2 focus:ring-[rgba(198,123,92,0.08)] disabled:opacity-60"
+                className="w-full h-10 px-3 rounded-lg border border-[rgba(139,115,85,0.15)] bg-white text-xs font-bold text-[#2d2422] outline-none focus:border-[rgba(198,123,92,0.4)] focus:ring-2 focus:ring-[rgba(198,123,92,0.08)] disabled:opacity-60"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !uploadSaving && uploadImageUrl) {
                     void handleUploadSave()
@@ -532,7 +532,7 @@ export default function FavoritesContent() {
                 type="button"
                 onClick={closeUploadDialog}
                 disabled={uploadSaving}
-                className="flex-1 h-10 rounded-lg border border-[rgba(139,115,85,0.15)] text-[13px] font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)] transition-all disabled:opacity-60"
+                className="flex-1 h-10 rounded-lg border border-[rgba(139,115,85,0.15)] text-sm font-medium text-[#8b7355] hover:bg-[rgba(139,115,85,0.04)] transition-all disabled:opacity-60"
               >
                 取消
               </button>
@@ -540,7 +540,7 @@ export default function FavoritesContent() {
                 type="button"
                 onClick={() => { void handleUploadSave() }}
                 disabled={uploadSaving || !uploadImageUrl}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg text-[13px] font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)' }}
               >
                 {uploadSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
@@ -559,18 +559,18 @@ export default function FavoritesContent() {
               <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="text-[14px] font-semibold text-[#2d2422]">确认删除</h3>
+              <h3 className="text-sm font-semibold text-[#2d2422]">确认删除</h3>
             </div>
-            <p className="text-[13px] text-[#9b8e82] mb-5 leading-relaxed">删除后无法恢复，确定要删除这个收藏吗？</p>
+            <p className="text-sm text-[#9b8e82] mb-5 leading-relaxed">删除后无法恢复，确定要删除这个收藏吗？</p>
             <div className="flex gap-3">
               <button
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
                 onClick={() => setDeleteConfirmId(null)}
               >
                 取消
               </button>
               <button
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95"
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95"
                 onClick={() => void handleDelete(deleteConfirmId)}
               >
                 删除

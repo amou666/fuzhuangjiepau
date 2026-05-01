@@ -98,7 +98,7 @@ export default function RecordsContent() {
         ) : null}
         
         <div className="overflow-x-auto fashion-glass rounded-2xl">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">客户邮箱</th>
@@ -136,12 +136,12 @@ export default function RecordsContent() {
                     <div className="font-medium text-gray-800 text-xs">{record.user?.email ?? '-'}</div>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${tc.cls}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${tc.cls}`}>
                       {tc.icon} {tc.label}
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100">
-                    <span className="inline-block px-2 py-0.5 bg-slate-100 rounded-md font-mono text-[11px] text-slate-600">{record.id.slice(0, 8)}</span>
+                    <span className="inline-block px-2 py-0.5 bg-slate-100 rounded-md font-mono text-xs text-slate-600">{record.id.slice(0, 8)}</span>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100">
                     <div className="flex gap-1">
@@ -151,20 +151,20 @@ export default function RecordsContent() {
                     </div>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${getStatusStyle(record.status)}`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(record.status)}`}>
                       {getStatusText(record.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-700 text-xs">{record.creditCost}</td>
-                  <td className="px-4 py-3 border-b border-gray-100 text-gray-500 text-[11px]">{formatDateTime(record.createdAt)}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-500 text-xs">{formatDateTime(record.createdAt)}</td>
                   <td className="px-4 py-3 border-b border-gray-100">
                     <div className="flex gap-1.5 items-center flex-wrap">
                       {resultImages.slice(0, 4).map((url, i) => (
                         <img key={i} src={url} alt={`结果${i+1}`} onClick={() => setPreviewImage(url)} className="w-10 h-10 object-cover rounded-2xl cursor-pointer border border-gray-200 hover:ring-2 hover:ring-blue-300 transition-all" />
                       ))}
-                      {resultImages.length > 4 && <span className="text-[10px] text-gray-400">+{resultImages.length - 4}</span>}
+                      {resultImages.length > 4 && <span className="text-xs text-gray-400">+{resultImages.length - 4}</span>}
                       {resultImages.length > 0 && (
-                        <button className="inline-flex items-center gap-0.5 px-2 py-1 bg-white/70 text-gray-700 border border-black/10 rounded-2xl text-[10px] font-medium hover:bg-white/90 transition-all" onClick={() => handleDownload(resultImages[0], record.id)}>
+                        <button className="inline-flex items-center gap-0.5 px-2 py-1 bg-white/70 text-gray-700 border border-black/10 rounded-2xl text-xs font-medium hover:bg-white/90 transition-all" onClick={() => handleDownload(resultImages[0], record.id)}>
                           <Download className="w-2.5 h-2.5" /> 下载
                         </button>
                       )}
@@ -172,10 +172,10 @@ export default function RecordsContent() {
                         <img src={record.upscaledUrl} alt={`放大${record.upscaleFactor}x`} onClick={() => setPreviewImage(record.upscaledUrl!)} className="w-10 h-10 object-cover rounded-2xl cursor-pointer border-2 border-green-400" title={`已放大${record.upscaleFactor}x`} />
                       )}
                       {record.status === 'FAILED' && (
-                        <span className="text-red-500 text-[10px]">{record.errorMsg || '未知错误'}</span>
+                        <span className="text-red-500 text-xs">{record.errorMsg || '未知错误'}</span>
                       )}
                       {!resultImages.length && record.status !== 'FAILED' && (
-                        <span className="text-gray-400 text-[10px]">处理中</span>
+                        <span className="text-gray-400 text-xs">处理中</span>
                       )}
                     </div>
                   </td>

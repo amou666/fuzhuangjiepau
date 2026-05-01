@@ -259,7 +259,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
           type="text"
           value={hexInput}
           onChange={(e) => handleHexInput(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-2xl text-[13px] font-mono text-[var(--text-primary)] outline-none"
+          className="flex-1 px-3 py-2 rounded-2xl text-sm font-mono text-[var(--text-primary)] outline-none"
           style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }}
           placeholder="#C67B5C"
           maxLength={7}
@@ -268,7 +268,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
           type="button"
           onClick={addCurrentColor}
           disabled={selectedColors.length >= maxColors || selectedColors.some(c => c.hex.toLowerCase() === currentHex.toLowerCase())}
-          className="flex items-center gap-1 px-3 py-2 rounded-2xl text-[12px] font-semibold text-white transition-all disabled:opacity-40"
+          className="flex items-center gap-1 px-3 py-2 rounded-2xl text-xs font-semibold text-white transition-all disabled:opacity-40"
           style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
         >
           <Plus className="w-3.5 h-3.5" /> 添加
@@ -279,7 +279,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
       {aiRecommendColors && aiRecommendColors.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[11px] font-bold text-[#6366f1]">✨ AI 推荐色</span>
+            <span className="text-xs font-bold text-[#6366f1]">✨ AI 推荐色</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {aiRecommendColors.map((c, i) => (
@@ -288,7 +288,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
                 type="button"
                 onClick={() => addPresetColor(c.hex, c.name)}
                 disabled={selectedColors.some(sc => sc.hex.toLowerCase() === c.hex.toLowerCase()) || selectedColors.length >= maxColors}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-xs font-medium transition-all disabled:opacity-40 hover:scale-105"
                 style={{
                   background: 'rgba(99,102,241,0.06)',
                   border: '1px solid rgba(99,102,241,0.15)',
@@ -308,7 +308,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
         <button
           type="button"
           onClick={() => setShowPresets(!showPresets)}
-          className="flex items-center gap-1.5 mb-2 text-[11px] font-bold text-[var(--text-tertiary)]"
+          className="flex items-center gap-1.5 mb-2 text-xs font-bold text-[var(--text-tertiary)]"
         >
           <span>{showPresets ? '▼' : '▶'}</span> 快捷色卡
         </button>
@@ -320,7 +320,7 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
                 type="button"
                 onClick={() => addPresetColor(c.hex, c.name)}
                 disabled={selectedColors.some(sc => sc.hex.toLowerCase() === c.hex.toLowerCase()) || selectedColors.length >= maxColors}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium transition-all disabled:opacity-40 hover:scale-105"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-xs font-medium transition-all disabled:opacity-40 hover:scale-105"
                 style={{
                   background: 'var(--bg-muted)',
                   border: '1px solid var(--border-normal)',
@@ -339,14 +339,14 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
       {selectedColors.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[11px] font-bold text-[var(--text-primary)]">已选颜色</span>
-            <span className="text-[10px] text-[var(--text-quaternary)]">({selectedColors.length}/{maxColors})</span>
+            <span className="text-xs font-bold text-[var(--text-primary)]">已选颜色</span>
+            <span className="text-xs text-[var(--text-quaternary)]">({selectedColors.length}/{maxColors})</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedColors.map((c, i) => (
               <div
                 key={`sel-${i}`}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-[12px] font-semibold transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl text-xs font-semibold transition-all"
                 style={{
                   background: 'rgba(99,102,241,0.06)',
                   border: '1px solid rgba(99,102,241,0.15)',

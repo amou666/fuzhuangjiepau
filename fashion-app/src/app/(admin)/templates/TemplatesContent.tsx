@@ -97,7 +97,7 @@ export default function TemplatesContent() {
 
       {showForm && (
         <div className="fashion-glass rounded-2xl p-6">
-          <h3 className="text-[15px] font-semibold text-gray-900 mb-4">创建新模板</h3>
+          <h3 className="text-base font-semibold text-gray-900 mb-4">创建新模板</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">名称 *</label>
@@ -138,7 +138,7 @@ export default function TemplatesContent() {
               />
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 mb-4">创建后可编辑模特/场景配置的完整 JSON，或通过 API 更新。</p>
+          <p className="text-xs text-gray-400 mb-4">创建后可编辑模特/场景配置的完整 JSON，或通过 API 更新。</p>
           <div className="flex gap-3">
             <button
               type="button"
@@ -172,7 +172,7 @@ export default function TemplatesContent() {
       ) : (
         <div className="fashion-glass rounded-2xl p-6">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">名称</th>
@@ -195,7 +195,7 @@ export default function TemplatesContent() {
                       </div>
                     </td>
                     <td className="px-4 py-3 border-b border-gray-100">
-                      <span className="inline-flex px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] font-medium">
+                      <span className="inline-flex px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
                         {CATEGORIES.find((c) => c.value === t.category)?.label || t.category}
                       </span>
                     </td>

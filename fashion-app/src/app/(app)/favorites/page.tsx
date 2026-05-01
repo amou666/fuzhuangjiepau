@@ -18,12 +18,12 @@ export default function FavoritesPage() {
           >
             <Star className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#2d2422]">收藏夹</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[#2d2422]">收藏夹</h1>
           <div className="ml-auto flex items-center gap-2">
             {/* 上传按钮由客户端组件 FavoritesContent 管理 */}
           </div>
         </div>
-        <p className="text-[13px] text-[#9b8e82] ml-[52px] tracking-wide">管理你收藏的服装、模特、场景等素材，在快速工作台一键复用</p>
+        <p className="text-sm text-[#9b8e82] ml-[52px] tracking-wide">管理你收藏的服装、模特、场景等素材，在快速工作台一键复用</p>
       </div>
 
       {/* 交互内容 */}

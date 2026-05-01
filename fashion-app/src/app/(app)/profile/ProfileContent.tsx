@@ -21,10 +21,10 @@ const StatCard = memo(function StatCard({ icon: Icon, label, value, sub, color }
         <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: `${color}15` }}>
           <Icon className="w-4.5 h-4.5" style={{ color }} />
         </div>
-        <span className="text-[11px] font-semibold text-[var(--text-quaternary)] tracking-wider uppercase">{label}</span>
+        <span className="text-xs font-semibold text-[var(--text-quaternary)] tracking-wider uppercase">{label}</span>
       </div>
-      <div className="text-[28px] font-bold text-[var(--text-primary)] leading-none">{value}</div>
-      {sub && <div className="text-[11px] text-[var(--text-quaternary)] mt-1.5">{sub}</div>}
+      <div className="text-3xl font-bold text-[var(--text-primary)] leading-none">{value}</div>
+      {sub && <div className="text-xs text-[var(--text-quaternary)] mt-1.5">{sub}</div>}
     </div>
   )
 })
@@ -102,12 +102,12 @@ export default function ProfileContent() {
         >
           <UserCircle className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden text-[18px] font-bold tracking-tight text-[var(--text-primary)] flex-1">个人中心</h1>
+        <h1 className="hidden text-lg font-bold tracking-tight text-[var(--text-primary)] flex-1">个人中心</h1>
         <button
           type="button"
           onClick={() => void handleRefreshAll()}
           disabled={anyRefreshing}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[12px] font-medium border transition-all"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all"
           style={{
             background: anyRefreshing ? 'rgba(198,123,92,0.08)' : 'rgba(139,115,85,0.03)',
             borderColor: anyRefreshing ? 'rgba(198,123,92,0.2)' : 'rgba(139,115,85,0.08)',
@@ -122,7 +122,7 @@ export default function ProfileContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Account Info */}
         <div className="fashion-glass rounded-2xl p-4 md:p-6">
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)] mb-4">账号信息</h2>
+          <h2 className="text-base font-semibold text-[var(--text-primary)] mb-4">账号信息</h2>
           <div className="flex flex-col gap-3.5">
             {infoItems.map((item) => (
               <div key={item.label} className="flex items-center gap-3">
@@ -133,8 +133,8 @@ export default function ProfileContent() {
                   <item.icon className="w-4 h-4" style={{ color: item.color }} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">{item.label}</div>
-                  <div className="text-[14px] font-medium text-[var(--text-primary)]">{item.value}</div>
+                  <div className="text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">{item.label}</div>
+                  <div className="text-sm font-medium text-[var(--text-primary)]">{item.value}</div>
                 </div>
               </div>
             ))}
@@ -148,9 +148,9 @@ export default function ProfileContent() {
                 <Key className="w-4 h-4 text-[#7d9b76]" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">API KEY</div>
+                <div className="text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">API KEY</div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <code className="text-[12px] text-[var(--text-secondary)] bg-[var(--bg-muted)] px-2 py-0.5 rounded-md font-mono truncate">
+                  <code className="text-xs text-[var(--text-secondary)] bg-[var(--bg-muted)] px-2 py-0.5 rounded-md font-mono truncate">
                     {user?.apiKey ?? '-'}
                   </code>
                   {user?.apiKey && (
@@ -170,18 +170,18 @@ export default function ProfileContent() {
 
         {/* Tips */}
         <div className="fashion-glass rounded-2xl p-4 md:p-6">
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-[#d4a06a]" />
             使用提示
           </h2>
           <div className="flex flex-col gap-3">
-            <div className="px-4 py-3 bg-[rgba(212,160,106,0.06)] border border-[rgba(212,160,106,0.12)] rounded-2xl text-[13px] text-[var(--text-secondary)] leading-relaxed">
+            <div className="px-4 py-3 bg-[rgba(212,160,106,0.06)] border border-[rgba(212,160,106,0.12)] rounded-2xl text-sm text-[var(--text-secondary)] leading-relaxed">
               生图功能使用你专属的 AI API Key，请联系管理员获取或配置。
             </div>
-            <div className="px-4 py-3 bg-[rgba(125,155,118,0.06)] border border-[rgba(125,155,118,0.12)] rounded-2xl text-[13px] text-[#5a7a53] leading-relaxed">
+            <div className="px-4 py-3 bg-[rgba(125,155,118,0.06)] border border-[rgba(125,155,118,0.12)] rounded-2xl text-sm text-[#5a7a53] leading-relaxed">
               若积分不足，请联系管理员为你充值。
             </div>
-            <div className="px-4 py-3 bg-[var(--bg-active)] border border-[rgba(198,123,92,0.12)] rounded-2xl text-[13px] text-[#b0654a] leading-relaxed">
+            <div className="px-4 py-3 bg-[var(--bg-active)] border border-[rgba(198,123,92,0.12)] rounded-2xl text-sm text-[#b0654a] leading-relaxed">
               在工作台、模特工厂、AI 改款中生成的图片都会消耗积分，可在下方查看流水。
             </div>
             <button
@@ -206,8 +206,8 @@ export default function ProfileContent() {
                   <BookOpen className="w-4 h-4 text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="text-[13px] font-semibold text-[var(--text-primary)]">使用教程</div>
-                  <div className="text-[11px] text-[var(--text-quaternary)]">查看所有功能的详细操作指南</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">使用教程</div>
+                  <div className="text-xs text-[var(--text-quaternary)]">查看所有功能的详细操作指南</div>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0" />
@@ -218,7 +218,7 @@ export default function ProfileContent() {
 
       {/* 数据统计 */}
       <div className="fashion-glass rounded-2xl p-4 md:p-6">
-        <h2 className="text-[15px] font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-[#c67b5c]" />
           数据统计
         </h2>
@@ -241,8 +241,8 @@ export default function ProfileContent() {
               <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-muted)] p-3 md:p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <TrendingUp className="w-3.5 h-3.5 text-[#c67b5c]" />
-                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">每日生图量</span>
-                  <span className="text-[10px] text-[var(--text-extreme)] ml-auto">近14天</span>
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">每日生图量</span>
+                  <span className="text-xs text-[var(--text-extreme)] ml-auto">近14天</span>
                 </div>
                 <MiniBarChart data={dailyChartData} height={80} />
               </div>
@@ -250,8 +250,8 @@ export default function ProfileContent() {
               <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-muted)] p-3 md:p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Coins className="w-3.5 h-3.5 text-[#d4a06a]" />
-                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">每日积分消耗</span>
-                  <span className="text-[10px] text-[var(--text-extreme)] ml-auto">近14天</span>
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">每日积分消耗</span>
+                  <span className="text-xs text-[var(--text-extreme)] ml-auto">近14天</span>
                 </div>
                 <MiniBarChart data={creditChartData} height={80} barColor="#d4a06a" />
               </div>
@@ -262,22 +262,22 @@ export default function ProfileContent() {
 
       {/* Credit History */}
       <div className="fashion-glass rounded-2xl p-4 md:p-6">
-        <h2 className="text-[15px] font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
           <Coins className="w-4 h-4 text-[#d4a06a]" />
           积分记录
         </h2>
         {creditLogs.length === 0 ? (
-          <div className="py-8 text-center text-[13px] text-[var(--text-extreme)]">暂无积分变动记录</div>
+          <div className="py-8 text-center text-sm text-[var(--text-extreme)]">暂无积分变动记录</div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[13px]">
+              <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">变动</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">余额</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">原因</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">时间</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">变动</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">余额</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">原因</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider border-b border-[var(--border-light)] bg-[var(--bg-muted)]">时间</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -299,7 +299,7 @@ export default function ProfileContent() {
             </div>
             {Math.ceil(creditLogs.length / CREDIT_PAGE_SIZE) > 1 && (
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--border-light)]">
-                <span className="text-[12px] text-[var(--text-quaternary)]">共 {creditLogs.length} 条记录</span>
+                <span className="text-xs text-[var(--text-quaternary)]">共 {creditLogs.length} 条记录</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -309,7 +309,7 @@ export default function ProfileContent() {
                   >
                     <ChevronLeft className="w-4 h-4 text-[var(--text-secondary)]" />
                   </button>
-                  <span className="text-[12px] text-[var(--text-secondary)] tabular-nums min-w-[50px] text-center">{creditPage} / {Math.ceil(creditLogs.length / CREDIT_PAGE_SIZE)}</span>
+                  <span className="text-xs text-[var(--text-secondary)] tabular-nums min-w-[50px] text-center">{creditPage} / {Math.ceil(creditLogs.length / CREDIT_PAGE_SIZE)}</span>
                   <button
                     type="button"
                     onClick={() => setCreditPage(p => Math.min(Math.ceil(creditLogs.length / CREDIT_PAGE_SIZE), p + 1))}

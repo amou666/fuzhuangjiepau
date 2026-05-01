@@ -52,7 +52,7 @@ export default function ToolsPage() {
         >
           <Wand2 className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden text-[18px] font-bold tracking-tight text-[var(--text-primary)] flex-1">工具</h1>
+        <h1 className="hidden text-lg font-bold tracking-tight text-[var(--text-primary)] flex-1">工具</h1>
       </div>
       <div className="hidden md:block mb-1">
         <div className="flex items-center gap-3 mb-1">
@@ -62,9 +62,9 @@ export default function ToolsPage() {
           >
             <Wand2 className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">工具</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">工具</h1>
         </div>
-        <p className="text-[13px] text-[var(--text-tertiary)] ml-[52px] tracking-wide">AI 辅助工具集合，提升你的创作效率</p>
+        <p className="text-sm text-[var(--text-tertiary)] ml-[52px] tracking-wide">AI 辅助工具集合，提升你的创作效率</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
@@ -83,8 +83,8 @@ export default function ToolsPage() {
               >
                 <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
               </div>
-              <h3 className="text-[15px] md:text-[14px] font-bold text-[var(--text-primary)] mb-1.5">{tool.title}</h3>
-              <p className="text-[11px] md:text-[12px] text-[var(--text-tertiary)] leading-relaxed">{tool.description}</p>
+              <h3 className="text-base md:text-sm font-bold text-[var(--text-primary)] mb-1.5">{tool.title}</h3>
+              <p className="text-xs md:text-xs text-[var(--text-tertiary)] leading-relaxed">{tool.description}</p>
             </Link>
           )
         })}
@@ -95,8 +95,8 @@ export default function ToolsPage() {
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(139,115,85,0.06)' }}>
           <Sparkles className="w-6 h-6 text-[var(--text-quaternary)]" style={{ opacity: 0.5 }} />
         </div>
-        <h3 className="text-[14px] font-semibold text-[var(--text-quaternary)] mb-1">更多工具即将上线</h3>
-        <p className="text-[12px] text-[var(--text-extreme)]">我们正在开发更多 AI 辅助工具，敬请期待</p>
+        <h3 className="text-sm font-semibold text-[var(--text-quaternary)] mb-1">更多工具即将上线</h3>
+        <p className="text-xs text-[var(--text-extreme)]">我们正在开发更多 AI 辅助工具，敬请期待</p>
       </div>
     </div>
   )

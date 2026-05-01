@@ -95,7 +95,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        {helperText && <span className="text-[11px] text-[var(--text-extreme)] leading-relaxed">{helperText}</span>}
+        {helperText && <span className="text-xs text-[var(--text-extreme)] leading-relaxed">{helperText}</span>}
       </div>
     );
   }
@@ -148,7 +148,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
           className="hidden"
         />
 
-        {error && <div className="text-[#c47070] text-[11px] font-medium mt-0.5">{error}</div>}
+        {error && <div className="text-[#c47070] text-xs font-medium mt-0.5">{error}</div>}
       </>
     );
   }
@@ -197,10 +197,10 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
             </div>
           )}
         </div>
-        <div className="text-[13px] font-semibold text-[var(--text-secondary)] mb-1">
+        <div className="text-sm font-semibold text-[var(--text-secondary)] mb-1">
           {uploading ? '上传中...' : isDragging ? '松开即可上传' : '点击或拖拽上传图片'}
         </div>
-        <div className="text-[11px] text-[var(--text-extreme)]">
+        <div className="text-xs text-[var(--text-extreme)]">
           {helperText || '支持 PNG / JPG / WEBP / GIF，最大 5MB'}
         </div>
       </div>
@@ -213,7 +213,7 @@ export function ImageUploader({ label, value, onChange, helperText, compact }: I
         className="hidden"
       />
 
-      {error && <div className="text-[#c47070] text-[12px] font-medium">{error}</div>}
+      {error && <div className="text-[#c47070] text-xs font-medium">{error}</div>}
     </div>
   );
 }

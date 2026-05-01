@@ -120,8 +120,8 @@ function CompareSlider({ imgA, imgB }: { imgA: string; imgB: string }) {
           <GripVertical className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
         </div>
       </div>
-      <div className="absolute top-2 left-2 bg-black/50 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">原图</div>
-      <div className="absolute top-2 right-2 bg-[#c67b5c]/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">改款</div>
+      <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded-full z-10">原图</div>
+      <div className="absolute top-2 right-2 bg-[#c67b5c]/80 text-white text-xs font-bold px-2 py-0.5 rounded-full z-10">改款</div>
     </div>
   )
 }
@@ -313,7 +313,7 @@ export default function RedesignContent() {
         >
           <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <h1 className="hidden text-[18px] font-bold tracking-tight text-[var(--text-primary)] flex-1">AI 改款</h1>
+        <h1 className="hidden text-lg font-bold tracking-tight text-[var(--text-primary)] flex-1">AI 改款</h1>
       </div>
       {/* 页头 - 桌面端带积分信息 */}
       <div className="hidden md:flex items-end justify-between">
@@ -325,11 +325,11 @@ export default function RedesignContent() {
             >
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">AI 改款</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">AI 改款</h1>
           </div>
-          <p className="text-[13px] text-[var(--text-tertiary)] ml-[52px] tracking-wide">上传服装原图，选择改款模式，AI 批量生成全新设计方案</p>
+          <p className="text-sm text-[var(--text-tertiary)] ml-[52px] tracking-wide">上传服装原图，选择改款模式，AI 批量生成全新设计方案</p>
         </div>
-        <div className="hidden md:flex items-center gap-3 text-[11px] text-[var(--text-quaternary)] tracking-widest uppercase">
+        <div className="hidden md:flex items-center gap-3 text-xs text-[var(--text-quaternary)] tracking-widest uppercase">
           <span>消耗</span>
           <span className="text-[#c67b5c] font-bold text-sm">{count}</span>
           <span>积分 / 次 · {count} 图</span>
@@ -344,16 +344,16 @@ export default function RedesignContent() {
       {materialLoading && (
         <div className="fashion-glass rounded-2xl p-4 flex items-center gap-3">
           <Loader2 className="w-4 h-4 text-[#c67b5c] animate-spin" />
-          <span className="text-[13px] text-[var(--text-tertiary)]">正在识别材质与款式...</span>
+          <span className="text-sm text-[var(--text-tertiary)]">正在识别材质与款式...</span>
         </div>
       )}
       {materialInfo && !materialLoading && (
         <div className="fashion-glass rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <ImageIcon className="w-4 h-4 text-[#c67b5c]" />
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">材质与款式识别</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">材质与款式识别</span>
           </div>
-          <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">{materialInfo}</p>
+          <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">{materialInfo}</p>
         </div>
       )}
 
@@ -362,13 +362,13 @@ export default function RedesignContent() {
         <div className="lg:col-span-4 flex flex-col gap-5">
           {/* 图片上传 */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight mb-3">上传原图</h3>
+            <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight mb-3">上传原图</h3>
             <ImageUploadPicker label="服装原图" value={imageUrl} onChange={setImageUrl} sourceType="clothing" helperText="服装正面清晰图，支持从素材库快速选择" />
           </div>
 
           {/* 模式选择 */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight mb-3">选择模式</h3>
+            <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight mb-3">选择模式</h3>
             <div className="flex flex-col gap-2">
               {MODES.map((m) => {
                 const Icon = m.icon
@@ -393,11 +393,11 @@ export default function RedesignContent() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[13px] font-semibold" style={{ color: isActive ? '#b0654a' : 'var(--text-primary)' }}>
+                          <span className="text-sm font-semibold" style={{ color: isActive ? '#b0654a' : 'var(--text-primary)' }}>
                             {m.label}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[var(--text-quaternary)] mt-0.5 leading-relaxed line-clamp-2">{m.description}</p>
+                        <p className="text-xs text-[var(--text-quaternary)] mt-0.5 leading-relaxed line-clamp-2">{m.description}</p>
                       </div>
                     </div>
                   </button>
@@ -408,8 +408,8 @@ export default function RedesignContent() {
 
           {/* 生成数量 */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight mb-2">生成数量</h3>
-            <p className="text-[11px] text-[var(--text-quaternary)] mb-3">每张消耗 1 积分</p>
+            <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight mb-2">生成数量</h3>
+            <p className="text-xs text-[var(--text-quaternary)] mb-3">每张消耗 1 积分</p>
             <div className="flex gap-2">
               {COUNT_OPTIONS.map((c) => (
                 <button
@@ -423,8 +423,8 @@ export default function RedesignContent() {
                     boxShadow: count === c ? '0 2px 8px rgba(198,123,92,0.2)' : 'none',
                   }}
                 >
-                  <div className="text-[14px]">{c}</div>
-                  <div className="text-[10px]" style={{ opacity: 0.8 }}>{c} 积分</div>
+                  <div className="text-sm">{c}</div>
+                  <div className="text-xs" style={{ opacity: 0.8 }}>{c} 积分</div>
                 </button>
               ))}
             </div>
@@ -432,14 +432,14 @@ export default function RedesignContent() {
 
           {/* 设计约束（所有模式通用） */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight mb-2">设计约束</h3>
-            <p className="text-[11px] text-[var(--text-quaternary)] mb-3">告诉 AI 要保留什么、不要什么、方向偏好（选填）</p>
+            <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight mb-2">设计约束</h3>
+            <p className="text-xs text-[var(--text-quaternary)] mb-3">告诉 AI 要保留什么、不要什么、方向偏好（选填）</p>
             <textarea
               value={constraints}
               onChange={(e) => setConstraints(e.target.value)}
               placeholder={selectedMode.constraintPlaceholder}
               rows={2}
-              className="w-full px-3.5 py-2.5 rounded-2xl border bg-[var(--bg-card)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] focus:outline-none focus:ring-2 resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] focus:outline-none focus:ring-2 resize-none"
               style={{ borderColor: 'var(--border-normal)', '--tw-ring-color': 'rgba(198,123,92,0.15)' } as React.CSSProperties}
             />
           </div>
@@ -447,14 +447,14 @@ export default function RedesignContent() {
           {/* 自定义 Prompt（商业脑暴模式） */}
           {mode === 'commercial-brainstorm' && (
             <div className="fashion-glass rounded-2xl p-5">
-              <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight mb-2">创意方向</h3>
-              <p className="text-[11px] text-[var(--text-quaternary)] mb-3">输入自定义 Prompt 作为核心权重引导生成</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight mb-2">创意方向</h3>
+              <p className="text-xs text-[var(--text-quaternary)] mb-3">输入自定义 Prompt 作为核心权重引导生成</p>
               <textarea
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="例：增加解构设计、工装风细节..."
                 rows={3}
-                className="w-full px-3.5 py-2.5 rounded-2xl border bg-[var(--bg-card)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] focus:outline-none focus:ring-2 resize-none"
+                className="w-full px-3.5 py-2.5 rounded-2xl border bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] focus:outline-none focus:ring-2 resize-none"
                 style={{ borderColor: 'var(--border-normal)', '--tw-ring-color': 'rgba(198,123,92,0.15)' } as React.CSSProperties}
               />
             </div>
@@ -479,7 +479,7 @@ export default function RedesignContent() {
             ) : (
               <>
                 <div>开始改款</div>
-                <div className="text-[12px] font-normal opacity-85 mt-1">消耗 {count} 积分 · 生成 {count} 张方案</div>
+                <div className="text-xs font-normal opacity-85 mt-1">消耗 {count} 积分 · 生成 {count} 张方案</div>
               </>
             )}
           </button>
@@ -492,21 +492,21 @@ export default function RedesignContent() {
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-active)' }}>
                 <Sparkles className="w-7 h-7 text-[#c67b5c]" style={{ opacity: 0.5 }} />
               </div>
-              <h3 className="text-[15px] font-semibold text-[var(--text-quaternary)] mb-1">等待生成</h3>
-              <p className="text-[13px] text-[var(--text-extreme)]">上传原图并选择模式后，点击生成按钮开始改款</p>
+              <h3 className="text-base font-semibold text-[var(--text-quaternary)] mb-1">等待生成</h3>
+              <p className="text-sm text-[var(--text-extreme)]">上传原图并选择模式后，点击生成按钮开始改款</p>
             </div>
           )}
 
           {(resultUrls.length > 0 || pendingCount > 0) && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
+                <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[#c67b5c]" />
                   生成结果
-                  <span className="text-[13px] font-normal text-[var(--text-quaternary)]">({resultUrls.length} 张{pendingCount > 0 ? `，待生成 ${pendingCount} 张` : ''})</span>
+                  <span className="text-sm font-normal text-[var(--text-quaternary)]">({resultUrls.length} 张{pendingCount > 0 ? `，待生成 ${pendingCount} 张` : ''})</span>
                 </h3>
                 <button
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: '#b0654a', background: 'var(--bg-active)', border: '1px solid rgba(198,123,92,0.12)' }}
                   type="button"
                   onClick={() => { void handleAppendMore() }}
@@ -550,14 +550,14 @@ export default function RedesignContent() {
                     <div className="flex flex-col gap-1.5 mt-2.5 px-1">
                       {/* 方案名称 */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-medium text-[var(--text-tertiary)] truncate flex-1 mr-2" title={generatedItems[idx]}>
+                        <span className="text-xs font-medium text-[var(--text-tertiary)] truncate flex-1 mr-2" title={generatedItems[idx]}>
                           {generatedItems[idx] ? `方案 ${idx + 1}: ${generatedItems[idx]}` : `方案 ${idx + 1}`}
                         </span>
                       </div>
                       {/* 操作按钮 */}
                       <div className="flex items-center gap-0.5 flex-wrap">
                         <button
-                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-xs"
                           onClick={() => setCompareIdx(compareIdx === idx ? null : idx)}
                           title="与原图对比"
                         >
@@ -565,7 +565,7 @@ export default function RedesignContent() {
                           <span className="hidden sm:inline">{compareIdx === idx ? '关闭' : '对比'}</span>
                         </button>
                         <button
-                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-xs"
                           onClick={() => { void handleGenerate(generatedItems[idx] || `方案 ${idx + 1}`) }}
                           disabled={submitting}
                           title="基于这个方向深化"
@@ -574,14 +574,14 @@ export default function RedesignContent() {
                           <span className="hidden sm:inline">深化</span>
                         </button>
                         <button
-                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-xs"
                           onClick={() => handleSendToWorkspace(url)}
                         >
                           <Send className="w-3 h-3" />
                           <span className="hidden sm:inline">快速工作台</span>
                         </button>
                         <button
-                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-[10px]"
+                          className="inline-flex items-center gap-0.5 p-1.5 rounded-2xl hover:bg-[var(--bg-active)] text-[var(--text-quaternary)] hover:text-[#c67b5c] transition-colors text-xs"
                           onClick={() => handleDownload(url)}
                         >
                           <Download className="w-3 h-3" />
@@ -607,10 +607,10 @@ export default function RedesignContent() {
                           style={{ border: '2px solid rgba(198,123,92,0.15)', borderTopColor: '#c67b5c' }}
                         />
                       </div>
-                      <span className="text-[11px] font-medium text-[#c67b5c]" style={{ opacity: 0.6 }}>AI 创作中...</span>
+                      <span className="text-xs font-medium text-[#c67b5c]" style={{ opacity: 0.6 }}>AI 创作中...</span>
                     </div>
                     <div className="flex items-center justify-between mt-2.5 px-1">
-                      <span className="text-[11px] font-medium text-[var(--text-extreme)]">待生成</span>
+                      <span className="text-xs font-medium text-[var(--text-extreme)]">待生成</span>
                       <div className="w-5 h-5" />
                     </div>
                   </div>
@@ -655,7 +655,7 @@ export default function RedesignContent() {
               }}
             />
             <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-              <span className="text-[11px] text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>这个款真好看！！！</span>
+              <span className="text-xs text-[#999] font-light tracking-wider" style={{ fontFamily: 'Georgia, serif' }}>这个款真好看！！！</span>
             </div>
             <button
               className="absolute -top-2 -right-2 w-8 h-8 bg-[var(--bg-card)] shadow-lg text-[#666] border-none rounded-full flex items-center justify-center cursor-pointer hover:text-[#333] active:scale-90 transition-all z-10"
@@ -670,7 +670,7 @@ export default function RedesignContent() {
               <Download className="w-4 h-4" />
             </button>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-[12px] pointer-events-none sm:hidden">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-xs pointer-events-none sm:hidden">
             点击空白区域关闭
           </div>
         </div>

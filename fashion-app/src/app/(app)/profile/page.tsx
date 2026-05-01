@@ -18,9 +18,9 @@ export default function ProfilePage() {
           >
             <UserCircle className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">个人中心</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">个人中心</h1>
         </div>
-        <p className="text-[13px] text-[var(--text-tertiary)] ml-[52px] tracking-wide">查看账号信息、数据统计与积分变动记录</p>
+        <p className="text-sm text-[var(--text-tertiary)] ml-[52px] tracking-wide">查看账号信息、数据统计与积分变动记录</p>
       </div>
 
       {/* 交互内容 */}

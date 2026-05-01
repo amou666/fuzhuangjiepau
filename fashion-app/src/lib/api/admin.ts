@@ -23,6 +23,9 @@ export const adminApi = {
     const response = await apiClient.patch<{ customer: Customer }>(`/admin/customers/${id}/api-key`, { apiKey });
     return response.data.customer;
   },
+  resetCustomerPassword: async (id: string, password: string) => {
+    await apiClient.patch(`/admin/customers/${id}/password`, { password });
+  },
   rechargeCredits: async (payload: { userId: string; amount: number }) => {
     const response = await apiClient.post('/admin/credits/recharge', payload);
     return response.data;

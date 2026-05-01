@@ -58,7 +58,7 @@ export default function AuditLogsContent() {
         </div>
       ) : (
         <div className="overflow-x-auto fashion-glass rounded-2xl">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">时间</th>
@@ -79,7 +79,7 @@ export default function AuditLogsContent() {
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{log.admin.email}</td>
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-700">{log.targetUser?.email ?? '-'}</td>
-                  <td className="px-4 py-3 border-b border-gray-100 text-gray-500 text-[13px]">{log.detail}</td>
+                  <td className="px-4 py-3 border-b border-gray-100 text-gray-500 text-sm">{log.detail}</td>
                 </tr>
               ))}
             </tbody>

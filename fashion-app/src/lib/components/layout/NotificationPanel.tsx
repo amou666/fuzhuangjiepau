@@ -75,7 +75,7 @@ export function NotificationBell() {
       >
         <Bell className="w-[18px] h-[18px] text-[var(--text-secondary)]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[#c67b5c] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-[#c67b5c] text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -84,11 +84,11 @@ export function NotificationBell() {
       {open && (
         <div className="fixed md:absolute top-14 md:top-full right-2 md:right-auto left-2 md:left-full mt-0 md:mt-2 md:ml-2 md:w-[340px] max-h-[440px] bg-white/95 backdrop-blur-xl rounded-2xl border border-[var(--border-normal)] shadow-xl z-[200] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-light)]">
-            <h3 className="text-[14px] font-bold text-[var(--text-primary)]">通知中心</h3>
+            <h3 className="text-sm font-bold text-[var(--text-primary)]">通知中心</h3>
             <div className="flex items-center gap-1.5">
               {unreadCount > 0 && (
                 <button
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-2xl text-[10px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-active)] transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-2xl text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-active)] transition-colors"
                   onClick={handleMarkAllRead}
                 >
                   <CheckCheck className="w-3 h-3" /> 全部已读
@@ -107,7 +107,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell className="w-8 h-8 text-[var(--text-extreme)] mx-auto mb-2" />
-                <p className="text-[12px] text-[var(--text-extreme)]">暂无通知</p>
+                <p className="text-xs text-[var(--text-extreme)]">暂无通知</p>
               </div>
             ) : (
               notifications.map((n) => {
@@ -128,15 +128,15 @@ export function NotificationBell() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{n.title}</span>
+                          <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{n.title}</span>
                           {!n.isRead && (
                             <span className="w-1.5 h-1.5 bg-[#c67b5c] rounded-full flex-shrink-0" />
                           )}
                         </div>
                         {n.content && (
-                          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-relaxed line-clamp-2">{n.content}</p>
+                          <p className="text-xs text-[var(--text-tertiary)] mt-0.5 leading-relaxed line-clamp-2">{n.content}</p>
                         )}
-                        <span className="text-[10px] text-[var(--text-extreme)] mt-1 block">{formatDateTime(n.createdAt)}</span>
+                        <span className="text-xs text-[var(--text-extreme)] mt-1 block">{formatDateTime(n.createdAt)}</span>
                       </div>
                     </div>
                   </div>

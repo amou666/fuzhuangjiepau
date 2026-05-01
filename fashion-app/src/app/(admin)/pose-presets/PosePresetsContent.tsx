@@ -211,7 +211,7 @@ export default function PosePresetsContent() {
       {/* ─── 创建表单 ─── */}
       {showForm && (
         <div className="fashion-glass rounded-2xl p-6">
-          <h3 className="text-[15px] font-semibold text-gray-900 mb-4">创建新姿势</h3>
+          <h3 className="text-base font-semibold text-gray-900 mb-4">创建新姿势</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">姿势名称 *</label>
@@ -370,7 +370,7 @@ export default function PosePresetsContent() {
       ) : (
         <div className="fashion-glass rounded-2xl p-6">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50/50">参考图</th>
@@ -398,7 +398,7 @@ export default function PosePresetsContent() {
                           )}
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-2xl text-[10px] text-gray-400 hover:bg-gray-50"
+                            className="inline-flex items-center gap-1 px-2 py-1 border border-gray-200 rounded-2xl text-xs text-gray-400 hover:bg-gray-50"
                             onClick={() => editFileInputRef.current?.click()}
                             disabled={editUploading}
                           >
@@ -459,7 +459,7 @@ export default function PosePresetsContent() {
                           {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                         </select>
                       ) : (
-                        <span className="inline-flex px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] font-medium">
+                        <span className="inline-flex px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
                           {CATEGORIES.find((c) => c.value === p.category)?.label || p.category}
                         </span>
                       )}
@@ -469,7 +469,7 @@ export default function PosePresetsContent() {
                       {editingId === p.id ? (
                         <div className="relative">
                           {editGeneratingPrompt && (
-                            <span className="text-[10px] text-blue-500 flex items-center gap-0.5 mb-0.5">
+                            <span className="text-xs text-blue-500 flex items-center gap-0.5 mb-0.5">
                               <Sparkles className="w-2.5 h-2.5 animate-pulse" /> AI 生成中...
                             </span>
                           )}

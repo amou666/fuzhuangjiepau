@@ -154,7 +154,7 @@ export function ImageUploadPicker({ label, value, onChange, helperText, sourceTy
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-        {helperText && <span className="text-[11px] text-[var(--text-extreme)] leading-relaxed">{helperText}</span>}
+        {helperText && <span className="text-xs text-[var(--text-extreme)] leading-relaxed">{helperText}</span>}
       </div>
     )
   }
@@ -183,7 +183,7 @@ export function ImageUploadPicker({ label, value, onChange, helperText, sourceTy
           )}
         </div>
         <input ref={fileInputRef} type="file" accept={ACCEPT_STRING} onChange={handleFileChange} className="hidden" />
-        {error && <div className="text-[#c47070] text-[11px] font-medium mt-0.5">{error}</div>}
+        {error && <div className="text-[#c47070] text-xs font-medium mt-0.5">{error}</div>}
         {createPortal(portalModals, document.body)}
       </>
     )
@@ -214,15 +214,15 @@ export function ImageUploadPicker({ label, value, onChange, helperText, sourceTy
             </div>
           )}
         </div>
-        <div className="text-[13px] font-semibold text-[var(--text-secondary)] mb-1">
+        <div className="text-sm font-semibold text-[var(--text-secondary)] mb-1">
           {uploading ? '上传中...' : isDragging ? '松开即可上传' : '点击选择图片'}
         </div>
-        <div className="text-[11px] text-[var(--text-extreme)]">
+        <div className="text-xs text-[var(--text-extreme)]">
           {helperText || '从素材库快速选择 或 本地上传'}
         </div>
       </div>
       <input ref={fileInputRef} type="file" accept={ACCEPT_STRING} onChange={handleFileChange} className="hidden" />
-      {error && <div className="text-[#c47070] text-[12px] font-medium">{error}</div>}
+      {error && <div className="text-[#c47070] text-xs font-medium">{error}</div>}
       {createPortal(portalModals, document.body)}
     </div>
   )
@@ -246,7 +246,7 @@ function UploadPickerModal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" onClick={onClose}>
       <div className="w-full max-w-[360px] bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border-light)] p-5 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">选择{sourceLabel}图片</h3>
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">选择{sourceLabel}图片</h3>
           <button type="button" onClick={onClose} className="text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -264,8 +264,8 @@ function UploadPickerModal({
               <Star className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">快速选择</div>
-              <div className="text-[11px] text-[var(--text-secondary)]">从素材库中已收藏的{sourceLabel}选取</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">快速选择</div>
+              <div className="text-xs text-[var(--text-secondary)]">从素材库中已收藏的{sourceLabel}选取</div>
             </div>
           </button>
 
@@ -281,8 +281,8 @@ function UploadPickerModal({
               <Upload className="w-5 h-5 text-[#c67b5c]" />
             </div>
             <div>
-              <div className="text-[13px] font-semibold text-[var(--text-primary)]">本地上传</div>
-              <div className="text-[11px] text-[var(--text-secondary)]">从设备中选择图片上传</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">本地上传</div>
+              <div className="text-xs text-[var(--text-secondary)]">从设备中选择图片上传</div>
             </div>
           </button>
         </div>
@@ -318,7 +318,7 @@ function FavoritePickerModal({
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-light)]">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-[#c67b5c]" />
-            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">从素材库选择{label}</h3>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">从素材库选择{label}</h3>
           </div>
           <button type="button" onClick={onClose} className="text-[var(--text-quaternary)] hover:text-[var(--text-secondary)] transition-colors">
             <X className="w-4 h-4" />
@@ -330,13 +330,13 @@ function FavoritePickerModal({
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-5 h-5 animate-spin text-[#c67b5c] mr-2" />
-              <span className="text-[12px] text-[var(--text-secondary)]">加载中...</span>
+              <span className="text-xs text-[var(--text-secondary)]">加载中...</span>
             </div>
           ) : favorites.length === 0 ? (
             <div className="text-center py-16">
               <Star className="w-8 h-8 mx-auto mb-2 text-[var(--text-extreme)] opacity-50" />
-              <div className="text-[13px] text-[var(--text-secondary)] mb-1">暂无收藏的{label}</div>
-              <div className="text-[11px] text-[var(--text-quaternary)]">先上传图片并收藏后，可在此快速选择</div>
+              <div className="text-sm text-[var(--text-secondary)] mb-1">暂无收藏的{label}</div>
+              <div className="text-xs text-[var(--text-quaternary)]">先上传图片并收藏后，可在此快速选择</div>
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
@@ -351,7 +351,7 @@ function FavoritePickerModal({
                       </div>
                     )}
                   </div>
-                  <div className="text-[11px] text-[var(--text-primary)] font-medium truncate">{fav.name}</div>
+                  <div className="text-xs text-[var(--text-primary)] font-medium truncate">{fav.name}</div>
                 </button>
               ))}
             </div>
@@ -360,7 +360,7 @@ function FavoritePickerModal({
 
         {/* Footer */}
         <div className="p-4 border-t border-[var(--border-light)]">
-          <button type="button" onClick={onBack} className="w-full h-10 rounded-2xl border border-[rgba(139,115,85,0.2)] text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] transition-colors">
+          <button type="button" onClick={onBack} className="w-full h-10 rounded-2xl border border-[rgba(139,115,85,0.2)] text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] transition-colors">
             返回上一步
           </button>
         </div>

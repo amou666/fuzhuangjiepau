@@ -104,10 +104,10 @@ function ImageCompareSlider({ beforeUrl, afterUrl }: { beforeUrl: string; afterU
         </div>
       </div>
       {/* 标签 */}
-      <div className="absolute top-3 left-3 bg-black/50 text-white text-[11px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+      <div className="absolute top-3 left-3 bg-black/50 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
         原图
       </div>
-      <div className="absolute top-3 right-3 bg-[#c67b5c]/80 text-white text-[11px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+      <div className="absolute top-3 right-3 bg-[#c67b5c]/80 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
         生成图
       </div>
     </div>
@@ -245,8 +245,8 @@ export default function GhostMannequinPage() {
           <Box className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">一键3D图</h1>
-          <p className="hidden md:block text-[11px] text-[var(--text-tertiary)] truncate">随手挂拍或人台图，增强细节，自动布局，生成3D隐形模特图</p>
+          <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">一键3D图</h1>
+          <p className="hidden md:block text-xs text-[var(--text-tertiary)] truncate">随手挂拍或人台图，增强细节，自动布局，生成3D隐形模特图</p>
         </div>
       </div>
 
@@ -291,8 +291,8 @@ export default function GhostMannequinPage() {
                       />
                     </div>
                     <RefreshCw className="w-5 h-5 text-[#c67b5c] animate-spin mb-3" />
-                    <p className="text-[13px] font-semibold text-[var(--text-primary)] tracking-wide">{genStatus}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)] mt-1">{progress}%</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] tracking-wide">{genStatus}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">{progress}%</p>
                   </div>
                 )}
 
@@ -382,7 +382,7 @@ export default function GhostMannequinPage() {
         <div className="w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-4 lg:overflow-y-auto">
           {/* 风格选择 */}
           <div className="fashion-glass rounded-2xl p-5">
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] mb-4 flex items-center">
+            <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] mb-4 flex items-center">
               <Layers size={14} className="mr-2" /> 风格选择
             </h3>
             <div className="space-y-2.5">
@@ -401,8 +401,8 @@ export default function GhostMannequinPage() {
                     style={{ backgroundColor: bg.hex, border: '1px solid rgba(0,0,0,0.06)' }}
                   />
                   <div className="text-left">
-                    <p className="text-[13px] font-bold text-[var(--text-primary)]">{bg.name}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">{bg.desc}</p>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{bg.name}</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{bg.desc}</p>
                   </div>
                   {selectedBg === bg.id && <CheckCircle2 className="ml-auto text-[#c67b5c]" size={16} />}
                 </button>
@@ -414,10 +414,10 @@ export default function GhostMannequinPage() {
           {resultUrl && (
             <div className="fashion-glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] flex items-center">
+                <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-quaternary)] flex items-center">
                   <Sun size={14} className="mr-2" /> 亮度调节
                 </h3>
-                <span className="text-[11px] font-mono font-bold bg-[var(--bg-active)] px-2 py-0.5 rounded text-[var(--text-secondary)]">
+                <span className="text-xs font-mono font-bold bg-[var(--bg-active)] px-2 py-0.5 rounded text-[var(--text-secondary)]">
                   {brightness}%
                 </span>
               </div>
@@ -429,7 +429,7 @@ export default function GhostMannequinPage() {
                 onChange={(e) => setBrightness(Number(e.target.value))}
                 className="w-full h-1.5 bg-[rgba(139,115,85,0.1)] rounded-2xl appearance-none cursor-pointer accent-[#c67b5c]"
               />
-              <div className="flex justify-between text-[10px] text-[var(--text-extreme)] font-bold uppercase mt-2">
+              <div className="flex justify-between text-xs text-[var(--text-extreme)] font-bold uppercase mt-2">
                 <span>暗调</span>
                 <span>标准</span>
                 <span>高亮</span>
@@ -445,13 +445,13 @@ export default function GhostMannequinPage() {
               boxShadow: '0 8px 32px rgba(198,123,92,0.2)',
             }}
           >
-            <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70 mb-4 flex items-center">
+            <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-white/70 mb-4 flex items-center">
               <Zap size={14} className="mr-2" /> 智能引擎
             </h3>
 
             <div className="space-y-4 flex-1">
               <div className="flex justify-between items-center">
-                <span className="text-[12px] font-bold text-white">3D 廓形重塑</span>
+                <span className="text-xs font-bold text-white">3D 廓形重塑</span>
                 <div className="w-9 h-4 rounded-full flex items-center px-1" style={{ background: 'rgba(255,255,255,0.3)' }}>
                   <div className="w-2.5 h-2.5 bg-[var(--bg-card)] rounded-full ml-auto" />
                 </div>
@@ -471,7 +471,7 @@ export default function GhostMannequinPage() {
               <button
                 onClick={handleGenerate}
                 disabled={!imageUrl || isGenerating}
-                className={`w-full py-3.5 rounded-2xl font-bold text-[13px] uppercase tracking-wider transition-all relative ${
+                className={`w-full py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all relative ${
                   !imageUrl || isGenerating
                     ? 'bg-white/5 text-white/30 cursor-not-allowed'
                     : 'bg-white text-[var(--text-primary)] hover:bg-[#f5f0ec] shadow-xl active:scale-[0.98]'
@@ -493,7 +493,7 @@ export default function GhostMannequinPage() {
           {errorMessage && (
             <div className="p-4 bg-[rgba(196,112,112,0.08)] border border-red-100 rounded-2xl flex items-start gap-2.5 text-red-600">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <p className="text-[12px] font-semibold leading-relaxed">{errorMessage}</p>
+              <p className="text-xs font-semibold leading-relaxed">{errorMessage}</p>
             </div>
           )}
         </div>
@@ -518,7 +518,7 @@ function ToggleRow({
   return (
     <div className="flex justify-between items-center cursor-pointer" onClick={() => onChange(!checked)}>
       <div className="flex items-center">
-        <span className="text-[12px] font-bold text-white">{label}</span>
+        <span className="text-xs font-bold text-white">{label}</span>
         {icon}
       </div>
       <div

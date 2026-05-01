@@ -5,7 +5,7 @@ export function CreditBadge() {
 
   return (
     <div
-      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-white rounded-full text-[13px] font-semibold"
+      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-white rounded-full text-sm font-semibold"
       style={{
         background: 'linear-gradient(135deg, #c67b5c, #d4a882)',
         boxShadow: '0 2px 10px rgba(198,123,92,0.2)',

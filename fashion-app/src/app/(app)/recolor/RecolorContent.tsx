@@ -151,8 +151,8 @@ function CompareSlider({ imgA, imgB }: { imgA: string; imgB: string }) {
           <GripVertical className="w-3.5 h-3.5 text-[#6366f1]" />
         </div>
       </div>
-      <div className="absolute top-2 left-2 bg-black/50 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">原图</div>
-      <div className="absolute top-2 right-2 bg-[#6366f1]/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-10">改色</div>
+      <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded-full z-10">原图</div>
+      <div className="absolute top-2 right-2 bg-[#6366f1]/80 text-white text-xs font-bold px-2 py-0.5 rounded-full z-10">改色</div>
     </div>
   )
 }
@@ -251,22 +251,22 @@ function TargetColorPicker({
             const hsl = hexToHsl(c)
             setHsv(hslToHsv(hsl.h, hsl.s, hsl.l))
           }
-        }} className="w-[88px] px-2.5 py-2 rounded-2xl text-[13px] font-mono outline-none flex-shrink-0"
+        }} className="w-[88px] px-2.5 py-2 rounded-2xl text-sm font-mono outline-none flex-shrink-0"
           style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-normal)' }} maxLength={7} />
         <div className="flex-1" />
         <button type="button" onClick={onClose}
-          className="px-4 py-2.5 rounded-2xl text-[13px] text-[var(--text-quaternary)] hover:bg-[var(--bg-active)] active:bg-[rgba(139,115,85,0.12)] flex-shrink-0">
+          className="px-4 py-2.5 rounded-2xl text-sm text-[var(--text-quaternary)] hover:bg-[var(--bg-active)] active:bg-[rgba(139,115,85,0.12)] flex-shrink-0">
           取消
         </button>
         <button type="button" onClick={() => onConfirm({ name: getColorName(currentComputedHex), hex: currentComputedHex.toUpperCase() })}
-          className="px-5 py-2.5 rounded-2xl text-[13px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+          className="px-5 py-2.5 rounded-2xl text-sm font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
           确认
         </button>
       </div>
 
       {/* 快捷色 */}
       <div className="mt-4">
-        <div className="text-[11px] text-[var(--text-quaternary)] mb-2">快捷选色</div>
+        <div className="text-xs text-[var(--text-quaternary)] mb-2">快捷选色</div>
         <div className="grid grid-cols-4 gap-2">
           {PRESET_COLORS.map(c => (
             <button key={c.hex} type="button" onClick={() => {
@@ -275,7 +275,7 @@ function TargetColorPicker({
               setHsv(hsvFromHsl)
               setHexInput(c.hex.toUpperCase())
             }}
-              className="flex items-center gap-1.5 px-2 py-2 rounded-2xl text-[11px] font-medium hover:bg-[var(--bg-active)] active:bg-[rgba(139,115,85,0.12)] transition-colors"
+              className="flex items-center gap-1.5 px-2 py-2 rounded-2xl text-xs font-medium hover:bg-[var(--bg-active)] active:bg-[rgba(139,115,85,0.12)] transition-colors"
               style={{ border: '1px solid var(--border-light)' }}>
               <span className="w-4 h-4 rounded-full flex-shrink-0 border border-[var(--border-light)] shadow-sm" style={{ backgroundColor: c.hex }} />
               <span className="truncate">{c.name}</span>
@@ -698,8 +698,8 @@ export default function RecolorContent() {
           <Palette className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">AI 改色</h1>
-          <p className="hidden md:block text-[11px] text-[var(--text-tertiary)] truncate">点击衣服取色 → 选择目标色 → AI 色系替换（保留明暗层次）</p>
+          <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">AI 改色</h1>
+          <p className="hidden md:block text-xs text-[var(--text-tertiary)] truncate">点击衣服取色 → 选择目标色 → AI 色系替换（保留明暗层次）</p>
         </div>
       </div>
 
@@ -713,8 +713,8 @@ export default function RecolorContent() {
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(99,102,241,0.08)' }}>
                   <Pipette className="w-7 h-7 text-[#6366f1]" />
                 </div>
-                <h3 className="text-[17px] font-bold text-[var(--text-primary)] mb-2">AI 改色工具</h3>
-                <p className="text-[13px] text-[var(--text-tertiary)] mb-5">上传服装图片，点击衣服取色，AI 识别色系并保留明暗层次精准换色</p>
+                <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">AI 改色工具</h3>
+                <p className="text-sm text-[var(--text-tertiary)] mb-5">上传服装图片，点击衣服取色，AI 识别色系并保留明暗层次精准换色</p>
                 <ImageUploadPicker label="服装原图" value={imageUrl} onChange={setImageUrl} sourceType="clothing" />
               </div>
             </div>
@@ -731,7 +731,7 @@ export default function RecolorContent() {
                       <button
                         type="button"
                         onClick={() => setPickMode(!pickMode)}
-                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-[12px] font-semibold transition-all"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl text-xs sm:text-xs font-semibold transition-all"
                         style={{
                           background: pickMode ? 'rgba(99,102,241,0.1)' : 'rgba(139,115,85,0.04)',
                           border: pickMode ? '1px solid rgba(99,102,241,0.25)' : '1px solid rgba(139,115,85,0.08)',
@@ -745,11 +745,11 @@ export default function RecolorContent() {
                       {hoverColor && pickMode && (
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl" style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-light)' }}>
                           <span className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: hoverColor }} />
-                          <span className="text-[11px] font-mono text-[#5a4a3a]">{hoverColor.toUpperCase()}</span>
+                          <span className="text-xs font-mono text-[#5a4a3a]">{hoverColor.toUpperCase()}</span>
                         </div>
                       )}
                     </div>
-                    <button type="button" onClick={() => { setImageUrl(''); setReplacements([]); setGen({ results: [], error: '' }); setCompareMode(false); setPreviewSrc(null); }} className="text-[11px] text-[var(--text-quaternary)] hover:text-[#c47070] transition-colors flex items-center gap-1">
+                    <button type="button" onClick={() => { setImageUrl(''); setReplacements([]); setGen({ results: [], error: '' }); setCompareMode(false); setPreviewSrc(null); }} className="text-xs text-[var(--text-quaternary)] hover:text-[#c47070] transition-colors flex items-center gap-1">
                       <RotateCcw className="w-3 h-3" /> 换图片
                     </button>
                   </div>
@@ -779,7 +779,7 @@ export default function RecolorContent() {
                     {/* 取色提示 */}
                     {pickMode && replacements.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black/40 text-white text-[13px] font-semibold px-5 py-2.5 rounded-2xl backdrop-blur-sm">
+                        <div className="bg-black/40 text-white text-sm font-semibold px-5 py-2.5 rounded-2xl backdrop-blur-sm">
                           👆 点击衣服上的颜色来取色
                         </div>
                       </div>
@@ -795,7 +795,7 @@ export default function RecolorContent() {
                       {replacements.map((rep) => (
                         <div key={rep.id} className="flex items-center gap-1">
                           <div className="w-3.5 h-3.5 rounded-full border border-white/80 shadow-sm flex-shrink-0" style={{ background: rep.sourceGradient[2] }} title={rep.sourceName} />
-                          <span className="text-[10px] text-[var(--text-quaternary)]">→</span>
+                          <span className="text-xs text-[var(--text-quaternary)]">→</span>
                           <div className="w-3.5 h-3.5 rounded-full border border-white/80 shadow-sm flex-shrink-0" style={{ backgroundColor: rep.targetColor?.hex || '#ccc' }} title={rep.targetColor?.name || '未选'} />
                         </div>
                       ))}
@@ -805,7 +805,7 @@ export default function RecolorContent() {
                     ) : (
                       <div className="relative cursor-pointer" onClick={() => setPreviewSrc(results[0].url)}>
                         <img src={results[0].url} alt="改色" className="w-full max-h-[65vh] object-contain block" />
-                        <div className="absolute bottom-3 left-3 bg-[#6366f1]/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">{results[0].label}</div>
+                        <div className="absolute bottom-3 left-3 bg-[#6366f1]/80 text-white text-xs font-bold px-2.5 py-1 rounded-full">{results[0].label}</div>
                       </div>
                     )}
                   </div>
@@ -815,7 +815,7 @@ export default function RecolorContent() {
                 {results.length > 0 && (
                   <div className="flex items-center gap-2">
                     <button
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium transition-colors ${compareMode ? 'bg-[#6366f1] text-white' : 'text-[var(--text-quaternary)] hover:bg-[rgba(99,102,241,0.06)] hover:text-[#6366f1]'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-medium transition-colors ${compareMode ? 'bg-[#6366f1] text-white' : 'text-[var(--text-quaternary)] hover:bg-[rgba(99,102,241,0.06)] hover:text-[#6366f1]'}`}
                       onClick={() => setCompareMode(!compareMode)}
                     >
                       <GripVertical className="w-3.5 h-3.5" />
@@ -833,7 +833,7 @@ export default function RecolorContent() {
                       }}>
                       <BookmarkPlus className="w-3.5 h-3.5" />
                     </button>
-                    <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-[11px] font-medium text-[var(--text-quaternary)] hover:bg-[rgba(99,102,241,0.06)] hover:text-[#6366f1] transition-colors"
+                    <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-medium text-[var(--text-quaternary)] hover:bg-[rgba(99,102,241,0.06)] hover:text-[#6366f1] transition-colors"
                       onClick={() => setApplyTarget('clothing')}>
                       <Layers className="w-3.5 h-3.5" /> 应用到工作台
                     </button>
@@ -845,15 +845,15 @@ export default function RecolorContent() {
               <div className="lg:col-span-5 space-y-4">
                 {/* 颜色替换列表 */}
                 <div className="fashion-glass rounded-2xl p-4 md:p-5">
-                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex items-center gap-2 mb-3 pb-3 border-b border-[var(--border-light)]">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 mb-3 pb-3 border-b border-[var(--border-light)]">
                     <Palette className="w-4 h-4 text-[#6366f1]" /> 颜色替换方案
                   </h3>
 
                   {replacements.length === 0 ? (
                     <div className="py-8 text-center">
                       <Pipette className="w-8 h-8 text-[var(--text-quaternary)] mx-auto mb-2" style={{ opacity: 0.4 }} />
-                      <p className="text-[13px] text-[var(--text-quaternary)]">点击左侧衣服取色</p>
-                      <p className="text-[11px] text-[var(--text-extreme)] mt-1">取色后选择目标色系</p>
+                      <p className="text-sm text-[var(--text-quaternary)]">点击左侧衣服取色</p>
+                      <p className="text-xs text-[var(--text-extreme)] mt-1">取色后选择目标色系</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -871,12 +871,12 @@ export default function RecolorContent() {
                                 }}
                               />
                               <div className="min-w-0">
-                                <div className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{rep.sourceName}</div>
+                                <div className="text-xs font-semibold text-[var(--text-primary)] truncate">{rep.sourceName}</div>
                               </div>
                             </div>
 
                             {/* 箭头 */}
-                            <span className="text-[14px] text-[var(--text-quaternary)] flex-shrink-0">→</span>
+                            <span className="text-sm text-[var(--text-quaternary)] flex-shrink-0">→</span>
 
                             {/* 目标色 */}
                             <div className="flex-1 min-w-0 basis-[40%] sm:basis-auto">
@@ -886,13 +886,13 @@ export default function RecolorContent() {
                                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-2xl border-2 border-white shadow-md flex-shrink-0 ring-2 ring-transparent group-hover:ring-[#6366f1]/30 group-active:ring-[#6366f1]/50 transition-all"
                                     style={{ backgroundColor: rep.targetColor.hex }} />
                                   <div className="min-w-0">
-                                    <div className="text-[12px] font-semibold text-[#6366f1] truncate">{rep.targetColor.name}</div>
-                                    <div className="text-[10px] font-mono text-[var(--text-quaternary)]">{rep.targetColor.hex}</div>
+                                    <div className="text-xs font-semibold text-[#6366f1] truncate">{rep.targetColor.name}</div>
+                                    <div className="text-xs font-mono text-[var(--text-quaternary)]">{rep.targetColor.hex}</div>
                                   </div>
                                 </div>
                               ) : (
                                 <button type="button" onClick={() => setEditingId(rep.id)}
-                                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-[11px] font-semibold text-[#6366f1] w-full justify-center"
+                                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold text-[#6366f1] w-full justify-center"
                                   style={{ border: '1.5px dashed rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
                                   <Plus className="w-3 h-3" /> 选择目标色
                                 </button>
@@ -912,7 +912,7 @@ export default function RecolorContent() {
 
                   {/* 添加更多颜色提示 */}
                   {replacements.length > 0 && replacements.length < 5 && pickMode && (
-                    <div className="mt-3 text-center text-[11px] text-[var(--text-quaternary)]">
+                    <div className="mt-3 text-center text-xs text-[var(--text-quaternary)]">
                       继续点击衣服添加更多颜色替换
                     </div>
                   )}
@@ -920,20 +920,20 @@ export default function RecolorContent() {
 
                 {/* 微调 */}
                 <div className="fashion-glass rounded-2xl p-4">
-                  <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-3">微调</h3>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">微调</h3>
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] text-[#5a4a3a] flex items-center gap-1"><Sun className="w-3 h-3" /> 明度</span>
-                        <span className="text-[11px] font-bold text-[#6366f1]">{brightness > 0 ? '+' : ''}{brightness}%</span>
+                        <span className="text-xs text-[#5a4a3a] flex items-center gap-1"><Sun className="w-3 h-3" /> 明度</span>
+                        <span className="text-xs font-bold text-[#6366f1]">{brightness > 0 ? '+' : ''}{brightness}%</span>
                       </div>
                       <input type="range" min="-30" max="30" value={brightness} onChange={(e) => setBrightness(parseInt(e.target.value))}
                         className="w-full h-1 rounded-full appearance-none cursor-pointer" style={{ accentColor: '#6366f1' }} />
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] text-[#5a4a3a] flex items-center gap-1"><Droplets className="w-3 h-3" /> 饱和度</span>
-                        <span className="text-[11px] font-bold text-[#6366f1]">{saturation > 0 ? '+' : ''}{saturation}%</span>
+                        <span className="text-xs text-[#5a4a3a] flex items-center gap-1"><Droplets className="w-3 h-3" /> 饱和度</span>
+                        <span className="text-xs font-bold text-[#6366f1]">{saturation > 0 ? '+' : ''}{saturation}%</span>
                       </div>
                       <input type="range" min="-30" max="30" value={saturation} onChange={(e) => setSaturation(parseInt(e.target.value))}
                         className="w-full h-1 rounded-full appearance-none cursor-pointer" style={{ accentColor: '#6366f1' }} />
@@ -957,14 +957,14 @@ export default function RecolorContent() {
                   ) : (
                     <>
                       <div>开始改色</div>
-                      <div className="text-[11px] font-normal opacity-85 mt-1">
+                      <div className="text-xs font-normal opacity-85 mt-1">
                         {creditsLow ? '积分不足，无法改色' : `消耗 1 积分 · ${replacements.length > 0 ? replacements.map(r => `${r.sourceName}→${r.targetColor?.name || '?'}`).join(' · ') : '请先取色'}`}
                       </div>
                     </>
                   )}
                 </button>
 
-                {error && <div className="bg-[rgba(196,112,112,0.08)] text-[#c47070] px-4 py-3 rounded-2xl text-[12px] font-medium border border-[rgba(196,112,112,0.2)]">{error}</div>}
+                {error && <div className="bg-[rgba(196,112,112,0.08)] text-[#c47070] px-4 py-3 rounded-2xl text-xs font-medium border border-[rgba(196,112,112,0.2)]">{error}</div>}
 
               </div>
             </div>
@@ -1007,8 +1007,8 @@ export default function RecolorContent() {
       {applyTarget && results.length > 0 && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[350] p-6" onClick={() => setApplyTarget(null)}>
           <div className="relative max-w-[360px] w-full bg-white/95 backdrop-blur-[40px] rounded-2xl border border-white/80 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">应用到工作台</h3>
-            <p className="text-[13px] text-[var(--text-tertiary)] mb-5">选择改色结果图在工作台中的用途</p>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">应用到工作台</h3>
+            <p className="text-sm text-[var(--text-tertiary)] mb-5">选择改色结果图在工作台中的用途</p>
             <div className="flex flex-col gap-2.5">
               {([
                 { key: 'clothing', label: '服装正面', desc: '作为工作台的服装主视图', icon: ImageIcon },
@@ -1051,14 +1051,14 @@ export default function RecolorContent() {
                       <OptIcon className="w-4 h-4 text-[#6366f1]" />
                     </div>
                     <div>
-                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">{opt.label}</div>
-                      <div className="text-[11px] text-[var(--text-tertiary)]">{opt.desc}</div>
+                      <div className="text-sm font-semibold text-[var(--text-primary)]">{opt.label}</div>
+                      <div className="text-xs text-[var(--text-tertiary)]">{opt.desc}</div>
                     </div>
                   </button>
                 )
               })}
             </div>
-            <button className="w-full mt-4 py-2.5 rounded-2xl text-[13px] font-medium bg-[var(--bg-muted)] text-[var(--text-secondary)] border border-[var(--border-light)] hover:bg-[var(--bg-active)] transition-all"
+            <button className="w-full mt-4 py-2.5 rounded-2xl text-sm font-medium bg-[var(--bg-muted)] text-[var(--text-secondary)] border border-[var(--border-light)] hover:bg-[var(--bg-active)] transition-all"
               onClick={() => setApplyTarget(null)}>
               取消
             </button>

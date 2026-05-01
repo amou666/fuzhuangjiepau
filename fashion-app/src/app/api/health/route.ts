@@ -3,10 +3,10 @@ import { ensureBaseUsers, ensureUploadDirectories } from '@/lib/init'
 
 let initialized = false
 
-function ensureInit() {
+async function ensureInit() {
   if (initialized) return
   try {
-    ensureBaseUsers()
+    await ensureBaseUsers()
     ensureUploadDirectories()
     initialized = true
     console.log('✅ System initialized (admin + demo users + upload dirs)')
@@ -16,6 +16,6 @@ function ensureInit() {
 }
 
 export async function GET() {
-  ensureInit()
+  await ensureInit()
   return NextResponse.json({ status: 'ok', timestamp: new Date().toISOString() })
 }

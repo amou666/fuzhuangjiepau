@@ -6,7 +6,7 @@ import type { Customer } from '@/lib/types';
 import { getErrorMessage } from '@/lib/utils/api';
 import { formatDateTime } from '@/lib/utils/format';
 import { hasMinPasswordLength, isValidEmail, normalizeEmail } from '@/lib/utils/validation';
-import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles, Download, Loader2, CheckSquare, Square, Zap } from 'lucide-react';
+import { Users, Plus, Copy, Pencil, ToggleLeft, ToggleRight, Key, Mail, Lock, Coins, Sparkles, Download, Loader2, CheckSquare, Square, Zap, ShieldCheck } from 'lucide-react';
 
 export default function CustomersContent() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -23,6 +23,10 @@ export default function CustomersContent() {
   const [batchLoading, setBatchLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState('');
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
 
   const loadCustomers = async () => {
     try {
@@ -164,6 +168,38 @@ export default function CustomersContent() {
     }
   };
 
+  const openResetPassword = (customer: Customer) => {
+    setResetPasswordId(customer.id);
+    setResetPasswordEmail(customer.email);
+    setResetPasswordValue('');
+    setError('');
+  };
+
+  const cancelResetPassword = () => {
+    setResetPasswordId(null);
+    setResetPasswordEmail('');
+    setResetPasswordValue('');
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordId) return;
+    if (!hasMinPasswordLength(resetPasswordValue)) {
+      setError('新密码至少为 6 位');
+      return;
+    }
+    setResetPasswordLoading(true);
+    setError('');
+    try {
+      await adminApi.resetCustomerPassword(resetPasswordId, resetPasswordValue);
+      alert(`已成功重置 ${resetPasswordEmail} 的密码`);
+      cancelResetPassword();
+    } catch (resetErr) {
+      setError(getErrorMessage(resetErr, '重置密码失败'));
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div className="mb-1">
@@ -187,19 +223,19 @@ export default function CustomersContent() {
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 bg-white/65 backdrop-blur-xl border border-white/50 rounded-2xl px-4 py-2.5">
             <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-[12px] font-semibold text-gray-700">批量充值 ({selectedIds.size} 人)</span>
+            <span className="text-xs font-semibold text-gray-700">批量充值 ({selectedIds.size} 人)</span>
             <input
               type="number"
               min={1}
               value={batchAmount}
               onChange={(e) => setBatchAmount(Math.max(1, Number(e.target.value) || 0))}
-              className="w-20 px-2 py-1 rounded-2xl border border-gray-200 text-[12px] text-gray-700"
+              className="w-20 px-2 py-1 rounded-2xl border border-gray-200 text-xs text-gray-700"
             />
-            <span className="text-[11px] text-gray-400">积分/人</span>
+            <span className="text-xs text-gray-400">积分/人</span>
             <button
               onClick={handleBatchRecharge}
               disabled={batchLoading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-[12px] font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-xs font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 disabled:opacity-50"
             >
               {batchLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Coins className="w-3 h-3" />}
               充值
@@ -210,21 +246,21 @@ export default function CustomersContent() {
           <button
             onClick={() => handleExport('customers')}
             disabled={exportLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
           >
             <Download className="w-3 h-3" /> 导出客户
           </button>
           <button
             onClick={() => handleExport('tasks')}
             disabled={exportLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
           >
             <Download className="w-3 h-3" /> 导出任务
           </button>
           <button
             onClick={() => handleExport('credits')}
             disabled={exportLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium text-gray-600 bg-white/70 border border-gray-200 hover:bg-white transition-all disabled:opacity-50"
           >
             <Download className="w-3 h-3" /> 导出积分
           </button>
@@ -238,7 +274,7 @@ export default function CustomersContent() {
         </h2>
         <form className="flex flex-col gap-4" onSubmit={handleCreate}>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="customer-email" className="text-[13px] font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="customer-email" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-gray-400" /> 邮箱 *
             </label>
             <input
@@ -252,7 +288,7 @@ export default function CustomersContent() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="customer-password" className="text-[13px] font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="customer-password" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-gray-400" /> 初始密码 *
             </label>
             <input
@@ -267,7 +303,7 @@ export default function CustomersContent() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="customer-credits" className="text-[13px] font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="customer-credits" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5 text-gray-400" /> 初始积分
             </label>
             <input
@@ -281,7 +317,7 @@ export default function CustomersContent() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="customer-api-key" className="text-[13px] font-semibold text-gray-700 flex items-center gap-1.5">
+            <label htmlFor="customer-api-key" className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               <Key className="w-3.5 h-3.5 text-gray-400" /> AI API Key（可选）
             </label>
             <input
@@ -314,7 +350,7 @@ export default function CustomersContent() {
           </div>
         ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
                 <th className="text-left px-3 py-3 text-xs border-b border-gray-200 bg-gray-50/50 w-8">
@@ -399,17 +435,27 @@ export default function CustomersContent() {
                   </td>
                   <td className="px-4 py-3 border-b border-gray-100 text-gray-500 text-xs">{formatDateTime(customer.createdAt)}</td>
                   <td className="px-4 py-3 border-b border-gray-100">
-                    <button
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all ${
-                        customer.isActive
-                          ? 'bg-[rgba(196,112,112,0.08)] text-red-500 border border-red-200 hover:bg-red-100 hover:border-red-300'
-                          : 'bg-white/70 text-gray-700 border border-black/10 hover:bg-white/90 hover:border-blue-500/30 hover:text-blue-500'
-                      }`}
-                      type="button"
-                      onClick={() => toggleStatus(customer)}
-                    >
-                      {customer.isActive ? '禁用' : '启用'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-xs font-medium transition-all ${
+                          customer.isActive
+                            ? 'bg-[rgba(196,112,112,0.08)] text-red-500 border border-red-200 hover:bg-red-100 hover:border-red-300'
+                            : 'bg-white/70 text-gray-700 border border-black/10 hover:bg-white/90 hover:border-blue-500/30 hover:text-blue-500'
+                        }`}
+                        type="button"
+                        onClick={() => toggleStatus(customer)}
+                      >
+                        {customer.isActive ? '禁用' : '启用'}
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-2xl text-xs font-medium bg-white/70 text-gray-700 border border-black/10 hover:bg-white/90 hover:border-blue-500/30 hover:text-blue-500 transition-all"
+                        type="button"
+                        onClick={() => openResetPassword(customer)}
+                      >
+                        <ShieldCheck className="w-3 h-3" />
+                        修改密码
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -418,6 +464,51 @@ export default function CustomersContent() {
         </div>
         )}
       </div>
+
+      {/* 修改密码弹窗 */}
+      {resetPasswordId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-500" />
+              修改密码
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">为 <span className="font-semibold text-gray-700">{resetPasswordEmail}</span> 设置新密码</p>
+            {error && (
+              <div className="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs mb-3 border border-red-100">{error}</div>
+            )}
+            <div className="flex flex-col gap-1.5 mb-4">
+              <label className="text-xs font-semibold text-gray-600">新密码（至少 6 位）</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                minLength={6}
+                value={resetPasswordValue}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleResetPassword() }}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                placeholder="请输入新密码"
+              />
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelResetPassword}
+                className="px-4 py-2 rounded-2xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetPasswordLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {resetPasswordLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                {resetPasswordLoading ? '修改中...' : '确认修改'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

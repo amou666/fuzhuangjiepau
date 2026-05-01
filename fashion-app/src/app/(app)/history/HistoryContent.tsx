@@ -54,7 +54,7 @@ function CollapseToggle({
       {collapsed
         ? <Maximize2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
         : <Minimize2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />}
-      <span className={`${compact ? 'text-[11px]' : 'text-[12px]'} font-medium`}>{collapsed ? '展开' : '折叠'}</span>
+      <span className={`${compact ? 'text-xs' : 'text-xs'} font-medium`}>{collapsed ? '展开' : '折叠'}</span>
     </button>
   )
 }
@@ -104,11 +104,11 @@ function BatchMenu({
         }}
       >
         <ListChecks className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
-        <span className={`${compact ? 'text-[11px]' : 'text-[12px]'} font-medium`}>批量</span>
+        <span className={`${compact ? 'text-xs' : 'text-xs'} font-medium`}>批量</span>
         <ChevronDown className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} transition-transform ${open ? 'rotate-180' : ''}`} />
         {selectedCount > 0 && (
           <span
-            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-xs font-bold text-white flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: '0 1px 4px rgba(198,123,92,0.35)' }}
           >
             {selectedCount}
@@ -122,7 +122,7 @@ function BatchMenu({
           <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[999] w-[calc(100vw-2rem)] max-w-[280px] bg-white rounded-2xl shadow-xl border border-[rgba(139,115,85,0.12)] overflow-hidden py-1 md:hidden animate-[toast-in_0.2s_ease-out]">
             <button
               type="button"
-              className="w-full px-4 py-3 text-left text-[13px] text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors"
+              className="w-full px-4 py-3 text-left text-sm text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors"
               onClick={onToggleAll}
             >
               {allSelected ? <CheckSquare className="w-4 h-4 text-[#c67b5c]" /> : <Square className="w-4 h-4 text-[#8b7355]" />}
@@ -132,7 +132,7 @@ function BatchMenu({
             <button
               type="button"
               disabled={selectedCount === 0 || batchDownloading}
-              className="w-full px-4 py-3 text-left text-[13px] text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 text-left text-sm text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => { onDownload(); setOpen(false) }}
             >
               {batchDownloading
@@ -144,7 +144,7 @@ function BatchMenu({
             <button
               type="button"
               disabled={selectedCount < 2}
-              className="w-full px-4 py-3 text-left text-[13px] text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 text-left text-sm text-[#2d2422] active:bg-[rgba(198,123,92,0.08)] flex items-center gap-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => { onCompare(); setOpen(false) }}
             >
               <GitCompareArrows className="w-4 h-4 text-[#8b7355]" />
@@ -155,7 +155,7 @@ function BatchMenu({
           <div className="hidden md:block absolute right-0 top-full mt-1.5 z-50 min-w-[180px] bg-white rounded-xl shadow-xl border border-[rgba(139,115,85,0.12)] overflow-hidden py-1">
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors"
+              className="w-full px-3 py-2 text-left text-xs text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors"
               onClick={onToggleAll}
             >
               {allSelected ? <CheckSquare className="w-3.5 h-3.5 text-[#c67b5c]" /> : <Square className="w-3.5 h-3.5 text-[#8b7355]" />}
@@ -165,7 +165,7 @@ function BatchMenu({
             <button
               type="button"
               disabled={selectedCount === 0 || batchDownloading}
-              className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-full px-3 py-2 text-left text-xs text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               onClick={() => { onDownload(); setOpen(false) }}
             >
               {batchDownloading
@@ -176,7 +176,7 @@ function BatchMenu({
             <button
               type="button"
               disabled={selectedCount < 2}
-              className="w-full px-3 py-2 text-left text-[12px] text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="w-full px-3 py-2 text-left text-xs text-[#2d2422] hover:bg-[rgba(198,123,92,0.06)] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               onClick={() => { onCompare(); setOpen(false) }}
             >
               <GitCompareArrows className="w-3.5 h-3.5 text-[#8b7355]" />
@@ -578,8 +578,8 @@ export default function HistoryContent() {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(198,123,92,0.08)' }}>
               <Clock className="w-7 h-7 text-[#c67b5c]" style={{ opacity: 0.5 }} />
             </div>
-            <h3 className="text-[15px] font-semibold text-[#b0a59a] mb-1">暂无记录</h3>
-            <p className="text-[13px] text-[#c9bfb5]">去工作台、模特合成或 AI 改款创建第一张图吧</p>
+            <h3 className="text-base font-semibold text-[#b0a59a] mb-1">暂无记录</h3>
+            <p className="text-sm text-[#c9bfb5]">去工作台、模特合成或 AI 改款创建第一张图吧</p>
           </div>
         ) : (
           <div className={`grid items-start gap-4 md:gap-5 ${
@@ -637,12 +637,12 @@ export default function HistoryContent() {
                         <TypeIcon className="w-3 h-3" />
                         {typeConf.label}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${getStatusStyle(record.status)}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(record.status)}`}>
                         {record.status === 'COMPLETED' ? '已完成' : record.status === 'FAILED' ? '失败' : record.status}
                       </span>
                       {/* 快速工作台模式标识 */}
                       {record.type === 'quick-workspace' && (record.sceneConfig as any)?.quickMode && (
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           (record.sceneConfig as any).quickMode === 'fusion'
                             ? 'bg-[rgba(139,92,198,0.08)] text-[#8b5cc6]'
                             : 'bg-[rgba(125,155,118,0.08)] text-[#7d9b76]'
@@ -651,11 +651,11 @@ export default function HistoryContent() {
                           {(record.sceneConfig as any).quickMode === 'fusion' ? '融合模式' : '背景图模式'}
                         </span>
                       )}
-                      <span className="text-[#b0a59a] text-[11px]">{formatDateTime(record.createdAt)}</span>
+                      <span className="text-[#b0a59a] text-xs">{formatDateTime(record.createdAt)}</span>
                     </div>
                     {/* Desktop: 文字 + 图标 删除按钮 */}
                     <button
-                      className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium text-[#c47070] bg-[rgba(196,112,112,0.04)] border border-[rgba(196,112,112,0.1)] hover:bg-[rgba(196,112,112,0.08)] active:bg-[rgba(196,112,112,0.12)] transition-all"
+                      className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#c47070] bg-[rgba(196,112,112,0.04)] border border-[rgba(196,112,112,0.1)] hover:bg-[rgba(196,112,112,0.08)] active:bg-[rgba(196,112,112,0.12)] transition-all"
                       onClick={() => setDeleteConfirmId(record.id)}
                     >
                       <Trash2 className="w-3 h-3" /> 删除
@@ -664,14 +664,14 @@ export default function HistoryContent() {
 
                   {/* 描述行 */}
                   {!collapsed && record.clothingDescription && (
-                    <p className="text-[12px] text-[#9b8e82] mb-3 leading-relaxed">{record.clothingDescription}</p>
+                    <p className="text-xs text-[#9b8e82] mb-3 leading-relaxed">{record.clothingDescription}</p>
                   )}
 
                   {/* 用户自定义提示词 */}
                   {!collapsed && (record.sceneConfig as any)?.prompt && (
                     <div className="flex items-start gap-2 mb-3 p-2.5 bg-[rgba(198,123,92,0.04)] rounded-xl border border-[rgba(198,123,92,0.08)]">
                       <MessageSquare className="w-3.5 h-3.5 text-[#c67b5c] flex-shrink-0 mt-0.5" />
-                      <p className="text-[12px] text-[#6b5c4e] leading-relaxed break-all">{(record.sceneConfig as any).prompt}</p>
+                      <p className="text-xs text-[#6b5c4e] leading-relaxed break-all">{(record.sceneConfig as any).prompt}</p>
                     </div>
                   )}
 
@@ -680,15 +680,15 @@ export default function HistoryContent() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 p-2 bg-[rgba(139,115,85,0.03)] rounded-xl">
                       <div className="flex items-center gap-1">
                         <Hash className="w-3 h-3 text-[#b0a59a]" />
-                        <span className="inline-block px-1.5 py-[1px] bg-[rgba(139,115,85,0.05)] rounded font-mono text-[10px] text-[#8b7355]">{record.id.slice(0, 8)}</span>
+                        <span className="inline-block px-1.5 py-[1px] bg-[rgba(139,115,85,0.05)] rounded font-mono text-xs text-[#8b7355]">{record.id.slice(0, 8)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Coins className="w-3 h-3 text-[#b0a59a]" />
-                        <span className="text-[11px] text-[#2d2422] font-medium">{record.creditCost} 积分</span>
+                        <span className="text-xs text-[#2d2422] font-medium">{record.creditCost} 积分</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <CalendarCheck className="w-3 h-3 text-[#b0a59a]" />
-                        <span className="text-[11px] text-[#8b7355]">{formatDateTime(record.finishedAt)}</span>
+                        <span className="text-xs text-[#8b7355]">{formatDateTime(record.finishedAt)}</span>
                       </div>
                     </div>
                   )}
@@ -696,7 +696,7 @@ export default function HistoryContent() {
                   {/* 参考图片 */}
                   {!collapsed && refImages.length > 0 && (
                     <div className="mb-3">
-                      <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <div className="text-xs font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
                         <ImageIcon className="w-3 h-3" /> 参考图片
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -713,7 +713,7 @@ export default function HistoryContent() {
                   {resultImages.length > 0 && (
                     <div className="@container">
                       {!collapsed && (
-                        <div className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <div className="text-xs font-semibold text-[#b0a59a] uppercase tracking-wider mb-2 flex items-center gap-1">
                           <Maximize2 className="w-3 h-3" /> 生成结果
                           {resultImages.length > 1 && (
                             <span className="text-[#c67b5c] ml-1">({resultImages.length}张)</span>
@@ -725,20 +725,20 @@ export default function HistoryContent() {
                           <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-[rgba(139,115,85,0.1)] cursor-pointer active:opacity-80 transition-opacity" onClick={() => { setPreviewImage(url); setPreviewRecord(record); }}>
                             <LazyImage src={url} alt={`结果 ${idx + 1}`} onClick={() => { setPreviewImage(url); setPreviewRecord(record); }} />
                             {resultImages.length > 1 && (
-                              <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold">{idx + 1}</div>
+                              <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white px-1.5 py-0.5 rounded text-xs font-semibold">{idx + 1}</div>
                             )}
                           </div>
                         ))}
                         {record.upscaledUrl && (
                           <div className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-green-400 cursor-pointer active:opacity-80 transition-opacity" onClick={() => { setPreviewImage(record.upscaledUrl!); setPreviewRecord(record); }}>
-                            <div className="absolute top-1.5 left-1.5 bg-green-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold z-10">{record.upscaleFactor}x</div>
+                            <div className="absolute top-1.5 left-1.5 bg-green-500 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10">{record.upscaleFactor}x</div>
                             <LazyImage src={record.upscaledUrl} alt={`放大 ${record.upscaleFactor}x 结果`} onClick={() => { setPreviewImage(record.upscaledUrl!); setPreviewRecord(record); }} />
                           </div>
                         )}
                         {!record.upscaledUrl && upscalingTaskIds.has(record.id) && (
                           <div className="flex items-center justify-center bg-[rgba(139,115,85,0.04)] rounded-xl aspect-[3/4] flex-col gap-2">
                             <Loader2 className="w-5 h-5 text-[#c67b5c] animate-spin" />
-                            <div className="text-[12px] text-[#9b8e82]">放大中...</div>
+                            <div className="text-xs text-[#9b8e82]">放大中...</div>
                           </div>
                         )}
                       </div>
@@ -748,7 +748,7 @@ export default function HistoryContent() {
                   {/* Rating */}
                   {!collapsed && isCompleted && resultImages.length > 0 && (
                     <div className="mt-3 flex items-center gap-2">
-                      <span className="text-[10px] font-semibold text-[#b0a59a] uppercase tracking-wider">评价：</span>
+                      <span className="text-xs font-semibold text-[#b0a59a] uppercase tracking-wider">评价：</span>
                       {[1, 2, 3, 4, 5].map((star) => {
                         const currentRating = feedbacks[record.id] || 0;
                         return (
@@ -765,7 +765,7 @@ export default function HistoryContent() {
                         );
                       })}
                       {feedbacks[record.id] && (
-                        <span className="text-[10px] text-[#b0a59a] ml-1">
+                        <span className="text-xs text-[#b0a59a] ml-1">
                           {feedbacks[record.id] >= 4 ? '满意' : feedbacks[record.id] <= 2 ? '不满意' : '一般'}
                         </span>
                       )}
@@ -773,7 +773,7 @@ export default function HistoryContent() {
                   )}
 
                   {record.errorMsg ? (
-                    <div className="mt-3 bg-[#fef2f0] text-[#c47070] px-4 py-3 rounded-xl text-[13px] font-medium border border-[#f0d5d0]">
+                    <div className="mt-3 bg-[#fef2f0] text-[#c47070] px-4 py-3 rounded-xl text-sm font-medium border border-[#f0d5d0]">
                       失败原因：{record.errorMsg}
                     </div>
                   ) : null}
@@ -786,7 +786,7 @@ export default function HistoryContent() {
         {/* 分页 */}
         {!loading && totalCount > PAGE_SIZE && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-            <span className="text-[13px] text-gray-500">共 {totalCount} 条记录</span>
+            <span className="text-sm text-gray-500">共 {totalCount} 条记录</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -796,7 +796,7 @@ export default function HistoryContent() {
               >
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
               </button>
-              <span className="text-[13px] text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
+              <span className="text-sm text-gray-600 tabular-nums min-w-[60px] text-center">{currentPage} / {totalPages}</span>
               <button
                 type="button"
                 onClick={() => setCurrentPage(currentPage + 1)}
@@ -904,7 +904,7 @@ export default function HistoryContent() {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-[12px] pointer-events-none sm:hidden">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/40 rounded-full px-5 py-2 text-white/80 text-xs pointer-events-none sm:hidden">
             点击空白区域关闭
           </div>
         </div>
@@ -929,17 +929,17 @@ export default function HistoryContent() {
                 disabled={upscaleLoading}
               >
                 <div className="text-2xl font-bold text-[#2d2422] mb-2">2x</div>
-                <div className="text-[11px] text-[#9b8e82]">消耗 1 积分</div>
+                <div className="text-xs text-[#9b8e82]">消耗 1 积分</div>
               </button>
             </div>
             {upscaleLoading && (
               <div className="text-center p-4 bg-[rgba(198,123,92,0.04)] rounded-xl">
                 <Loader2 className="w-5 h-5 text-[#c67b5c] animate-spin mx-auto mb-2" />
-                <div className="text-[13px] text-[#9b8e82]">正在放大图片...</div>
+                <div className="text-sm text-[#9b8e82]">正在放大图片...</div>
               </div>
             )}
             <button
-              className="w-full mt-4 inline-flex items-center justify-center px-5 py-2.5 bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] rounded-xl text-[13px] font-medium hover:bg-[rgba(139,115,85,0.06)] transition-all disabled:opacity-50"
+              className="w-full mt-4 inline-flex items-center justify-center px-5 py-2.5 bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] rounded-xl text-sm font-medium hover:bg-[rgba(139,115,85,0.06)] transition-all disabled:opacity-50"
               onClick={() => setUpscaleModal(null)}
               disabled={upscaleLoading}
             >
@@ -953,8 +953,8 @@ export default function HistoryContent() {
       {sendTarget && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-6" onClick={() => setSendTarget(null)}>
           <div className="relative max-w-[360px] w-full bg-white/95 backdrop-blur-[40px] rounded-2xl border border-white/80 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-[14px] font-semibold text-[#2d2422] mb-1">发送到工作台</h3>
-            <p className="text-[13px] text-[#9b8e82] mb-5">选择该图片在工作台中的用途</p>
+            <h3 className="text-sm font-semibold text-[#2d2422] mb-1">发送到工作台</h3>
+            <p className="text-sm text-[#9b8e82] mb-5">选择该图片在工作台中的用途</p>
             <div className="flex flex-col gap-2.5">
               <button
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
@@ -986,8 +986,8 @@ export default function HistoryContent() {
                   <ImageIcon className="w-4 h-4 text-[#c67b5c]" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold text-[#2d2422]">服装正面</div>
-                  <div className="text-[11px] text-[#9b8e82]">作为工作台的服装主视图</div>
+                  <div className="text-sm font-semibold text-[#2d2422]">服装正面</div>
+                  <div className="text-xs text-[#9b8e82]">作为工作台的服装主视图</div>
                 </div>
               </button>
               <button
@@ -1020,8 +1020,8 @@ export default function HistoryContent() {
                   <ImageIcon className="w-4 h-4 text-[#c67b5c]" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold text-[#2d2422]">服装反面</div>
-                  <div className="text-[11px] text-[#9b8e82]">作为工作台的服装背面图</div>
+                  <div className="text-sm font-semibold text-[#2d2422]">服装反面</div>
+                  <div className="text-xs text-[#9b8e82]">作为工作台的服装背面图</div>
                 </div>
               </button>
               <button
@@ -1054,8 +1054,8 @@ export default function HistoryContent() {
                   <Drama className="w-4 h-4 text-[#c67b5c]" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold text-[#2d2422]">模特</div>
-                  <div className="text-[11px] text-[#9b8e82]">作为工作台的模特参考图</div>
+                  <div className="text-sm font-semibold text-[#2d2422]">模特</div>
+                  <div className="text-xs text-[#9b8e82]">作为工作台的模特参考图</div>
                 </div>
               </button>
               <button
@@ -1088,13 +1088,13 @@ export default function HistoryContent() {
                   <MapPin className="w-4 h-4 text-[#7d9b76]" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold text-[#2d2422]">场景</div>
-                  <div className="text-[11px] text-[#9b8e82]">作为工作台的场景图</div>
+                  <div className="text-sm font-semibold text-[#2d2422]">场景</div>
+                  <div className="text-xs text-[#9b8e82]">作为工作台的场景图</div>
                 </div>
               </button>
             </div>
             <button
-              className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+              className="w-full mt-4 py-2.5 rounded-xl text-sm font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
               onClick={() => setSendTarget(null)}
             >
               取消
@@ -1111,18 +1111,18 @@ export default function HistoryContent() {
               <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="text-[14px] font-semibold text-[#2d2422]">确认删除</h3>
+              <h3 className="text-sm font-semibold text-[#2d2422]">确认删除</h3>
             </div>
-            <p className="text-[13px] text-[#9b8e82] mb-5 leading-relaxed">删除后无法恢复，确定要删除这条记录吗？</p>
+            <p className="text-sm text-[#9b8e82] mb-5 leading-relaxed">删除后无法恢复，确定要删除这条记录吗？</p>
             <div className="flex gap-3">
               <button
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-[rgba(139,115,85,0.03)] text-[#8b7355] border border-[rgba(139,115,85,0.08)] hover:bg-[rgba(139,115,85,0.06)] transition-all"
                 onClick={() => setDeleteConfirmId(null)}
               >
                 取消
               </button>
               <button
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95"
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95"
                 onClick={() => void handleDelete(deleteConfirmId)}
               >
                 删除

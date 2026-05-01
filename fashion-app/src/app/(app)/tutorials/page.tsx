@@ -28,11 +28,11 @@ function TutorialCard({ module }: { module: TutorialModule }) {
           {module.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[14px] md:text-[15px] font-bold text-[var(--text-primary)]">{module.title}</h3>
-          <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5 line-clamp-1">{module.description}</p>
+          <h3 className="text-sm md:text-base font-bold text-[var(--text-primary)]">{module.title}</h3>
+          <p className="text-xs text-[var(--text-tertiary)] mt-0.5 line-clamp-1">{module.description}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[11px] text-[var(--text-quaternary)] hidden sm:inline">
+          <span className="text-xs text-[var(--text-quaternary)] hidden sm:inline">
             {module.steps.length} 步教程
           </span>
           <div
@@ -60,7 +60,7 @@ function TutorialCard({ module }: { module: TutorialModule }) {
                 {/* Step number */}
                 <div className="flex flex-col items-center flex-shrink-0">
                   <div
-                    className="w-8 h-8 rounded-2xl flex items-center justify-center text-[12px] font-bold text-white"
+                    className="w-8 h-8 rounded-2xl flex items-center justify-center text-xs font-bold text-white"
                     style={{ background: `linear-gradient(135deg, ${module.color}, ${module.color}cc)` }}
                   >
                     {idx + 1}
@@ -72,8 +72,8 @@ function TutorialCard({ module }: { module: TutorialModule }) {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0 pb-1">
-                  <h4 className="text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">{step.title}</h4>
-                  <p className="text-[12px] text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">{step.title}</h4>
+                  <p className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-line">
                     {step.content}
                   </p>
                 </div>
@@ -107,8 +107,8 @@ export default function TutorialsPage() {
           <BookOpen className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[14px] font-bold text-[var(--text-primary)]">使用教程</h1>
-          <p className="text-[11px] text-[var(--text-tertiary)]">点击展开各功能模块，查看详细操作步骤与使用技巧</p>
+          <h1 className="text-sm font-bold text-[var(--text-primary)]">使用教程</h1>
+          <p className="text-xs text-[var(--text-tertiary)]">点击展开各功能模块，查看详细操作步骤与使用技巧</p>
         </div>
       </div>
 

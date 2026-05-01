@@ -20,11 +20,11 @@ export default function QuickWorkspacePage() {
               >
                 <Wand2 className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">工作台</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">工作台</h1>
             </div>
-            <p className="text-[13px] text-[var(--text-tertiary)] ml-[52px] tracking-wide">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
+            <p className="text-sm text-[var(--text-tertiary)] ml-[52px] tracking-wide">上传衣服 + 模特 + 场景图，一键合成街拍级成片。</p>
           </div>
-          <div className="hidden md:flex items-center gap-3 text-[11px] text-[var(--text-quaternary)] tracking-widest uppercase" />
+          <div className="hidden md:flex items-center gap-3 text-xs text-[var(--text-quaternary)] tracking-widest uppercase" />
         </div>
 
         {/* 交互内容 */}

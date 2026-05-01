@@ -149,7 +149,7 @@ export default function SettingsContent() {
           </div>
 
           {modelError && (
-            <div className="mb-4 bg-[rgba(196,112,112,0.08)] text-red-600 px-3.5 py-2 rounded-2xl text-[12px] border border-red-100">
+            <div className="mb-4 bg-[rgba(196,112,112,0.08)] text-red-600 px-3.5 py-2 rounded-2xl text-xs border border-red-100">
               {modelError}
             </div>
           )}
@@ -157,8 +157,8 @@ export default function SettingsContent() {
           {/* 生图模型 */}
           <div className="border-b border-black/5 pb-5 mb-5">
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <h3 className="text-[13px] font-semibold text-gray-700">生图模型</h3>
-              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+              <h3 className="text-sm font-semibold text-gray-700">生图模型</h3>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
                 <span>默认:</span>
                 <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600">
                   {defaultAiModel || 'gpt-image-2-all'}
@@ -170,7 +170,7 @@ export default function SettingsContent() {
                 </code>
               </div>
             </div>
-            <p className="text-[12px] text-gray-500 mb-3 leading-relaxed">
+            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
               用于常规工作台、快速工作台、模特工厂、AI 改款等所有输出<strong>图片</strong>的调用。留空或点击「恢复默认」则回退到环境变量 <code className="font-mono">AI_MODEL</code> 或内置默认。
             </p>
             <input
@@ -183,14 +183,14 @@ export default function SettingsContent() {
               spellCheck={false}
             />
             <div className="mt-2.5 flex flex-wrap gap-1.5">
-              <span className="text-[11px] text-gray-400 self-center mr-1">常用预设:</span>
+              <span className="text-xs text-gray-400 self-center mr-1">常用预设:</span>
               {GEN_MODEL_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setAiModel(preset)}
                   disabled={modelSaving}
-                  className={`px-2 py-1 rounded-md text-[11px] font-mono border transition-all disabled:opacity-50 ${
+                  className={`px-2 py-1 rounded-md text-xs font-mono border transition-all disabled:opacity-50 ${
                     aiModel === preset
                       ? 'bg-purple-500 text-white border-purple-500'
                       : 'bg-white/70 text-gray-600 border-black/10 hover:border-purple-500/40 hover:text-purple-500'
@@ -205,8 +205,8 @@ export default function SettingsContent() {
           {/* 分析模型 */}
           <div>
             <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <h3 className="text-[13px] font-semibold text-gray-700">分析模型</h3>
-              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+              <h3 className="text-sm font-semibold text-gray-700">分析模型</h3>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
                 <span>默认:</span>
                 <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-600">
                   {defaultAnalysisModel || 'nano-banana-2'}
@@ -218,7 +218,7 @@ export default function SettingsContent() {
                 </code>
               </div>
             </div>
-            <p className="text-[12px] text-gray-500 mb-3 leading-relaxed">
+            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
               用于服装识别、材质 DNA、AI 改款脑暴、模特/场景描述等输出<strong>文本</strong>的调用。留空或点击「恢复默认」则回退到环境变量 <code className="font-mono">ANALYSIS_MODEL</code> 或内置默认。
             </p>
             <input
@@ -231,14 +231,14 @@ export default function SettingsContent() {
               spellCheck={false}
             />
             <div className="mt-2.5 flex flex-wrap gap-1.5">
-              <span className="text-[11px] text-gray-400 self-center mr-1">常用预设:</span>
+              <span className="text-xs text-gray-400 self-center mr-1">常用预设:</span>
               {ANALYSIS_MODEL_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setAnalysisModel(preset)}
                   disabled={modelSaving}
-                  className={`px-2 py-1 rounded-md text-[11px] font-mono border transition-all disabled:opacity-50 ${
+                  className={`px-2 py-1 rounded-md text-xs font-mono border transition-all disabled:opacity-50 ${
                     analysisModel === preset
                       ? 'bg-emerald-500 text-white border-emerald-500'
                       : 'bg-white/70 text-gray-600 border-black/10 hover:border-emerald-500/40 hover:text-emerald-500'

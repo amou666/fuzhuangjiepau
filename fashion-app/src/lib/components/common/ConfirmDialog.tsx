@@ -53,12 +53,12 @@ export function ConfirmDialog({
           >
             {icon || <AlertCircle className="w-5 h-5 text-red-500" />}
           </div>
-          <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{title}</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
         </div>
-        <p className="text-[13px] text-[var(--text-tertiary)] mb-5 leading-relaxed">{description}</p>
+        <p className="text-sm text-[var(--text-tertiary)] mb-5 leading-relaxed">{description}</p>
         <div className="flex gap-3">
           <button
-            className="flex-1 py-2.5 rounded-2xl text-[13px] font-medium transition-all"
+            className="flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all"
             style={{
               background: 'var(--bg-muted)',
               color: 'var(--text-secondary)',
@@ -75,7 +75,7 @@ export function ConfirmDialog({
             {cancelText}
           </button>
           <button
-            className="flex-1 py-2.5 rounded-2xl text-[13px] font-medium text-white transition-all active:scale-95"
+            className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-white transition-all active:scale-95"
             style={{
               background: isDanger ? '#ef4444' : 'linear-gradient(135deg, #c67b5c, #d4a882)',
             }}
