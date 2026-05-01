@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useProfileMe, useCreditHistory, useGenerationStats, useCreditSummary, type GenerationStatsData, type CreditSummaryData } from '@/lib/hooks/useSWRCache'
 import { formatDateTime } from '@/lib/utils/format'
 import { useRouter } from 'next/navigation'
-import { Mail, Shield, Key, Coins, Lightbulb, ArrowUp, ArrowDown, UserCircle, Copy, Check, Target, Zap, Image, TrendingUp, Loader2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { Mail, Shield, Key, Coins, Lightbulb, ArrowUp, ArrowDown, UserCircle, Copy, Check, Target, Zap, Image, TrendingUp, Loader2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, RefreshCw, Lock, X } from 'lucide-react'
 import { MiniBarChart } from '@/lib/components/charts/MiniBarChart'
 
 const StatCard = memo(function StatCard({ icon: Icon, label, value, sub, color }: {
@@ -71,6 +71,44 @@ export default function ProfileContent() {
       setTimeout(() => setCopied(false), 2000)
     }).catch(() => {})
   }, [user?.apiKey])
+
+  // ── 修改密码 ──
+  const [showPwdModal, setShowPwdModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwdLoading, setPwdLoading] = useState(false)
+  const [pwdError, setPwdError] = useState('')
+  const [pwdSuccess, setPwdSuccess] = useState('')
+
+  const handleChangePassword = useCallback(async () => {
+    setPwdError('')
+    setPwdSuccess('')
+    if (!currentPassword) { setPwdError('请输入当前密码'); return }
+    if (!newPassword || newPassword.length < 6) { setPwdError('新密码至少为 6 位'); return }
+    if (newPassword !== confirmPassword) { setPwdError('两次密码输入不一致'); return }
+    if (currentPassword === newPassword) { setPwdError('新密码不能与当前密码相同'); return }
+    setPwdLoading(true)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPwdError(data.message || '修改失败'); return }
+      setPwdSuccess('密码修改成功！')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => setShowPwdModal(false), 1200)
+    } catch {
+      setPwdError('网络错误，请稍后重试')
+    } finally {
+      setPwdLoading(false)
+    }
+  }, [currentPassword, newPassword, confirmPassword])
 
   const infoItems = [
     { label: '邮箱', value: user?.email, icon: Mail, color: '#c67b5c' },
@@ -163,6 +201,26 @@ export default function ProfileContent() {
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* 修改密码 */}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(196,112,112,0.1)' }}
+              >
+                <Lock className="w-4 h-4 text-[#c47070]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-[var(--text-quaternary)] uppercase tracking-wider">安全</div>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPwdError(''); setPwdSuccess(''); setShowPwdModal(true) }}
+                  className="text-sm font-medium text-[#c67b5c] hover:text-[#b0654a] transition-colors mt-0.5"
+                >
+                  修改密码
+                </button>
               </div>
             </div>
           </div>
@@ -324,6 +382,75 @@ export default function ProfileContent() {
           </>
         )}
       </div>
+
+      {/* 修改密码弹窗 */}
+      {showPwdModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPwdModal(false)}>
+          <div
+            className="w-full max-w-sm mx-4 rounded-3xl p-5 md:p-6 shadow-2xl relative"
+            style={{ background: 'var(--bg-card)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="absolute top-4 right-4 w-8 h-8 rounded-2xl flex items-center justify-center text-[var(--text-quaternary)] hover:bg-[var(--bg-active)] hover:text-[var(--text-primary)] transition-all"
+              onClick={() => setShowPwdModal(false)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-5 flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[#c67b5c]" />
+              修改密码
+            </h3>
+
+            <div className="flex flex-col gap-3.5">
+              <input
+                type="password"
+                placeholder="当前密码"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl text-sm bg-[var(--bg-muted)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] outline-none focus:border-[#c67b5c] focus:ring-1 focus:ring-[rgba(198,123,92,0.2)] transition-all"
+              />
+              <input
+                type="password"
+                placeholder="新密码（至少 6 位）"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl text-sm bg-[var(--bg-muted)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] outline-none focus:border-[#c67b5c] focus:ring-1 focus:ring-[rgba(198,123,92,0.2)] transition-all"
+              />
+              <input
+                type="password"
+                placeholder="确认新密码"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl text-sm bg-[var(--bg-muted)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder:text-[var(--text-extreme)] outline-none focus:border-[#c67b5c] focus:ring-1 focus:ring-[rgba(198,123,92,0.2)] transition-all"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+              />
+
+              {pwdError && (
+                <div className="text-xs text-[#c47070] px-1">{pwdError}</div>
+              )}
+              {pwdSuccess && (
+                <div className="text-xs text-[#7d9b76] px-1">{pwdSuccess}</div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={pwdLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, #c67b5c, #b0654a)',
+                }}
+              >
+                {pwdLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                {pwdLoading ? '修改中...' : '确认修改'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
