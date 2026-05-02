@@ -375,13 +375,55 @@ export function ColorPicker({ selectedColors, onColorsChange, maxColors = 6, aiR
 
 function getColorName(hex: string): string {
   const { h, s, l } = hexToHsl(hex)
-  if (l < 10) return '黑色'
-  if (l > 92) return '白色'
-  if (s < 8) {
-    if (l < 30) return '深灰'
-    if (l < 60) return '中灰'
-    return '浅灰'
+  // ── 黑白 ──
+  if (l < 8) return '黑色'
+  if (l > 93) return '白色'
+  // ── 无彩色（灰色系）──
+  if (s < 6) {
+    if (l < 20) return '墨灰'
+    if (l < 35) return '深灰'
+    if (l < 55) return '中灰'
+    if (l < 75) return '浅灰'
+    return '银灰'
   }
+  // ── 低饱和暖色 = 棕色系（棕/驼/卡其/米/奶茶）──
+  if (h < 50 && s >= 6 && s <= 55) {
+    if (l < 25) return '深棕'
+    if (l < 38) return '棕色'
+    if (l < 50) return '驼色'
+    if (l < 62) return '卡其'
+    if (l < 75) return '米色'
+    return '奶白'
+  }
+  // ── 粉红系：高明度 + 红/紫红色相 ──
+  if ((h >= 330 || h < 15) && l > 60 && s >= 10 && s <= 70) {
+    if (s < 30) return '裸粉'
+    if (l > 78) return '浅粉'
+    return '粉红'
+  }
+  // ── 酒红：深色高饱和红 ──
+  if ((h < 20 || h >= 340) && l < 28 && s >= 25) return '酒红'
+  // ── 藏青：极深蓝 ──
+  if (h >= 210 && h <= 260 && l < 18) return '藏青'
+  // ── 墨绿：极深绿 ──
+  if (h >= 100 && h <= 160 && l < 22) return '墨绿'
+  // ── 低饱和蓝 = 灰蓝/雾霾蓝 ──
+  if (h >= 195 && h <= 260 && s >= 6 && s <= 35) {
+    if (l > 55) return '雾霾蓝'
+    return '灰蓝'
+  }
+  // ── 低饱和绿 = 橄榄/豆绿/灰绿 ──
+  if (h >= 60 && h <= 160 && s >= 6 && s <= 30) {
+    if (h < 90) return '橄榄绿'
+    if (l > 50) return '豆绿'
+    return '灰绿'
+  }
+  // ── 低饱和紫 = 薰衣草/灰紫 ──
+  if (h >= 260 && h <= 320 && s >= 6 && s <= 35) {
+    if (l > 60) return '薰衣草'
+    return '灰紫'
+  }
+  // ── 常规色相命名 ──
   const hueNames: [number, string][] = [
     [0, '红色'], [15, '橙红'], [30, '橙色'], [45, '橙黄'],
     [60, '黄色'], [80, '黄绿'], [120, '绿色'], [150, '青绿'],
@@ -395,6 +437,5 @@ function getColorName(hex: string): string {
   let prefix = ''
   if (l < 30) prefix = '深'
   else if (l > 70) prefix = '浅'
-  if (s < 40) prefix += '灰'
   return `${prefix}${hueName}`
 }

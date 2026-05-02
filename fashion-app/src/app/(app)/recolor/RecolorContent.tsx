@@ -65,21 +65,84 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 
 function getColorName(hex: string): string {
   const { h, s, l } = hexToHsl(hex)
-  if (l < 10) return '黑色'
-  if (l > 92) return '白色'
-  if (s < 8) { if (l < 30) return '深灰'; if (l < 60) return '中灰'; return '浅灰' }
+  // ── 黑白 ──
+  if (l < 8) return '黑色'
+  if (l > 93) return '白色'
+  // ── 无彩色（灰色系）──
+  if (s < 6) {
+    if (l < 20) return '墨灰'
+    if (l < 35) return '深灰'
+    if (l < 55) return '中灰'
+    if (l < 75) return '浅灰'
+    return '银灰'
+  }
+  // ── 低饱和暖色 = 棕色系（棕/驼/卡其/米/奶茶）──
+  if (h < 50 && s >= 6 && s <= 55) {
+    if (l < 25) return '深棕'
+    if (l < 38) return '棕色'
+    if (l < 50) return '驼色'
+    if (l < 62) return '卡其'
+    if (l < 75) return '米色'
+    return '奶白'
+  }
+  // ── 粉红系：高明度 + 红/紫红色相 ──
+  if ((h >= 330 || h < 15) && l > 60 && s >= 10 && s <= 70) {
+    if (s < 30) return '裸粉'
+    if (l > 78) return '浅粉'
+    return '粉红'
+  }
+  // ── 酒红：深色高饱和红 ──
+  if ((h < 20 || h >= 340) && l < 28 && s >= 25) return '酒红'
+  // ── 藏青：极深蓝 ──
+  if (h >= 210 && h <= 260 && l < 18) return '藏青'
+  // ── 墨绿：极深绿 ──
+  if (h >= 100 && h <= 160 && l < 22) return '墨绿'
+  // ── 低饱和蓝 = 灰蓝/雾霾蓝 ──
+  if (h >= 195 && h <= 260 && s >= 6 && s <= 35) {
+    if (l > 55) return '雾霾蓝'
+    return '灰蓝'
+  }
+  // ── 低饱和绿 = 橄榄/豆绿/灰绿 ──
+  if (h >= 60 && h <= 160 && s >= 6 && s <= 30) {
+    if (h < 90) return '橄榄绿'
+    if (l > 50) return '豆绿'
+    return '灰绿'
+  }
+  // ── 低饱和紫 = 薰衣草/灰紫 ──
+  if (h >= 260 && h <= 320 && s >= 6 && s <= 35) {
+    if (l > 60) return '薰衣草'
+    return '灰紫'
+  }
+  // ── 常规色相命名 ──
   const hueNames: [number, string][] = [[0,'红色'],[15,'橙红'],[30,'橙色'],[45,'橙黄'],[60,'黄色'],[80,'黄绿'],[120,'绿色'],[150,'青绿'],[180,'青色'],[200,'天蓝'],[220,'蓝色'],[260,'靛蓝'],[280,'紫色'],[310,'紫红'],[340,'玫红'],[360,'红色']]
   let hueName = '红色'
   for (const [t, n] of hueNames) { if (h >= t) hueName = n }
   let prefix = ''
   if (l < 30) prefix = '深'; else if (l > 70) prefix = '浅'
-  if (s < 40) prefix += '灰'
   return `${prefix}${hueName}`
 }
 
-// 根据色相获取色系名称（用于色域替换）
-function getHueFamilyName(hue: number, saturation: number): string {
-  if (saturation < 8) return '灰色系'
+// 根据色相+饱和度+明度获取色系名称（用于色域替换）
+function getHueFamilyName(hue: number, saturation: number, lightness?: number): string {
+  // ── 无彩色 ──
+  if (saturation < 6) return '灰色系'
+  // ── 低饱和暖色 = 棕色系 ──
+  if (hue < 50 && saturation >= 6 && saturation <= 55) return '棕色系'
+  // ── 粉红系：高明度红/玫红色相 ──
+  if ((hue >= 330 || hue < 15) && lightness !== undefined && lightness > 55 && saturation >= 10 && saturation <= 70) return '粉红系'
+  // ── 酒红系：深色高饱和红 ──
+  if ((hue < 20 || hue >= 340) && lightness !== undefined && lightness < 30 && saturation >= 25) return '酒红系'
+  // ── 藏青系：极深蓝 ──
+  if (hue >= 210 && hue <= 260 && lightness !== undefined && lightness < 20) return '藏青系'
+  // ── 墨绿系：极深绿 ──
+  if (hue >= 100 && hue <= 160 && lightness !== undefined && lightness < 24) return '墨绿系'
+  // ── 灰蓝系：低饱和蓝 ──
+  if (hue >= 195 && hue <= 260 && saturation >= 6 && saturation <= 35) return '灰蓝系'
+  // ── 橄榄绿系：低饱和绿/黄绿 ──
+  if (hue >= 60 && hue <= 160 && saturation >= 6 && saturation <= 30) return '橄榄绿系'
+  // ── 灰紫系：低饱和紫 ──
+  if (hue >= 260 && hue <= 320 && saturation >= 6 && saturation <= 35) return '灰紫系'
+  // ── 常规色相 ──
   const hueNames: [number, string][] = [[0,'红色系'],[15,'橙红系'],[30,'橙色系'],[45,'橙黄系'],[60,'黄色系'],[80,'黄绿系'],[120,'绿色系'],[150,'青绿系'],[180,'青色系'],[200,'天蓝系'],[220,'蓝色系'],[260,'靛蓝系'],[280,'紫色系'],[310,'紫红系'],[340,'玫红系'],[360,'红色系']]
   let name = '红色系'
   for (const [t, n] of hueNames) { if (hue >= t) name = n }
@@ -493,7 +556,7 @@ export default function RecolorContent() {
       const gradient = generateGradient(centerHsl.h, centerHsl.s, Math.max(centerHsl.l - 20, 10), Math.min(centerHsl.l + 20, 85))
       return {
         hue: centerHsl.h, saturation: centerHsl.s, lightMin: Math.max(centerHsl.l - 20, 10), lightMax: Math.min(centerHsl.l + 20, 85),
-        representativeHex: centerHex.toUpperCase(), gradient, familyName: getHueFamilyName(centerHsl.h, centerHsl.s),
+        representativeHex: centerHex.toUpperCase(), gradient, familyName: getHueFamilyName(centerHsl.h, centerHsl.s, centerHsl.l),
       }
     }
 
@@ -541,7 +604,7 @@ export default function RecolorContent() {
     return {
       hue: dominantHue, saturation: medianSat, lightMin, lightMax,
       representativeHex: representativeHex.toUpperCase(), gradient,
-      familyName: getHueFamilyName(dominantHue, medianSat),
+      familyName: getHueFamilyName(dominantHue, medianSat, midLight),
     }
   }, [])
 
