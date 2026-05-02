@@ -227,18 +227,29 @@ export default function ProductionSheetContent() {
     return () => window.removeEventListener('resize', updateZoom)
   }, [isExportMode])
 
-  const handleUpload = async (url: string) => {
+  const handleUpload = (url: string) => {
     setImageUrl(url)
     if (!url) {
       setGen({ showTable: false, error: '' })
+      setProductData({
+        name: '等待识别...',
+        material: '等待识别...',
+        accessories: '等待识别...',
+        date: new Date().toLocaleDateString('zh-CN'),
+        specs: INITIAL_SPECS,
+      })
       return
     }
-    // 防止重复提交：正在处理中时忽略新上传
-    if (genState.isProcessing) return
+    // 上传后不自动分析，等待用户点击"开始分析"按钮
+    setGen({ showTable: false, error: '' })
+  }
+
+  const handleStartAnalysis = async () => {
+    if (!imageUrl || genState.isProcessing) return
 
     setGen({ isProcessing: true, error: '' })
     try {
-      const data = await workspaceApi.analyzeProductionSheet(url)
+      const data = await workspaceApi.analyzeProductionSheet(imageUrl)
       updateCredits(data.credits)
 
       const baseS = {
@@ -261,7 +272,7 @@ export default function ProductionSheetContent() {
       // 保存到历史记录
       const record: HistoryRecord = {
         id: Date.now().toString(),
-        imageUrl: url,
+        imageUrl,
         productData: {
           name: data.styleName || '欧美女装款式',
           material: data.material || '自定义面料',
@@ -474,8 +485,23 @@ export default function ProductionSheetContent() {
                   value={imageUrl}
                   onChange={handleUpload}
                   sourceType="clothing"
-                  helperText="上传服装生产单或样照，AI 将自动解析"
+                  helperText="上传服装生产单或样照"
                 />
+                {imageUrl && !showTable && (
+                  <button
+                    type="button"
+                    onClick={handleStartAnalysis}
+                    disabled={isProcessing}
+                    className="w-full mt-3 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: isProcessing ? '#b0a59a' : 'linear-gradient(135deg, #c67b5c, #d4a882)', boxShadow: isProcessing ? 'none' : '0 4px 16px rgba(198,123,92,0.3)' }}
+                  >
+                    {isProcessing ? (
+                      <><Loader2 size={16} className="animate-spin" /> AI 分析中...</>
+                    ) : (
+                      <><Scissors size={16} /> 开始分析</>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* 款式参数 */}
